@@ -5,7 +5,9 @@
 import { randomUUID } from 'node:crypto'
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+
+import { disposableAccounts } from '../../../../scripts/supabase-local/disposable-accounts'
 
 const url = process.env.SUPABASE_LOCAL_URL
 const anonKey = process.env.SUPABASE_LOCAL_ANON_KEY ?? ''
@@ -38,13 +40,14 @@ describe.skipIf(url === undefined)('delete-account sur une pile Supabase locale'
   let admin: SupabaseClient
   let sophie: Account
   let other: Account
+  const accounts = disposableAccounts()
 
   async function createAccount(): Promise<Account> {
     const email = `${randomUUID()}@exemple.test`
     const password = 'mot-de-passe-de-test'
     const created = await admin.auth.admin.createUser({ email, password, email_confirm: true })
     if (created.error) throw created.error
-    const userId = created.data.user.id
+    const userId = accounts.created(created.data.user.id)
     const now = new Date().toISOString()
     const device = randomUUID()
     const stamps = {
@@ -147,11 +150,14 @@ describe.skipIf(url === undefined)('delete-account sur une pile Supabase locale'
     other = await createAccount()
   })
 
+  afterAll(() => accounts.removeAll(admin))
+
   it('garde dans le jeton l’heure de la saisie du mot de passe quand la session se rafraîchit', async () => {
     const email = `${randomUUID()}@exemple.test`
     const password = 'mot-de-passe-de-test'
     const created = await admin.auth.admin.createUser({ email, password, email_confirm: true })
     if (created.error) throw created.error
+    accounts.created(created.data.user.id)
     const client = createClient(url!, anonKey, options)
     const claims = (token: string) =>
       JSON.parse(Buffer.from(token.split('.')[1]!, 'base64url').toString()) as {
@@ -171,7 +177,6 @@ describe.skipIf(url === undefined)('delete-account sur une pile Supabase locale'
     expect(before.auth_time).toBeUndefined()
     expect(after.iat).toBeGreaterThan(before.iat)
     expect(after.amr).toEqual([{ method: 'password', timestamp: before.iat }])
-    await admin.auth.admin.deleteUser(created.data.user.id, false)
   })
 
   it('supprimer le compte seul laisserait ses photos dans le stockage', async () => {
@@ -184,7 +189,6 @@ describe.skipIf(url === undefined)('delete-account sur une pile Supabase locale'
       photos: [owner.photo.slice(owner.userId.length + 1)],
       rows: {},
     })
-    await admin.storage.from('animal-photos').remove([owner.photo])
   })
 
   it('ne laisse rien du compte : ni utilisateur, ni photo, ni ligne', async () => {
@@ -226,7 +230,6 @@ describe.skipIf(url === undefined)('delete-account sur une pile Supabase locale'
 
     expect(response.status).toBe(401)
     expect((await leftovers(account)).user).toBe(account.userId)
-    await callAdmin({ email: account.email, scope: 'account' })
   })
 
   it.skipIf(adminSecret === undefined)(
@@ -245,7 +248,6 @@ describe.skipIf(url === undefined)('delete-account sur une pile Supabase locale'
         photos: [],
         rows: { plus_entitlements: 1 },
       })
-      await callAdmin({ email: account.email, scope: 'account' })
     },
   )
 
