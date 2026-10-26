@@ -251,7 +251,7 @@ describe('PlusView — offres', () => {
     const wrapper = await monter()
 
     expect(offres(wrapper).map((offre) => offre.get('.plus-offer__detail').text())).toEqual([
-      '≈ 44 % d’économie vs mensuel',
+      '≈ 46 % d’économie vs mensuel',
       'Sans engagement',
       'Paiement unique, pour toujours.',
     ])

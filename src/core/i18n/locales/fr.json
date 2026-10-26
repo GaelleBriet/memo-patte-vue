@@ -1831,7 +1831,7 @@
       "annual": {
         "label": "Plus annuel",
         "price": "{price}/an",
-        "detail": "≈ 44 % d’économie vs mensuel",
+        "detail": "≈ 46 % d’économie vs mensuel",
         "terms": "Renouvellement automatique chaque année. Annulable à tout moment dans Google Play — accès conservé jusqu’à la fin de la période payée.",
         "submit": "Continuer avec Plus annuel — {price}"
       },
