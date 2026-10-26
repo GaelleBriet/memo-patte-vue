@@ -131,6 +131,7 @@ function describeDelta(value: WeightDelta): { text: string; trend: 'up' | 'down'
 }
 
 .weight-section__history {
+  position: relative;
   display: inline-flex;
   align-items: center;
   align-self: center;
