@@ -127,9 +127,9 @@ describe('initialisation paresseuse', () => {
 describe('listOffers', () => {
   it('liste les trois offres du plus court au plus long, avec leur prix localisé', async () => {
     await expect(nativeService(API_KEY).listOffers()).resolves.toEqual([
-      { plan: 'monthly', priceString: '1,49 €' },
-      { plan: 'annual', priceString: '9,99 €' },
-      { plan: 'lifetime', priceString: '29,99 €' },
+      { plan: 'monthly', priceString: '1,99 €' },
+      { plan: 'annual', priceString: '12,99 €' },
+      { plan: 'lifetime', priceString: '39,99 €' },
     ])
   })
 
@@ -139,7 +139,7 @@ describe('listOffers', () => {
     const service = nativeService(API_KEY)
 
     await expect(service.listOffers()).resolves.toEqual([
-      { plan: 'lifetime', priceString: '29,99 €' },
+      { plan: 'lifetime', priceString: '39,99 €' },
     ])
 
     plugin.getOfferings.mockResolvedValueOnce({ all: {}, current: null })
