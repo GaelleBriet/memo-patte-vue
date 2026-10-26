@@ -37,7 +37,7 @@ async function refusalOf(promise: Promise<unknown>): Promise<{ reason: string; c
 
 describe.skipIf(url === undefined)('mot de passe actuel exigé par la pile Supabase locale', () => {
   let admin: SupabaseClient
-  const accounts = disposableAccounts()
+  const accounts = disposableAccounts(url)
 
   type Account = { email: string; client: SupabaseClient; repository: AuthRepository }
 

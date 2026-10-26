@@ -24,7 +24,7 @@ type Case = { userId: string; dates: AccountDates; instants: number[] }
 
 describe.skipIf(url === undefined)('inactive-accounts sur une pile Supabase locale', () => {
   let admin: SupabaseClient
-  const accounts = disposableAccounts()
+  const accounts = disposableAccounts(url)
 
   async function createAccount(confirmed = true): Promise<{ userId: string; createdAt: string }> {
     const created = await admin.auth.admin.createUser({
