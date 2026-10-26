@@ -171,8 +171,9 @@ describe('Un jour d’origine avant une date choisie : la date choisie cède ses
   })
 
   // Milo, tous les jours à 8 h et 20 h dès le 11 avril ; le 9, 8 h du 11 reportée au 15 avec la case ;
-  // le 11, « Modifier », « Prochaine dose » le 13 ; 8 h du 13 déplacée au 12 sans la case.
-  function backTo11(shiftsFollowing: boolean) {
+  // le 11, « Modifier », « Prochaine dose » le 13 ; 8 h du 13 déplacée au 12 sans la case. Avec la
+  // case, le retour au 11 relève de #1303 (`dose-calendar.dose-avancee-avant-date-choisie.spec.ts`).
+  function backTo11() {
     const start: TreatmentViewInput = {
       settings: [setting('p1', '2026-04-11', { value: 1, unit: 'day' }, ['08:00', '20:00'])],
       lines: [],
@@ -186,35 +187,13 @@ describe('Un jour d’origine avant une date choisie : la date choisie cède ses
       firstDueOn: '2026-04-13',
     })
     const at12 = moved(chosen, '2026-04-13', '08:00', '2026-04-12', false)
-    return moved(at12, '2026-04-12', '08:00', '2026-04-11', shiftsFollowing)
+    return moved(at12, '2026-04-12', '08:00', '2026-04-11', false)
   }
 
-  it.each([false, true])(
-    'case %s : 8 h du 12 ramenée au 11 ne laisse jamais de dose à la fois le 11 et le 13',
-    (shiftsFollowing) => {
-      const after = backTo11(shiftsFollowing)
-      const onBoth = ['2026-04-11', '2026-04-13'].every(
-        (day) => dosesOn(after, day).moteur.length > 0,
-      )
-
-      expect(onBoth).toBe(false)
-    },
-  )
-
   it('sans la case : 8 h du 12 ramenée au 11 : le 11 à 8 h et 20 h, le 13 ne garde rien', () => {
-    const after = backTo11(false)
+    const after = backTo11()
 
     expect(dosesOn(after, '2026-04-11')).toEqual(both(['2026-04-11 08:00', '2026-04-11 20:00']))
     expect(dosesOn(after, '2026-04-13')).toEqual(both([]))
   })
-
-  it.fails(
-    'en attente de #1303 — avec la case : 8 h du 12 ramenée au 11 : le 11 à 8 h et 20 h, le 13 ne garde rien',
-    () => {
-      const after = backTo11(true)
-
-      expect(dosesOn(after, '2026-04-11')).toEqual(both(['2026-04-11 08:00', '2026-04-11 20:00']))
-      expect(dosesOn(after, '2026-04-13')).toEqual(both([]))
-    },
-  )
 })

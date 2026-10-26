@@ -1,8 +1,12 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { treatmentView, type Line } from '../domain/dose-calendar'
-import { chosenArrivalKept, reportToRewrite } from '../domain/dose-calendar/gestures/moved-report'
+import { treatmentView, type Line, type Setting } from '../domain/dose-calendar'
+import {
+  chosenArrivalKept,
+  homeLine,
+  reportToRewrite,
+} from '../domain/dose-calendar/gestures/moved-report'
 import { line, setting, WEEK } from './dose-calendar.v2.aides'
 
 // Jeudis de mars : 5, 12, 19, 26.
@@ -81,5 +85,39 @@ describe('l’arrivée d’avant que garde un report tourné depuis une date cho
       previousTargetOn: '2026-04-06',
       previousTargetTime: '08:00',
     })
+  })
+})
+
+describe('le report ramené à son jour d’origine sorti du calendrier (R7, Q55, #1282)', () => {
+  // Jeudis de mars ; le mardi 10 n'est pas une journée de la grille.
+  function broughtHome(settings: Setting[], targetOn: string) {
+    const away = line('p1', 'postponed', '2026-03-10', '08:00', targetOn)
+    const input = { settings, lines: [away], today: '2026-03-08' }
+    const home = { ...away, targetOn: away.dueOn }
+    return { change: homeLine(input, away, undefined, home), away }
+  }
+
+  it('arrivé hors rythme avec ses seules doses : il reste, arrivé sur son jour d’origine', () => {
+    const { change, away } = broughtHome([p1], '2026-03-14')
+    expect(change).toMatchObject({
+      action: 'rewrite',
+      id: away.id,
+      line: { targetOn: '2026-03-10' },
+    })
+  })
+
+  it('arrivé sur une journée de la grille, qui a d’autres doses : il est supprimé', () => {
+    const { change, away } = broughtHome([p1], '2026-03-12')
+    expect(change).toEqual({ action: 'delete', id: away.id })
+  })
+
+  // Samedi 21 choisi par un « Modifier », puis un autre réglage des mercredis : le 21 n'a plus de dose.
+  it('arrivé sur une date choisie : il est supprimé', () => {
+    const chooser = setting('p2', '2026-03-21', WEEK, ['08:00', '14:00', '20:00'], {
+      startsOn: '2026-03-15',
+    })
+    const wednesdays = setting('p3', '2026-03-18', WEEK, ['08:00', '14:00', '20:00'])
+    const { change, away } = broughtHome([p1, chooser, wednesdays], '2026-03-21')
+    expect(change).toEqual({ action: 'delete', id: away.id })
   })
 })

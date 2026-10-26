@@ -4159,8 +4159,9 @@ délégué les lectures de règles ; remplace Q56, qui laissait ses doses à la 
 Q50). Les doses de la date choisie sont celles que le report y avait emmenées : quand il repart, elles
 repartent avec lui. Milo, tous les jours à 8 h et 20 h dès le 11 avril ; le 9, 8 h du 11 reportée au
 15 avec la case ; le 11, « Modifier » : « Prochaine dose » le 13 ; 8 h du 13 déplacée au 12 sans la
-case, puis ramenée au 11, avec ou sans la case : le 11 à 8 h et 20 h, le 13 ne garde rien (et jamais
-les deux à la fois). Une date choisie aux heures différentes (6 h, 12 h, 18 h et 23 h le 6 mars, report
+case, puis ramenée au 11 sans la case : le 11 à 8 h et 20 h, le 13 ne garde rien. Avec la case :
+limite connue #1303 (aujourd'hui rien au 11 et le 13 garde ses doses ; G13 attend la série depuis le
+11). Une date choisie aux heures différentes (6 h, 12 h, 18 h et 23 h le 6 mars, report
 parti du 3 à 8 h) : le 3 reçoit 6 h, 12 h, 18 h et 23 h, le 6 ne garde rien. Le retour de Q55 ne
 s'applique pas à un jour d'origine d'avant une date choisie : ce cas relève de la réécriture du report
 depuis la date choisie (#1283). — Raison : rien n'apparaît sans geste (Q51), comme toute dose touchée
