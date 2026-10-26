@@ -25,7 +25,7 @@ function signatureIn(header: string): Signature | null {
   return { t, v1 }
 }
 
-async function hmacSha256Hex(secret: string, message: Uint8Array): Promise<string> {
+async function hmacSha256Hex(secret: string, message: Uint8Array<ArrayBuffer>): Promise<string> {
   const encoder = new TextEncoder()
   const key = await crypto.subtle.importKey(
     'raw',
@@ -38,7 +38,7 @@ async function hmacSha256Hex(secret: string, message: Uint8Array): Promise<strin
   return Array.from(mac, (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
-function signedPayload(t: string, body: Uint8Array): Uint8Array {
+function signedPayload(t: string, body: Uint8Array): Uint8Array<ArrayBuffer> {
   const prefix = new TextEncoder().encode(`${t}.`)
   const payload = new Uint8Array(prefix.length + body.length)
   payload.set(prefix)
