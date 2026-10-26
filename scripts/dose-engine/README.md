@@ -54,8 +54,9 @@ moment ou non (`symmetryAhead`). La case vient d'une seule condition pour « Fai
 sans exclusion (#1242, #1255). « Dose déplacée présente » (`v2-invariants-moved.ts`, R7, R11,
 #1274) : « Prochaine dose » accepté, la dose touchée et les heures suivantes encore à donner de sa
 journée se retrouvent au jour choisi (une même heure comptée une fois). Compteur informatif de cette
-campagne seule (« dose déplacée absente (informatif) N : graines … ») tant que #1281, #1283 et
-#1284 restent ouverts ; leurs graines 670000231, 670000934 et 690000860 sont épinglées en `it.fails`.
+campagne seule (« dose déplacée absente (informatif) N : graines … ») tant que #1281, #1284 et
+#1285 restent ouverts ; les graines 670000231 et 690000860 sont épinglées en `it.fails`, 670000934
+(#1283) et 9500001489 (#1282), corrigées, se rejouent en `it`.
 « Doses à donner » (`v2-invariants-count.ts`, Q51), informatif aussi : un déplacement ou la
 suppression d'un report ne fait pas monter le nombre de doses à donner jusqu'à la journée qui suit
 les jours touchés, hors doses rendues à renseigner (G21) ; un geste qui écrit ou supprime un

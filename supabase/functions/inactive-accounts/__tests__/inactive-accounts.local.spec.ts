@@ -5,8 +5,9 @@
 import { randomUUID } from 'node:crypto'
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { disposableAccounts } from '../../../../scripts/supabase-local/disposable-accounts'
 import { candidateFrom, noticeRowOf, type CandidateRow } from '../candidate-row'
 import { CRON_SECRET_HEADER } from '../inactive-accounts'
 import { purgeStepsOf, type AccountDates, type PurgeNotice } from '../purge-calendar'
@@ -23,6 +24,7 @@ type Case = { userId: string; dates: AccountDates; instants: number[] }
 
 describe.skipIf(url === undefined)('inactive-accounts sur une pile Supabase locale', () => {
   let admin: SupabaseClient
+  const accounts = disposableAccounts(url)
 
   async function createAccount(confirmed = true): Promise<{ userId: string; createdAt: string }> {
     const created = await admin.auth.admin.createUser({
@@ -32,7 +34,10 @@ describe.skipIf(url === undefined)('inactive-accounts sur une pile Supabase loca
       user_metadata: { locale: 'fr' },
     })
     if (created.error) throw created.error
-    return { userId: created.data.user.id, createdAt: created.data.user.created_at }
+    return {
+      userId: accounts.created(created.data.user.id),
+      createdAt: created.data.user.created_at,
+    }
   }
 
   async function withPlus(
@@ -74,6 +79,8 @@ describe.skipIf(url === undefined)('inactive-accounts sur une pile Supabase loca
       auth: { persistSession: false, autoRefreshToken: false },
     })
   })
+
+  afterAll(() => accounts.removeAll(admin))
 
   it('la liste SQL et le calendrier de la fonction donnent la même étape aux mêmes instants', async () => {
     const sinceCreation = (createdAt: string, days: number[]) =>

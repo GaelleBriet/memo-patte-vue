@@ -4,8 +4,9 @@
 import { randomUUID } from 'node:crypto'
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { disposableAccounts } from '../../../../scripts/supabase-local/disposable-accounts'
 import { createAnimalPhotoDelete } from '../animal-photo-delete'
 import { createAnimalPhotoDownload } from '../animal-photo-download'
 import { createAnimalPhotoUpload } from '../animal-photo-upload'
@@ -21,13 +22,14 @@ const photoName = () => `${randomUUID()}.jpg`
 
 describe.skipIf(url === undefined)('effacement des photos sur une pile Supabase locale', () => {
   let admin: SupabaseClient
+  const accounts = disposableAccounts(url)
 
   async function signedIn(): Promise<{ userId: string; client: SupabaseClient }> {
     const email = `${randomUUID()}@exemple.test`
     const password = 'mot-de-passe-de-test'
     const created = await admin.auth.admin.createUser({ email, password, email_confirm: true })
     if (created.error) throw created.error
-    const userId = created.data.user.id
+    const userId = accounts.created(created.data.user.id)
     const { error } = await admin
       .from('plus_entitlements')
       .insert({ user_id: userId, active: true, product_type: 'annual' })
@@ -47,6 +49,8 @@ describe.skipIf(url === undefined)('effacement des photos sur une pile Supabase 
   beforeAll(() => {
     admin = createClient(url!, secretKey, options)
   })
+
+  afterAll(() => accounts.removeAll(admin))
 
   it('efface la photo du dossier, même pour un compte dont Plus n’est plus actif', async () => {
     const { userId, client } = await signedIn()

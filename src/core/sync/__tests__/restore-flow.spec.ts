@@ -103,6 +103,21 @@ describe('parcours de restauration', () => {
     expect(restored).not.toHaveBeenCalled()
   })
 
+  it('rien à restaurer : le carnet est annoncé prêt, comme après une restauration', async () => {
+    const runner = fakeRunner({
+      run: vi.fn<RestoreRunner['run']>(async () => 'nothing-to-restore'),
+    })
+    const flow = createRestoreFlow(runner)
+    const restored = vi.fn<() => void>()
+    flow.onRestored(restored)
+    await runner.start('merge')
+
+    await expect(flow.resume()).resolves.toBe(true)
+
+    expect(flow.state.value).toEqual({ step: 'done' })
+    expect(restored).toHaveBeenCalledOnce()
+  })
+
   it('journalise le message d’une lecture ratée de la restauration en attente, en développement', async () => {
     vi.stubEnv('DEV', true)
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})

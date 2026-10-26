@@ -6,6 +6,7 @@
   "include": [
     "src/**/__tests__/*",
     "scripts/dose-engine/*.ts",
+    "scripts/supabase-local/*.ts",
     "scripts/test-device/*.ts",
     "supabase/functions/**/*.ts",
     "env.d.ts",
