@@ -32,6 +32,13 @@ d'un nouveau téléphone avec le même compte Google. Ticket : #82 (0.4).
 Avec un `<include>` présent, Android ne sauvegarde **que** ce qui est inclus ;
 les `<exclude>` sont là pour rendre l'intention lisible.
 
+Le lint d'Android signale ces exclusions (« is not in an included path »,
+contrôle `FullBackupContent`) et fait échouer `bundleRelease`. Seul ce message
+est écarté, par `android/app/lint.xml` : les exclusions restent une seconde
+barrière si la liste d'inclusion s'élargit, et une faute de frappe dans un
+domaine reste détectée. `regles-sauvegarde-android.spec.ts` vérifie qu'elles
+restent présentes.
+
 ## Conséquences pour le code
 
 - Le chemin des photos doit être exactement `photos/` sous `Directory.Data`
