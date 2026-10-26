@@ -152,29 +152,23 @@ const dosesOn = (input: TreatmentViewInput, day: string) => {
 // Q58 : emmené par une date choisie, le report qui rentre chez lui en emporte les doses ; la date
 // choisie ne garde rien. Le jour d'origine avant une date choisie relève de #1283 (`homeBeforeChosen`).
 describe('Un jour d’origine avant une date choisie : la date choisie cède ses doses (Q58, #1282, #1283)', () => {
-  it.fails(
-    'en attente de #1283 — graine 731001499 : 6 h du 6 mars ramenée au 3 : le 3 reçoit 6 h, 12 h, 18 h et 23 h, le 6 ne garde rien',
-    () => {
-      const { gesture, after } = stepOf(731_001_499, 4)
+  it('graine 731001499 : 6 h du 6 mars ramenée au 3 : le 3 reçoit 6 h, 12 h, 18 h et 23 h, le 6 ne garde rien', () => {
+    const { gesture, after } = stepOf(731_001_499, 4)
 
-      expect(gesture).toMatchObject({ kind: 'move', to: '2026-03-03' })
-      expect(dosesOn(after, '2026-03-03')).toEqual(
-        both(['2026-03-03 06:00', '2026-03-03 12:00', '2026-03-03 18:00', '2026-03-03 23:00']),
-      )
-      expect(dosesOn(after, '2026-03-06')).toEqual(both([]))
-    },
-  )
+    expect(gesture).toMatchObject({ kind: 'move', to: '2026-03-03' })
+    expect(dosesOn(after, '2026-03-03')).toEqual(
+      both(['2026-03-03 06:00', '2026-03-03 12:00', '2026-03-03 18:00', '2026-03-03 23:00']),
+    )
+    expect(dosesOn(after, '2026-03-06')).toEqual(both([]))
+  })
 
-  it.fails(
-    'en attente de #1283 — graine 731002541 : 20 h du 28 mars ramenée au 24 : le 24 reçoit 20 h, le 28 ne garde rien',
-    () => {
-      const { gesture, after } = stepOf(731_002_541, 16)
+  it('graine 731002541 : 20 h du 28 mars ramenée au 24 : le 24 reçoit 20 h, le 28 ne garde rien', () => {
+    const { gesture, after } = stepOf(731_002_541, 16)
 
-      expect(gesture).toMatchObject({ kind: 'move', to: '2026-03-24' })
-      expect(dosesOn(after, '2026-03-24')).toEqual(both(['2026-03-24 20:00']))
-      expect(dosesOn(after, '2026-03-28')).toEqual(both([]))
-    },
-  )
+    expect(gesture).toMatchObject({ kind: 'move', to: '2026-03-24' })
+    expect(dosesOn(after, '2026-03-24')).toEqual(both(['2026-03-24 20:00']))
+    expect(dosesOn(after, '2026-03-28')).toEqual(both([]))
+  })
 
   // Milo, tous les jours à 8 h et 20 h dès le 11 avril ; le 9, 8 h du 11 reportée au 15 avec la case ;
   // le 11, « Modifier », « Prochaine dose » le 13 ; 8 h du 13 déplacée au 12 sans la case.
@@ -207,10 +201,17 @@ describe('Un jour d’origine avant une date choisie : la date choisie cède ses
     },
   )
 
-  it.fails.each([false, true])(
-    'en attente de #1283 — case %s : 8 h du 12 ramenée au 11 : le 11 à 8 h et 20 h, le 13 ne garde rien',
-    (shiftsFollowing) => {
-      const after = backTo11(shiftsFollowing)
+  it('sans la case : 8 h du 12 ramenée au 11 : le 11 à 8 h et 20 h, le 13 ne garde rien', () => {
+    const after = backTo11(false)
+
+    expect(dosesOn(after, '2026-04-11')).toEqual(both(['2026-04-11 08:00', '2026-04-11 20:00']))
+    expect(dosesOn(after, '2026-04-13')).toEqual(both([]))
+  })
+
+  it.fails(
+    'en attente de #1303 — avec la case : 8 h du 12 ramenée au 11 : le 11 à 8 h et 20 h, le 13 ne garde rien',
+    () => {
+      const after = backTo11(true)
 
       expect(dosesOn(after, '2026-04-11')).toEqual(both(['2026-04-11 08:00', '2026-04-11 20:00']))
       expect(dosesOn(after, '2026-04-13')).toEqual(both([]))
