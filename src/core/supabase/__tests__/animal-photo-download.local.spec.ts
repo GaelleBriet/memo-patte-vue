@@ -26,7 +26,7 @@ const photoName = () => `${randomUUID()}.jpg`
 
 describe.skipIf(url === undefined)('téléchargement des photos sur une pile Supabase locale', () => {
   let admin: SupabaseClient
-  const accounts = disposableAccounts()
+  const accounts = disposableAccounts(url)
 
   async function signedIn(plus: boolean): Promise<{ userId: string; client: SupabaseClient }> {
     const email = `${randomUUID()}@exemple.test`
