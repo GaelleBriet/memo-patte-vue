@@ -112,7 +112,7 @@ const toLogRows = computed(() => props.rows.filter((row) => row.group === 'to-lo
   border-top: 1px solid tokens.$color-divider;
   background: tokens.$color-to-log-group-surface;
   color: tokens.$color-text-secondary;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;

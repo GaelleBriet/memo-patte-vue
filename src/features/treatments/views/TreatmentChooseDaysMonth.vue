@@ -136,7 +136,7 @@ const toggleAll = computed(() =>
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   color: tokens.$color-text-meta;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   text-align: center;
 }
