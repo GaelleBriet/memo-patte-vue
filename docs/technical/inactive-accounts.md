@@ -73,8 +73,8 @@ La demande du cron ne peut jamais changer le mode : son corps n'est pas lu.
 `REVENUECAT_WEBHOOK_AUTHORIZATION` (au moins 32 caractères, comme le secret du cron et
 `ADMIN_DELETE_SECRET` : la règle est écrite une seule fois, dans `_shared/shared-secret.ts`),
 `REVENUECAT_WEBHOOK_SIGNING_SECRET` (le secret « HMAC webhook signing » de RevenueCat) et
-`REVENUECAT_SECRET_KEY`. Sans l'un des deux premiers, avec un en-tête trop court, ou avec deux
-premiers identiques (ils doivent être différents), chaque envoi reçoit `503` `webhook-not-configured`. Contrôles d'un envoi :
+`REVENUECAT_SECRET_KEY`. Sans l'un des deux premiers, avec un en-tête trop court, ou si ces deux
+secrets sont identiques, chaque envoi reçoit `503` `webhook-not-configured`. Contrôles d'un envoi :
 [billing-plugins-capacitor.md §4.3](billing-plugins-capacitor.md#43-avec-revenuecat).
 
 **Canal d'e-mail** : aucun n'est branché (`NO_EMAIL_CHANNEL`). Sans canal, même en `apply`, la passe
