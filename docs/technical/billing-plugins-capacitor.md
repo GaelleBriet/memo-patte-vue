@@ -320,9 +320,9 @@ signer.
 toute lecture de RevenueCat et toute écriture en base :
 
 1. `REVENUECAT_WEBHOOK_AUTHORIZATION` (au moins 32 caractères) et
-   `REVENUECAT_WEBHOOK_SIGNING_SECRET` posés dans les secrets de la fonction, et différents l'un de
-   l'autre (#1330). L'un manque, l'en-tête attendu est trop court, ou les deux valeurs sont
-   identiques : **tout est refusé**, `503` `webhook-not-configured`, et le journal nomme la ou les
+   `REVENUECAT_WEBHOOK_SIGNING_SECRET` posés dans les secrets de la fonction, l'en-tête ne contenant
+   pas le secret de signature (#1330). L'un manque, l'en-tête attendu est trop court, ou il contient
+   le secret de signature (valeur identique, `Bearer <secret>`…) : **tout est refusé**, `503` `webhook-not-configured`, et le journal nomme la ou les
    variables sans citer leur valeur ;
 2. en-tête `Authorization` identique au secret, comparé en temps constant, sinon `401` ;
 3. en-tête `X-RevenueCat-Webhook-Signature: t=<horodatage>,v1=<hmac_sha256_hex>` : exactement un
@@ -556,9 +556,8 @@ sa rotation, et ne se relit plus ensuite : le coller aussitôt dans le secret
 génère un nouveau et invalide l'ancien tout de suite ; reposer le secret de la fonction dans la
 foulée. Un envoi refusé entre-temps est relancé par RevenueCat au plus 5 fois (environ 2,5, 5, 10, 20
 et 40 minutes après, soit une fenêtre d'environ 80 minutes) ; au-delà, l'événement est **perdu**. Sans
-ce secret dans la fonction, chaque envoi reçoit `503` `webhook-not-configured`. Les deux secrets
-doivent être différents : un secret de signature identique à l'en-tête d'autorisation est écarté, et
-chaque envoi reçoit aussi `503` `webhook-not-configured`.
+ce secret dans la fonction, chaque envoi reçoit `503` `webhook-not-configured`. L'en-tête d'autorisation ne doit pas contenir le secret de signature (ni identique, ni `Bearer <secret>`) :
+sinon le secret de signature est écarté, et chaque envoi reçoit aussi `503` `webhook-not-configured`.
 
 ### 7.3 Projet
 

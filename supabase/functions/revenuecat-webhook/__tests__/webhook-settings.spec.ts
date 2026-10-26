@@ -10,6 +10,7 @@ import { webhookSettingsFrom } from '../webhook-settings'
 const AUTHORIZATION_32 = 'Bearer ' + 'a'.repeat(25)
 const AUTHORIZATION_31 = 'Bearer ' + 'b'.repeat(24)
 const SIGNING_SECRET = 'whsec_secret-de-signature'
+const LEAKED_SECRET = 'whsec_' + 'c'.repeat(30)
 const BOTH_NAMES = ['REVENUECAT_WEBHOOK_AUTHORIZATION', 'REVENUECAT_WEBHOOK_SIGNING_SECRET']
 
 function settingsOf(env: Record<string, string>) {
@@ -65,42 +66,59 @@ describe('webhookSettingsFrom', () => {
     ).toEqual({ expectedAuthorization: undefined, signingSecret: undefined })
   })
 
-  it('écarte le secret de signature quand il recopie l’en-tête, et nomme les deux sans leur valeur', () => {
+  it.each([
+    ['identique', LEAKED_SECRET],
+    ['précédé de Bearer', `Bearer ${LEAKED_SECRET}`],
+    ['en préfixe', `${LEAKED_SECRET}-fin`],
+    ['au milieu', `début-${LEAKED_SECRET}-fin`],
+  ])(
+    'écarte le secret de signature contenu dans l’en-tête (%s), et nomme les deux sans leur valeur',
+    (_, authorization) => {
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      const settings = settingsOf({
+        REVENUECAT_WEBHOOK_AUTHORIZATION: authorization,
+        REVENUECAT_WEBHOOK_SIGNING_SECRET: LEAKED_SECRET,
+      })
+
+      expect(settings).toEqual({ expectedAuthorization: authorization, signingSecret: undefined })
+      expect(error).toHaveBeenCalledOnce()
+      const written = JSON.stringify(error.mock.calls)
+      for (const name of BOTH_NAMES) expect(written).toContain(name)
+      expect(written).toContain('ne doit pas contenir')
+      expect(written).not.toContain(LEAKED_SECRET)
+    },
+  )
+
+  it('cherche le secret dans l’en-tête après le retrait des espaces', () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     const settings = settingsOf({
-      REVENUECAT_WEBHOOK_AUTHORIZATION: AUTHORIZATION_32,
-      REVENUECAT_WEBHOOK_SIGNING_SECRET: AUTHORIZATION_32,
-    })
-
-    expect(settings).toEqual({ expectedAuthorization: AUTHORIZATION_32, signingSecret: undefined })
-    expect(error).toHaveBeenCalledOnce()
-    const written = JSON.stringify(error.mock.calls)
-    for (const name of BOTH_NAMES) expect(written).toContain(name)
-    expect(written).toContain('différents')
-    expect(written).not.toContain(AUTHORIZATION_32)
-  })
-
-  it('compare les deux valeurs après le retrait des espaces', () => {
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
-
-    const settings = settingsOf({
-      REVENUECAT_WEBHOOK_AUTHORIZATION: ` ${AUTHORIZATION_32}\n`,
-      REVENUECAT_WEBHOOK_SIGNING_SECRET: `\t${AUTHORIZATION_32}  `,
+      REVENUECAT_WEBHOOK_AUTHORIZATION: ` Bearer ${LEAKED_SECRET}\n`,
+      REVENUECAT_WEBHOOK_SIGNING_SECRET: `\t${LEAKED_SECRET}  `,
     })
 
     expect(settings.signingSecret).toBeUndefined()
-    expect(JSON.stringify(error.mock.calls)).toContain('différents')
+    expect(JSON.stringify(error.mock.calls)).toContain('ne doit pas contenir')
   })
 
-  it('ne dit rien de plus quand les deux valeurs diffèrent ou que l’une manque', () => {
+  it('ne dit rien de plus quand les deux valeurs sont sans rapport ou que l’une manque', () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    settingsOf({
-      REVENUECAT_WEBHOOK_AUTHORIZATION: AUTHORIZATION_32,
-      REVENUECAT_WEBHOOK_SIGNING_SECRET: SIGNING_SECRET,
-    })
-    settingsOf({ REVENUECAT_WEBHOOK_AUTHORIZATION: AUTHORIZATION_32 })
+    expect(
+      settingsOf({
+        REVENUECAT_WEBHOOK_AUTHORIZATION: AUTHORIZATION_32,
+        REVENUECAT_WEBHOOK_SIGNING_SECRET: SIGNING_SECRET,
+      }).signingSecret,
+    ).toBe(SIGNING_SECRET)
+    for (const signingSecret of [undefined, '', '   ']) {
+      const env: Record<string, string> = { REVENUECAT_WEBHOOK_AUTHORIZATION: AUTHORIZATION_32 }
+      if (signingSecret !== undefined) env.REVENUECAT_WEBHOOK_SIGNING_SECRET = signingSecret
+      expect(settingsOf(env)).toEqual({
+        expectedAuthorization: AUTHORIZATION_32,
+        signingSecret: undefined,
+      })
+    }
     settingsOf({ REVENUECAT_WEBHOOK_SIGNING_SECRET: SIGNING_SECRET })
 
     expect(error).not.toHaveBeenCalled()
@@ -120,23 +138,23 @@ describe('webhookSettingsFrom', () => {
     expect(written).not.toContain(AUTHORIZATION_31)
   })
 
-  it('fait refuser en 503 un envoi signé avec la valeur de l’en-tête', async () => {
+  it('fait refuser en 503 un envoi signé avec le secret tiré de l’en-tête Bearer', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     const now = Date.UTC(2027, 2, 3, 10, 0, 0)
     const body = JSON.stringify({ event: { id: 'evt', type: 'RENEWAL', app_user_id: 'sophie' } })
     const at = now / 1000
-    const v1 = createHmac('sha256', AUTHORIZATION_32).update(`${at}.${body}`).digest('hex')
+    const v1 = createHmac('sha256', LEAKED_SECRET).update(`${at}.${body}`).digest('hex')
     const processEvent = vi.fn<(event: RevenuecatEvent) => Promise<void>>(async () => {})
     const settings = settingsOf({
-      REVENUECAT_WEBHOOK_AUTHORIZATION: AUTHORIZATION_32,
-      REVENUECAT_WEBHOOK_SIGNING_SECRET: AUTHORIZATION_32,
+      REVENUECAT_WEBHOOK_AUTHORIZATION: `Bearer ${LEAKED_SECRET}`,
+      REVENUECAT_WEBHOOK_SIGNING_SECRET: LEAKED_SECRET,
     })
 
     const response = await handleRevenuecatWebhook(
       new Request('http://localhost/functions/v1/revenuecat-webhook', {
         method: 'POST',
         headers: {
-          Authorization: AUTHORIZATION_32,
+          Authorization: `Bearer ${LEAKED_SECRET}`,
           'X-RevenueCat-Webhook-Signature': `t=${at},v1=${v1}`,
         },
         body,
