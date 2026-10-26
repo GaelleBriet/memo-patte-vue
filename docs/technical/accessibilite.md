@@ -118,13 +118,28 @@ exclues) : ce n'est pas le zoom de la WebView Android. Paysage 740 × 360 et 844
 horizontal. `lang` suit la langue, noms accessibles et ordre de tabulation lus en FR et en EN : rien à
 corriger.
 
-Corrigés : « À renseigner » de l'accueil à 12 px (11,5 avant) ; stats du Carnet qui faisaient défiler
-la page à droite à 200 % (colonnes `minmax(0, 1fr)`, mot qui passe à la ligne) ; « Voir l'historique »
-du poids rogné à 200 % (passe sous le poids).
+Corrigés : « À renseigner » de l'accueil, bande de groupe de l'export PDF, jours de la semaine de
+« Choisir les jours » et en-tête des suggestions de vaccin à 12 px (11,5 et 11 avant) ; stats du Carnet
+qui faisaient défiler la page à droite à 200 % ; « Voir l'historique » du poids rogné à 200 % (passe sous
+le poids, sa zone de tap reste au-dessus de la ligne de variation : 0 point sur 5 600 tombait sur elle
+après correction, 800 avant).
 
-Restent, à décider : à 200 %, les trois stats du Carnet coupent « Rappels » et « Traitements » en deux
-(les empiler en colonne sous un seuil de texte changerait la maquette) ; en-tête du Carnet à 200 % :
-le nom et la race sont tronqués et les chips recouvrent la race.
+Comportement mesuré des stats du Carnet (Poids / Rappels / Traitements, flex qui passe à la ligne, chaque
+colonne au moins aussi large que son plus long mot, texte multiplié, FR et EN) :
+
+| Largeur | 100 % | 130 % | 150 % | 200 % |
+| --- | --- | --- | --- | --- |
+| 320 px | 1 rangée | 2 rangées | 2 rangées | 2 rangées en FR, 3 en EN |
+| 360 px | 1 rangée | 1 rangée | 2 rangées | 2 rangées |
+| 412 px | 1 rangée | 1 rangée | 1 rangée en FR et EN | 2 rangées |
+
+« 2 rangées » : la troisième stat prend toute la largeur sous les deux autres. À toute taille : aucun mot
+coupé, aucun défilement horizontal causé par les stats. À 100 %, les trois colonnes ont la même largeur
+de contenu ; la première est plus étroite de 10 px, car elle n'a pas de marge à gauche. Le chevron de
+« Traitements terminés » dépasse de 1 px à 320 px et 200 %, hors des stats.
+
+Restent, à décider : en-tête du Carnet à 200 % : le nom et la race sont tronqués et les chips recouvrent
+la race.
 
 ## 1. Contrastes
 
