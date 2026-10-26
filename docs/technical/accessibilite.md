@@ -137,7 +137,7 @@ posée sur le contenu des colonnes, pas sur les colonnes, pour qu'elles restent 
 « 2 rangées » : la troisième stat prend toute la largeur sous les deux autres. À toute taille : aucun mot
 coupé, aucun défilement horizontal causé par les stats. À 100 %, les colonnes font 93 / 93 / 94 px à
 320 px, 107 × 3 à 360 px et 124 × 3 à 412 px, comme avec la grille d'origine, et la capture des stats est
-identique octet pour octet à celle de la grille d'origine aux trois largeurs. Aux autres tailles de
+identique octet pour octet à celle de la grille d'origine aux trois largeurs en français (en anglais à 320 px, même géométrie, lissage différent sur 77 pixels). Aux autres tailles de
 texte, une colonne s'élargit au besoin (ex. 360 px à 130 % : 109 / 96 / 115 px). Le chevron de
 « Traitements terminés » dépasse de 1 px à 320 px et 200 %, hors des stats.
 
