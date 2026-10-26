@@ -549,11 +549,13 @@ publique Google Play.
 **Webhook** (`Integrations › Webhooks`, configuration du webhook) : adresse
 `https://<ref>.supabase.co/functions/v1/revenuecat-webhook`, en-tête d'autorisation identique à
 `REVENUECAT_WEBHOOK_AUTHORIZATION` (au moins 32 caractères, `openssl rand -hex 32`), et **« HMAC
-webhook signing » activé**. Le secret de signature ne s'affiche **qu'une fois**, à l'activation : le
-coller aussitôt dans le secret `REVENUECAT_WEBHOOK_SIGNING_SECRET` de la fonction. Perdu ou à changer :
-**« Rotate secret »** en génère un nouveau et invalide l'ancien tout de suite ; reposer le secret de
-la fonction dans la foulée, les envois refusés entre-temps sont relancés par RevenueCat. Sans ce
-secret dans la fonction, chaque envoi reçoit `503` `webhook-not-configured`.
+webhook signing » activé**. Le secret de signature ne s'affiche **qu'une fois**, à sa création ou à
+sa rotation, et ne se relit plus ensuite : le coller aussitôt dans le secret
+`REVENUECAT_WEBHOOK_SIGNING_SECRET` de la fonction. Perdu ou à changer : **« Rotate secret »** en
+génère un nouveau et invalide l'ancien tout de suite ; reposer le secret de la fonction dans la
+foulée. Un envoi refusé entre-temps est relancé par RevenueCat au plus 5 fois (environ 2,5, 5, 10, 20
+et 40 minutes après, soit une fenêtre d'environ 80 minutes) ; au-delà, l'événement est **perdu**. Sans
+ce secret dans la fonction, chaque envoi reçoit `503` `webhook-not-configured`.
 
 ### 7.3 Projet
 

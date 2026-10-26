@@ -26,7 +26,7 @@ function renewalOfSophie(): Record<string, unknown> {
   }
 }
 
-function signatureOf(body: string, at = NOW_SECONDS, secret = SIGNING_SECRET): string {
+function signatureOf(body: string, at: number | string = NOW_SECONDS, secret = SIGNING_SECRET) {
   const v1 = createHmac('sha256', secret).update(`${at}.${body}`).digest('hex')
   return `t=${at},v1=${v1}`
 }
@@ -56,6 +56,7 @@ function fakePorts(
   options: {
     expectedAuthorization?: string | undefined
     signingSecret?: string | undefined
+    now?: number
     fails?: boolean
   } = {},
 ) {
@@ -66,7 +67,7 @@ function fakePorts(
       expectedAuthorization:
         'expectedAuthorization' in options ? options.expectedAuthorization : AUTHORIZATION,
       signingSecret: 'signingSecret' in options ? options.signingSecret : SIGNING_SECRET,
-      now: () => NOW,
+      now: () => options.now ?? NOW,
       async processEvent(event: RevenuecatEvent) {
         if (options.fails) throw new Error('base injoignable')
         processed.push(event)
@@ -233,9 +234,6 @@ describe('handleRevenuecatWebhook, signature de RevenueCat', () => {
     ['sans horodatage', `v1=${GOOD_V1}`],
     ['sans v1', `t=${NOW_SECONDS}`],
     ['horodatage illisible', `t=demain,v1=${GOOD_V1}`],
-    ['horodatage décimal', `t=${NOW_SECONDS}.5,v1=${GOOD_V1}`],
-    ['horodatage négatif', `t=-${NOW_SECONDS},v1=${GOOD_V1}`],
-    ['horodatage vide', `t=,v1=${GOOD_V1}`],
     ['horodatage en millisecondes', `t=${NOW},v1=${GOOD_V1}`],
     ['v1 en majuscules', `t=${NOW_SECONDS},v1=${GOOD_V1.toUpperCase()}`],
     ['v1 tronqué', `t=${NOW_SECONDS},v1=${GOOD_V1.slice(1)}`],
@@ -247,6 +245,44 @@ describe('handleRevenuecatWebhook, signature de RevenueCat', () => {
     ['un champ sans signe égal', `t=${NOW_SECONDS},v1`],
   ])('refuse un en-tête de signature mal formé (%s)', async (_, signature) => {
     expect(await statusOf({ signature })).toEqual({ status: 401, processed: [] })
+  })
+
+  it.each([
+    ['décimal', `${NOW_SECONDS}.5`, NOW],
+    ['hexadécimal', `0x${NOW_SECONDS.toString(16)}`, NOW],
+    ['en notation exponentielle', `${NOW_SECONDS / 1000}e3`, NOW],
+    ['précédé d’une espace', ` ${NOW_SECONDS}`, NOW],
+    ['négatif, à l’heure de l’époque Unix', '-1', 0],
+    ['vide, à l’heure de l’époque Unix', '', 0],
+  ])('refuse un horodatage %s même signé avec le bon secret', async (_, at, now) => {
+    const fake = fakePorts({ now })
+
+    const response = await handleRevenuecatWebhook(
+      request({ signature: signatureOf(BODY, at) }),
+      fake.ports,
+    )
+
+    expect(response.status).toBe(401)
+    expect(fake.processed).toEqual([])
+  })
+
+  it.each([
+    ['une méthode autre que POST', { method: 'GET' }],
+    ['un en-tête Authorization faux', { authorization: 'Bearer un-autre-secret' }],
+  ])('ne lit jamais le corps sur %s', async (_, init) => {
+    const fake = fakePorts()
+    const sent = request(init)
+    const reads = [
+      vi.spyOn(sent, 'arrayBuffer'),
+      vi.spyOn(sent, 'text'),
+      vi.spyOn(sent, 'json'),
+      vi.spyOn(sent, 'bytes'),
+    ]
+
+    const response = await handleRevenuecatWebhook(sent, fake.ports)
+
+    expect(response.status).toBeGreaterThanOrEqual(400)
+    for (const read of reads) expect(read).not.toHaveBeenCalled()
   })
 
   it('exige aussi l’en-tête Authorization quand la signature est juste', async () => {

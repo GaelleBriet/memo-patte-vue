@@ -211,7 +211,7 @@ locale lit la clé de la pile jetable, `auth.secret_key`), et
    absent, ou l'en-tête trop court : `503` `webhook-not-configured`), et la configuration du webhook
    dans `RevenueCat › Integrations › Webhooks`, adresse
    `https://<ref>.supabase.co/functions/v1/revenuecat-webhook`, en-tête d'autorisation identique au
-   secret, caractère pour caractère, et « HMAC webhook signing » activé (secret affiché une seule fois,
+   secret, caractère pour caractère, et « HMAC webhook signing » activé (secret affiché une seule fois, à sa création ou à sa rotation,
    collé dans `REVENUECAT_WEBHOOK_SIGNING_SECRET` ; « Rotate secret » pour le changer). Le test envoyé
    depuis RevenueCat (événement `TEST`) doit recevoir `200` `{"status":"ignored","reason":"test"}` : il
    prouve l'en-tête et la signature, pas la lecture de RevenueCat ni l'écriture en base. Une signature

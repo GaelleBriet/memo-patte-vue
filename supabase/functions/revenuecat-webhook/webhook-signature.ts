@@ -8,7 +8,7 @@ const HMAC_SHA256_HEX = /^[0-9a-f]{64}$/
 
 type Signature = { t: string; v1: string }
 
-/** Exactement `t` et `v1`, une fois chacun : RevenueCat n'envoie qu'un `v1`. */
+// Un seul `v1` : « Rotate secret » de RevenueCat invalide l'ancien secret aussitôt.
 function signatureIn(header: string): Signature | null {
   const fields = new Map<string, string>()
   for (const field of header.split(',')) {
