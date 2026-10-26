@@ -10,7 +10,7 @@ import { useFormValidation } from '@/shared/form/use-form-validation'
 import { useFieldRefusal } from './use-field-refusal'
 import { useEmailCode, type ResendResult } from './use-email-code'
 
-export type EmailChangeStep = 'address' | 'current' | 'new'
+type EmailChangeStep = 'address' | 'current' | 'new'
 
 /** « Changer mon adresse e-mail » (PL-10, V24 quater à sexies) : le mot de passe, la nouvelle adresse, puis le code de chaque adresse. */
 export function useEmailChange({

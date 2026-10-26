@@ -351,16 +351,21 @@ Tout se vérifie sur une pile locale jetable, jamais sur le vrai projet :
 ```bash
 pnpm dlx supabase@2.119.0 start -x studio,logflare,vector,realtime,imgproxy,mailpit,postgres-meta,supavisor
 pnpm dlx supabase@2.119.0 db reset          # rejoue toutes les migrations sur une base vide
+scripts/supabase-local/require-current-password.sh  # réglage de l'hébergé, attendu par password-update.local
 pnpm dlx supabase@2.119.0 test db           # tests pgTAP de supabase/tests/database/
 SUPABASE_LOCAL_URL=http://127.0.0.1:54321 SUPABASE_LOCAL_ANON_KEY=… SUPABASE_LOCAL_SECRET_KEY=… \
-  pnpm exec vitest run supabase/functions/delete-account
+  pnpm exec vitest run .local.spec.ts       # tous les tests contre la pile, ou un seul dossier
+scripts/supabase-local/require-nothing-left.sh  # aucun compte ni photo laissé par les tests locaux
+pnpm dlx supabase@2.119.0 test db           # rejoué après les tests locaux, comme la CI
 pnpm dlx supabase@2.119.0 stop --no-backup  # aucun conteneur ne doit rester
 ```
 
 - Les clés locales sont les clés de démonstration affichées par `supabase start`.
 - Le runtime local garde la fonction en cache : après une modification, `docker restart
   supabase_edge_runtime_supabase-migrations` avant de relancer le test de bout en bout.
-- Le test de bout en bout laisse un compte de test : relancer `db reset` avant `test db`.
+- Chaque test local retire les comptes qu'il crée et leurs photos (`scripts/supabase-local/disposable-accounts.ts`) :
+  `test db` passe avant comme après eux. Un lancement interrompu en laisse : `db reset` avant `test db`.
+- Seul le journal des suppressions (`account_deletion_log`) garde une ligne par suppression jouée, sans compte.
 - Mode admin en local : `ADMIN_DELETE_SECRET=<valeur de test d'au moins 32 caractères>` dans `supabase/functions/.env`
   (ignoré par git), puis le même secret dans `SUPABASE_LOCAL_ADMIN_SECRET` pour le test. Plus court, le mode admin
   est désactivé au démarrage de la fonction et répond `401`.
