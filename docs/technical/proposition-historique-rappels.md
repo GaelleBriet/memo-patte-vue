@@ -3,7 +3,7 @@
 Statut : **tranchée le 2026-09-24, voir §10.** Document de comparaison préparé le 2026-09-23 après
 la séance sur le cycle de vie d'un rappel (#364, #344, #365). Les §3 et §4 comparent les deux
 approches de départ. La décision retenue est une troisième voie, proposée par une relecture du
-document (Fable) et validée par Gaelle : la structure de l'approche 1 sans son résumé stocké. Les
+document externe et validée par Gaelle : la structure de l'approche 1 sans son résumé stocké. Les
 extraits SQL des §3.1, §3.3 et §4.2 ont été rejoués sur une base SQLite en mémoire.
 
 Déjà décidé en séance, non rediscuté ici : historique complet sans limite de durée (vaccins,

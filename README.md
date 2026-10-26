@@ -19,7 +19,7 @@ principes :
   tous vos animaux et leurs prochaines échéances.
 - **Gratuit sur votre téléphone, sans compte** — animaux illimités,
   rappels, poids, export libre (JSON, CSV). Seul le cloud est payant :
-  MémoPatte Plus (annuel ou à vie) ajoute la sauvegarde, la
+  MémoPatte Plus (mensuel, annuel ou à vie) ajoute la sauvegarde, la
   restauration, le multi-appareil, les photos et l’export PDF.
 - **Données jamais otages** — rien de ce qui est saisi n’est jamais
   verrouillé, avec ou sans Plus.
