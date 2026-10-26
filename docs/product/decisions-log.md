@@ -4166,6 +4166,18 @@ d'origine devenu permis là où il était refusé. — Raison : un refus sans da
 personne sans moyen d'annuler son geste. — Alternative écartée : permettre le 12 (exception à G6). —
 Pour revenir dessus : `no-date-alone` dans `planOf` (`gestures/move.ts`) et `homeBeforeChosen`.
 
+2026-10-26 — **Le retour au jour d'origine, seule date possible, n'est permis que s'il y remet une
+dose** (#1283, spec `traitements.md` G13 ; Q60 de la session d'analyse du moteur, option A ; précise
+Q59). Luna, chaque semaine à 20 h dès le 7 mars ; le 5, la dose du 7 reportée au 25 avec la case, puis
+« Modifier » tous les 3 mois, « Prochaine dose » le 8 ; le 7, « Prochaine dose » sur le 25 sans la
+case : le 7 n'est plus proposé (refus « aucune date possible seule », sans texte nouveau), car le
+choisir faisait disparaître le 25 sans rien remettre le 7 ; « Supprimer » le report reste la sortie.
+Un retour qui remet bien sa dose reste permis (tous les jours à 20 h, la dose du 7 reportée au 10
+avec la case revient au 7). — Raison : le jour d'origine a quitté le calendrier par le décalage de ce
+même report ; l'y ramener sans le décalage perdait une dose. — Alternatives écartées : la faire
+revenir hors rythme (B), garder le résidu (C). — Pour revenir dessus : `no-date-alone` dans `planOf`
+(`gestures/move.ts`).
+
 ## 2026-10-24 — Un report redéplacé depuis une date choisie, hors de sa grille, est sans effet (#1231, Q39)
 
 Décision de la session d'analyse du moteur, à qui Gaelle a délégué les lectures de règles (Q26, Q39
