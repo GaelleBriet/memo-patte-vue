@@ -9,6 +9,7 @@ import { writePlusAccount } from '../logic/plus-account-storage'
 import { provideAuthRepository } from '../store/auth.store'
 import AccountFirstView from '../views/AccountFirstView.vue'
 import { memoryStorage, USER_ID } from './auth-fixture'
+import { dismissToast, toastMessage } from '@/shared/utils/toast'
 import { GoogleCredentialError } from '@/core/google-sign-in/google-credentials'
 import i18n from '@/core/i18n'
 import { getMsIconPath } from '@/core/theme/icons'
@@ -85,6 +86,7 @@ function traceIcone(element: ReturnType<VueWrapper['get']>) {
 }
 
 beforeEach(() => {
+  dismissToast()
   vi.clearAllMocks()
   vi.stubGlobal('localStorage', memoryStorage())
   setActivePinia(createPinia())
@@ -242,6 +244,25 @@ describe('AccountFirstView — enchaînement', () => {
 
     expect(back).toHaveBeenCalledTimes(1)
     expect(usePurchaseStore().pendingCheckout).toBe('annual')
+    expect(toastMessage.value).toBe('Connexion avec Google réussie.')
+  })
+
+  it('ne dit rien si l’écran est démonté avant la réponse de Google', async () => {
+    let terminer = (): void => {}
+    googleSignIn.mockReturnValue(
+      new Promise((resolve) => {
+        terminer = () => resolve({ kind: 'signed-in', session: { userId: USER_ID } })
+      }),
+    )
+    choisir('annual')
+    const wrapper = await monter()
+
+    await wrapper.get('.google-button').trigger('click')
+    wrapper.unmount()
+    terminer()
+    await flushPromises()
+
+    expect(toastMessage.value).toBeNull()
   })
 
   it('montre la connexion en cours, sans laisser relancer', async () => {
@@ -257,7 +278,7 @@ describe('AccountFirstView — enchaînement', () => {
     expect(googleSignIn).toHaveBeenCalledTimes(1)
   })
 
-  it('ne fait rien quand le sélecteur de Google est fermé sans choisir', async () => {
+  it('dit l’annulation par un toast quand le sélecteur de Google est fermé sans choisir', async () => {
     googleSignIn.mockResolvedValue({ kind: 'cancelled' })
     choisir('annual')
     const wrapper = await monter()
@@ -266,6 +287,7 @@ describe('AccountFirstView — enchaînement', () => {
     await flushPromises()
 
     expect(back).not.toHaveBeenCalled()
+    expect(toastMessage.value).toBe('Connexion annulée.')
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
     expect(wrapper.find('.google-button').exists()).toBe(true)
   })

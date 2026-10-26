@@ -29,7 +29,7 @@ const { t } = useI18n()
 const router = useRouter()
 const auth = useAuthStore()
 const route = useRoute()
-const { continueWithGoogle } = useGoogleSignIn()
+const { continueWithGoogle, announce } = useGoogleSignIn()
 const emailCode = useEmailCode()
 
 const mode = ref<SignInMode>(initialSignInMode(route.query))
@@ -187,6 +187,7 @@ async function signInWithGoogle(): Promise<void> {
 
   const result = await continueWithGoogle()
   if (!isMounted) return
+  announce(result)
   if (result.kind === 'signed-in') {
     await leaveSignedIn()
     return
