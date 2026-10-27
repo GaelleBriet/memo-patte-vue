@@ -1,8 +1,13 @@
 import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick, ref, type Ref } from 'vue'
 
-import { isAnySheetOpen, useOpenSheet } from '../composables/use-open-sheet'
+import {
+  isAnySheetOpen,
+  SHEET_REQUEST_TIMEOUT_MS,
+  useOpenSheet,
+  useSheetRequest,
+} from '../composables/use-open-sheet'
 
 function feuille(open: Ref<boolean>) {
   return mount(
@@ -54,6 +59,74 @@ describe('useOpenSheet', () => {
     const wrapper = feuille(ref(true))
 
     wrapper.unmount()
+
+    expect(isAnySheetOpen.value).toBe(false)
+  })
+})
+
+describe('useSheetRequest', () => {
+  let demande: ReturnType<typeof useSheetRequest>
+  const montes: ReturnType<typeof mount>[] = []
+
+  function accueil() {
+    const wrapper = mount(
+      defineComponent(() => {
+        demande = useSheetRequest()
+        return () => h('div')
+      }),
+    )
+    montes.push(wrapper)
+    return wrapper
+  }
+
+  afterEach(() => {
+    montes.splice(0).forEach((wrapper) => wrapper.unmount())
+    vi.useRealTimers()
+  })
+
+  it('compte une feuille demandée comme ouverte jusqu’à son abandon', () => {
+    accueil()
+
+    demande.hold()
+    expect(isAnySheetOpen.value).toBe(true)
+
+    demande.release()
+    expect(isAnySheetOpen.value).toBe(false)
+  })
+
+  it('passe la main à la feuille dès qu’elle s’affiche', async () => {
+    accueil()
+    demande.hold()
+    const open = ref(false)
+    montes.push(feuille(open))
+
+    open.value = true
+    await nextTick()
+    await nextTick()
+    open.value = false
+    await nextTick()
+
+    expect(isAnySheetOpen.value).toBe(false)
+  })
+
+  it('retombe après le délai si la feuille ne s’affiche jamais', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    accueil()
+
+    demande.hold()
+    vi.advanceTimersByTime(SHEET_REQUEST_TIMEOUT_MS - 1)
+    expect(isAnySheetOpen.value).toBe(true)
+
+    vi.advanceTimersByTime(1)
+    expect(isAnySheetOpen.value).toBe(false)
+  })
+
+  it('retombe quand l’écran qui l’a demandée est démonté', () => {
+    const wrapper = accueil()
+    demande.hold()
+
+    wrapper.unmount()
+    montes.splice(0)
 
     expect(isAnySheetOpen.value).toBe(false)
   })

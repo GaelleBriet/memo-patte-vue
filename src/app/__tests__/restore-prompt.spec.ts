@@ -4,7 +4,7 @@ import { defineComponent, h, ref, type Ref } from 'vue'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
 import { createRestoreFlow, type RestoreFlow } from '@/core/sync/service/restore-flow'
-import { useOpenSheet } from '@/shared/composables/use-open-sheet'
+import { useOpenSheet, useSheetRequest } from '@/shared/composables/use-open-sheet'
 import { installRestorePrompt } from '../restore-prompt'
 
 const Vide = { render: () => null }
@@ -168,6 +168,44 @@ describe('installRestorePrompt', () => {
       expect(router.currentRoute.value.name).toBe('home')
 
       open.value = false
+      await router.push('/weight')
+      await router.push('/')
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('account-restore')
+    })
+
+    it('sauvegarde trouvée avant l’affichage de la feuille demandée par une notification : rien ne s’ouvre', async () => {
+      const router = routeur()
+      const flow = parcours()
+      await router.push({
+        name: 'home',
+        query: { reminder: 'treatment:vermifuge-milo', step: 'actions' },
+      })
+      uninstall = installRestorePrompt(router, () => flow)
+      let demande!: ReturnType<typeof useSheetRequest>
+      feuilles.push(
+        mount(
+          defineComponent(() => {
+            demande = useSheetRequest()
+            return () => h('div')
+          }),
+        ),
+      )
+      demande.hold()
+      await router.replace('/')
+
+      flow.offer(SUMMARY)
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('home')
+
+      const open = ref(false)
+      feuille(open)
+      open.value = true
+      await flushPromises()
+      open.value = false
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('home')
+
       await router.push('/weight')
       await router.push('/')
       await flushPromises()

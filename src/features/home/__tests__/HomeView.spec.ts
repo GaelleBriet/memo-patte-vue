@@ -37,6 +37,9 @@ import VaccinationReminderSheet from '@/features/vaccinations/views/VaccinationR
 import WeightSheet from '@/features/weight/views/WeightSheet.vue'
 import AnimalChipSelector from '@/shared/components/AnimalChipSelector.vue'
 import { plain } from '@/shared/__tests__/plain'
+import { isAnySheetOpen } from '@/shared/composables/use-open-sheet'
+import { installRestorePrompt } from '@/app/restore-prompt'
+import { createRestoreFlow } from '@/core/sync/service/restore-flow'
 import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
 import { recordUsageSignal } from '@/core/usage/usage-signals'
 import {
@@ -1974,6 +1977,96 @@ describe('HomeView — feuille d’un rappel', () => {
     await wrapper.findAll('.reminder-row')[0]!.trigger('click')
 
     expect(wrapper.getComponent(VaccinationReminderSheet).props('startAt')).toBe('actions')
+  })
+
+  describe('feuille demandée par une notification, pas encore affichée', () => {
+    const notification = {
+      name: 'home',
+      query: { reminder: `treatment:${VERMIFUGE_LUNA_AUJOURDHUI.id}`, step: 'actions' },
+    } as const
+
+    it('retient « Restaurer mon carnet » quand la sauvegarde est trouvée avant l’affichage', async () => {
+      await router.replace(notification)
+      await monter()
+      await vi.waitFor(() => expect(router.currentRoute.value.query).toEqual({}))
+      const flow = createRestoreFlow({
+        pendingMode: async () => null,
+        start: async () => {},
+        run: async () => 'restored',
+        progress: { done: 0, total: 0 },
+        onProgress: () => () => {},
+      })
+      const uninstall = installRestorePrompt(router, () => flow)
+
+      flow.offer({ animalCount: 2, lastBackupAt: '2026-09-08T19:04:00.000Z' })
+      await flushPromises()
+      uninstall()
+
+      expect(isAnySheetOpen.value).toBe(true)
+      expect(push.mock.calls.map(([to]) => JSON.stringify(to))).not.toContainEqual(
+        expect.stringContaining('restore'),
+      )
+    })
+
+    it('retombe quand le traitement demandé est introuvable', async () => {
+      vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockResolvedValue(null)
+      await router.replace(notification)
+
+      const wrapper = await monter()
+
+      expect(wrapper.getComponent(TreatmentReminderSheet).props('modelValue')).toBe(false)
+      expect(isAnySheetOpen.value).toBe(false)
+    })
+
+    it('retombe quand l’accueil est démonté', async () => {
+      await router.replace(notification)
+      const wrapper = await monter()
+      expect(isAnySheetOpen.value).toBe(true)
+
+      mounted.splice(mounted.indexOf(wrapper), 1)
+      wrapper.unmount()
+
+      expect(isAnySheetOpen.value).toBe(false)
+    })
+
+    it('retombe quand la notification ouvre la fiche du soin', async () => {
+      await monter()
+
+      await router.replace({
+        name: 'home',
+        query: { reminder: 'treatment:absent-de-la-liste', step: 'actions' },
+      })
+      await flushPromises()
+
+      expect(isAnySheetOpen.value).toBe(false)
+    })
+
+    it('retombe au retour de « Modifier » quand le soin n’est plus dans « À faire »', async () => {
+      await router.replace({ name: 'home', query: { reminder: 'treatment:absent-de-la-liste' } })
+
+      await monter()
+
+      expect(isAnySheetOpen.value).toBe(false)
+    })
+
+    it('reste demandée quand « Donnée quand ? » cède la place à la feuille du soin', async () => {
+      await router.replace({
+        name: 'home',
+        query: {
+          reminder: `treatment:${VERMIFUGE_LUNA_AUJOURDHUI.id}`,
+          step: 'given-when',
+          due: '2026-09-20',
+        },
+      })
+      const wrapper = await monter()
+      const quand = wrapper.getComponent(TreatmentGivenWhenSheet)
+
+      quand.vm.$emit('update:modelValue', false)
+      quand.vm.$emit('unavailable')
+      await flushPromises()
+
+      expect(isAnySheetOpen.value).toBe(true)
+    })
   })
 
   it('relit les rappels quand une feuille a noté, arrêté ou annulé', async () => {
