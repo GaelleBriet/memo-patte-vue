@@ -244,6 +244,24 @@ describe('installRestorePrompt', () => {
       expect(router.currentRoute.value.name).toBe('account-restore')
     })
 
+    it('désinstallée pendant l’arrivée sur l’accueil, ne l’ouvre plus', async () => {
+      const router = routeur()
+      const flow = parcours()
+      await router.push('/animals')
+      uninstall = installRestorePrompt(router, () => flow)
+      flow.offer(SUMMARY)
+      await flushPromises()
+      const stop = router.afterEach((to) => {
+        if (to.name === 'home') uninstall()
+      })
+
+      await router.push('/')
+      await flushPromises()
+      stop()
+
+      expect(router.currentRoute.value.name).toBe('home')
+    })
+
     it('une feuille ouverte par l’accueil à son arrivée retient toujours l’écran', async () => {
       const AccueilAvecFeuille = defineComponent(() => {
         useOpenSheet(ref(true))
