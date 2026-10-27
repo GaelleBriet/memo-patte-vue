@@ -1521,6 +1521,7 @@
         "invalid": "This file isn’t a MémoPatte export.",
         "newer": "This export comes from a newer version of the app.",
         "outOfRange": "This file has a value out of range: 200 kg at most for a weight, 365 for a frequency.",
+        "future": "A date in this file is in the future.",
         "nameTooLong": "A name in this file is longer than {max} characters.",
         "reattached": "This file moves an entry in your health record to another pet.",
         "failed": "The import didn’t go through. Your data hasn’t changed."
@@ -1786,7 +1787,7 @@
     "passwordReset": {
       "link": "Forgot password?",
       "title": "Forgot password",
-      "intro": "Enter your account’s address. An 8-digit code will be sent to it.",
+      "intro": "Enter your account’s address. An {length}-digit code will be sent to it.",
       "send": "Get the code",
       "codeMessage": "Enter the {length}-digit code sent to {email}, then choose a new password.",
       "codeLabel": "Code received",

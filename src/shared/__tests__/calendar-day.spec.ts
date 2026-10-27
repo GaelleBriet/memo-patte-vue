@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { CALENDAR_DAY_SHAPE, nextDay, previousDay } from '../domain/calendar-day'
+import { CALENDAR_DAY_SHAPE, isNotFuture, nextDay, previousDay } from '../domain/calendar-day'
 
 describe('nextDay, previousDay', () => {
   it.each([
@@ -26,5 +26,13 @@ describe('nextDay, previousDay', () => {
 describe('CALENDAR_DAY_SHAPE', () => {
   it('est ancrée aux deux bouts', () => {
     expect(CALENDAR_DAY_SHAPE.source).toBe(String.raw`^\d{4}-\d{2}-\d{2}$`)
+  })
+})
+
+describe('isNotFuture', () => {
+  it('accepte aujourd’hui et le passé, refuse le lendemain', () => {
+    expect(isNotFuture('2026-10-27', '2026-10-27')).toBe(true)
+    expect(isNotFuture('2026-10-26', '2026-10-27')).toBe(true)
+    expect(isNotFuture('2026-10-28', '2026-10-27')).toBe(false)
   })
 })

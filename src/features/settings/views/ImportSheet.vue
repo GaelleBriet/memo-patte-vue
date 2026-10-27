@@ -40,6 +40,8 @@ const errorMessage = computed(() => {
       return t('settings.import.errors.newer')
     case 'outOfRange':
       return t('settings.import.errors.outOfRange')
+    case 'future':
+      return t('settings.import.errors.future')
     case 'nameTooLong':
       return t('settings.import.errors.nameTooLong', { max: MAX_NAME_LENGTH })
     case 'reattached':

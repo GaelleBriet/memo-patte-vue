@@ -30,6 +30,10 @@ export function toDay(date: Date): string {
   return formatISO(date, { representation: 'date' })
 }
 
+export function isNotFuture(day: string, today: string): boolean {
+  return day <= today
+}
+
 function shifted(date: string, days: number): string {
   if (!isCalendarDay(date)) throw new RangeError(`Date civile invalide : ${date}`)
   return toDay(addDays(toDate(date), days))

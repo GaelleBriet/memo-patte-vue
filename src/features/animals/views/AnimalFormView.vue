@@ -26,6 +26,7 @@ import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
+import { errorSummary } from '@/shared/utils/error-summary'
 import { formatLongDate } from '@/shared/utils/format'
 
 const props = defineProps<{
@@ -102,7 +103,8 @@ async function choosePhoto(): Promise<void> {
     if (!picked) return
     photo.value = { kind: 'replace', base64: picked.base64 }
     pickedPreview.value = picked.previewUrl
-  } catch {
+  } catch (cause) {
+    console.warn('Choix de la photo impossible :', errorSummary(cause))
     photoFailed.value = true
   } finally {
     isPicking.value = false
@@ -133,7 +135,8 @@ async function submit(): Promise<void> {
       animals.select(created.id)
     }
     backToAnimals()
-  } catch {
+  } catch (cause) {
+    console.warn('Enregistrement de l’animal impossible :', errorSummary(cause))
     saveFailed.value = true
   } finally {
     isSubmitting.value = false

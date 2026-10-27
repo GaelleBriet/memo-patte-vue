@@ -18,6 +18,7 @@ import ExactRemindersExplainer from '@/shared/components/ExactRemindersExplainer
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { remindersHelpUrl } from '@/shared/domain/help-page'
 import { primingRouteFrom } from '@/shared/domain/notification-priming'
+import { errorSummary } from '@/shared/utils/error-summary'
 import { formatClockTime } from '@/shared/utils/format'
 import { returnTo } from '@/shared/utils/return-to'
 import { showToast } from '@/shared/utils/toast'
@@ -46,7 +47,8 @@ async function save(changes: Partial<CarnetSettings>): Promise<boolean> {
   try {
     await store.update(changes)
     return true
-  } catch {
+  } catch (cause) {
+    console.warn('Enregistrement des rappels impossible :', errorSummary(cause))
     showToast(t('settings.reminders.saveError'), { tone: 'error' })
     return false
   }

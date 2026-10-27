@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 import en from '@/core/i18n/locales/en.json'
 
 import {
-  CODE_LENGTH,
   CODE_LIFETIME_MS,
   RESEND_DELAY_MS,
   codeDigits,
@@ -68,7 +67,7 @@ describe('mustWaitBeforeResend', () => {
 })
 
 describe('texte anglais de la longueur du code', () => {
-  it('écrit « An 8-digit » en dur à cause de l’article : à changer avec CODE_LENGTH', () => {
-    expect(en.auth.passwordReset.intro).toContain(`An ${CODE_LENGTH}-digit code`)
+  it('prend la longueur du code en variable', () => {
+    expect(en.auth.passwordReset.intro).toContain('An {length}-digit code')
   })
 })

@@ -27,6 +27,13 @@ function exportAvecNomTropLong(): string {
   return JSON.stringify(document)
 }
 
+function exportAvecDateFuture(): string {
+  const document = JSON.parse(importFixtureJson()) as Record<string, unknown>
+  document.exportedAt = '2026-10-01T10:00:00.000Z'
+  ;(document.weightEntries as Record<string, unknown>[])[0]!.measuredOn = '2026-10-03'
+  return JSON.stringify(document)
+}
+
 function exportAvecPoidsHorsBornes(): string {
   const document = JSON.parse(importFixtureJson()) as Record<string, unknown>
   ;(document.weightEntries as Record<string, unknown>[])[0]!.weightKg = 1e308
@@ -229,6 +236,7 @@ describe('ImportSheet', () => {
       'Ce fichier contient une valeur hors limites : 200 kg maximum pour un poids, 365 pour une fréquence.',
     ],
     [exportAvecNomTropLong(), 'Un nom de ce fichier dépasse 80 caractères.'],
+    [exportAvecDateFuture(), 'Une date de ce fichier est dans le futur.'],
   ])('explique un fichier refusé et propose d’en choisir un autre', async (content, message) => {
     await monter()
 
