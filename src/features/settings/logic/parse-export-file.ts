@@ -1,7 +1,7 @@
 import type { z } from 'zod'
 
 import { currentDeviceId } from '@/core/device/device-identity'
-import { nextDay, toDay } from '@/shared/domain/calendar-day'
+import { isNotFuture, nextDay, toDay } from '@/shared/domain/calendar-day'
 import type { ImportFile } from '@/shared/domain/import-plan'
 import {
   exportFileSchemaOf,
@@ -55,6 +55,14 @@ export function parseExportFile(
   deviceId: string = currentDeviceId(),
   today: string = toDay(new Date()),
 ): ParsedExportFile {
+  try {
+    return readExportFile(text, deviceId, today)
+  } catch {
+    return { ok: false, reason: 'invalid' }
+  }
+}
+
+function readExportFile(text: string, deviceId: string, today: string): ParsedExportFile {
   const document = parseJson(text)
 
   const version = exportVersionSchema.safeParse(document)
@@ -64,12 +72,16 @@ export function parseExportFile(
 
   const header = exportHeaderSchema.safeParse(document)
   if (!header.success) return { ok: false, reason: refusalReason(header.error) }
-  const parsed = withReferenceDay(nextDay(header.data.exportedAt.slice(0, 10)), () =>
-    exportFileSchemaOf(schemaVersion, deviceId, today).safeParse(document),
+  const exportDay = header.data.exportedAt.slice(0, 10)
+  if (!isNotFuture(exportDay, nextDay(today))) return { ok: false, reason: 'future' }
+  const lastDay = nextDay(exportDay)
+  const replayDay = lastDay > today ? lastDay : today
+  const parsed = withReferenceDay(lastDay, () =>
+    exportFileSchemaOf(schemaVersion, deviceId, replayDay).safeParse(document),
   )
   if (!parsed.success) return { ok: false, reason: refusalReason(parsed.error) }
   const data = withGridDatesClamped(parsed.data, header.data.exportedAt)
-  if (!everyTreatmentReadable(data, today)) return { ok: false, reason: 'invalid' }
+  if (!everyTreatmentReadable(data, replayDay)) return { ok: false, reason: 'invalid' }
 
   return { ok: true, file: { schemaVersion: EXPORT_SCHEMA_VERSION, data } }
 }

@@ -362,6 +362,28 @@ describe('validation stricte d’un ancien export : tout ou rien', () => {
     expect(reasonOf(edited(exportV2, change))).toBe('invalid')
   })
 
+  it('accepte une prise du lendemain de l’export, importée le jour de l’export (Paris, minuit passé)', () => {
+    const file = edited(exportV2, (doc) => {
+      doc.exportedAt = '2026-10-27T22:20:00.000Z'
+      rows(doc, 'treatmentDoses')[0]!.givenOn = '2026-10-28'
+    })
+
+    expect(parseExportFile(file, IMPORTEUR, '2026-10-27').ok).toBe(true)
+  })
+
+  it('refuse sans exception un fichier forgé daté de 2199 de bout en bout', () => {
+    const file = edited(exportV2, (doc) => {
+      doc.exportedAt = '2199-06-01T00:00:00.000Z'
+      rows(doc, 'treatmentDoses')[0]!.givenOn = '2199-06-01'
+    })
+
+    expect(reasonOf(file)).toBe('future')
+  })
+
+  it('refuse un export sans date d’export', () => {
+    expect(reasonOf(edited(exportV2, (doc) => delete doc.exportedAt))).toBe('invalid')
+  })
+
   it('refuse un export v2 avec une prise datée après son export, avec le motif des dates futures', () => {
     const file = edited(exportV2, (doc) => (rows(doc, 'treatmentDoses')[0]!.givenOn = '2199-01-01'))
 
