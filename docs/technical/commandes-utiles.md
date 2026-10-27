@@ -332,13 +332,39 @@ public (minutes Actions gratuites), et un filtre à tenir à jour aurait le mêm
 celui qui a motivé le ticket #260 — une CI verte qui ne construit rien.
 
 `.github/workflows/supabase-migrations.yml` pousse les migrations de `supabase/migrations/` vers le vrai projet
-Supabase (`supabase db push --db-url ...`) à chaque push sur `main`, sans filtre de chemins pour la même raison.
-`db push` est idempotent : il ne rejoue que ce qui manque, donc ce workflow rattrape aussi tout ce qui a pu être
-ajouté au dépôt avant sa mise en place. Passe par le **Session Pooler** (compatible IPv4, contrairement à la
+Supabase (`supabase db push --db-url ...`) quand un push sur `main` touche `supabase/migrations/` ou ce workflow.
+Il se relance aussi à la main, **depuis `main`** (Actions › Supabase migrations › Run workflow, branche `main`) :
+après un échec, ou après un refus (Reject) du déploiement, car le filtre de chemins ne relancera pas la migration
+tout seul. Lancé depuis une autre branche, le job est sauté.
+`db push` est idempotent : il ne rejoue que ce qui manque, donc chaque passage rattrape aussi tout ce qui a pu
+manquer avant. Passe par le **Session Pooler** (compatible IPv4, contrairement à la
 connexion directe) plutôt que par `supabase link` (cassé avec les tokens à permissions fines du Dashboard,
 [supabase/supabase#50244](https://github.com/supabase/supabase/issues/50244)) : aucun jeton de compte nécessaire.
 Secrets nécessaires : `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID`, `SUPABASE_POOLER_HOST` (détail dans le
 coffre de notes de Gaelle, jamais dans le dépôt).
+
+Ce workflow détient le mot de passe de la base de production, il est donc verrouillé :
+
+- CLI Supabase figé à la version de la CI (`2.119.0`), actions épinglées par SHA de commit (Dependabot
+  `github-actions` les tient à jour), `permissions: contents: read`, checkout sans identifiants, un seul passage
+  à la fois (`concurrency`), mot de passe encodé masqué dans les journaux.
+- Le job tourne dans l'environnement GitHub `production` : chaque migration attend l'approbation de Gaelle
+  (Actions › le passage en attente › Review deployments › Approve and deploy).
+
+Réglage de l'environnement, une fois, dans GitHub (Settings › Environments) :
+
+1. New environment, nom `production`.
+2. Required reviewers : cocher, ajouter Gaelle, laisser « Prevent self-review » décoché (Gaelle est seule
+   approbatrice et les merges partent sous son compte), Save protection rules.
+3. Deployment branches and tags : Selected branches and tags, ajouter la règle `main`.
+4. Environment secrets : y recréer `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID` et `SUPABASE_POOLER_HOST`, puis
+   les supprimer de Settings › Secrets and variables › Actions › Repository secrets, pour qu'aucun autre workflow
+   ne puisse les lire.
+
+Les quatre étapes sont nécessaires. Tant que l'environnement n'est pas réglé, GitHub le crée sans protection au
+premier passage et le job lit les secrets du dépôt : les migrations partent sans approbation. La garde `main` n'arrête
+qu'un lancement depuis une branche qui n'a pas modifié ce fichier ; seule l'étape 3 bloque vraiment les autres
+branches.
 
 Reproduire le job `android` en local :
 
