@@ -19,6 +19,7 @@ import { weightLimitParams, weightUnitName, weightUnitText } from '@/shared/doma
 import { currentWeightUnit } from '@/core/preferences/weight-unit-preference'
 import { focusFirstInvalid } from '@/shared/form/focus-first-invalid'
 import { useFormValidation } from '@/shared/form/use-form-validation'
+import { errorSummary } from '@/shared/utils/error-summary'
 import { formatDayMonthOrYear } from '@/shared/utils/format'
 
 const props = defineProps<{
@@ -121,7 +122,8 @@ async function submit(): Promise<void> {
       emit('created', await weight.create(result.data))
     }
     open.value = false
-  } catch {
+  } catch (cause) {
+    console.warn('Enregistrement de la pesée impossible :', errorSummary(cause))
     failed.value = 'save'
   } finally {
     pending.value = null
@@ -144,7 +146,8 @@ async function remove(): Promise<void> {
       undo: () => weight.undoRemove(entry.id),
       onUndone: () => emit('restored', entry),
     })
-  } catch {
+  } catch (cause) {
+    console.warn('Suppression de la pesée impossible :', errorSummary(cause))
     failed.value = 'delete'
   } finally {
     pending.value = null

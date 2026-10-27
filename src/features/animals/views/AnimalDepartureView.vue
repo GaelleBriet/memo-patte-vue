@@ -16,6 +16,7 @@ import FormChoices from '@/shared/form/FormChoices.vue'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
+import { errorSummary } from '@/shared/utils/error-summary'
 import { returnTo } from '@/shared/utils/return-to'
 
 const props = defineProps<{ id: string }>()
@@ -81,7 +82,8 @@ async function submit(): Promise<void> {
   try {
     await animals.saveDeparture(animal.value.id, result.data)
     backToCarnet()
-  } catch {
+  } catch (cause) {
+    console.warn('Enregistrement du départ impossible :', errorSummary(cause))
     saveFailed.value = true
   } finally {
     isSubmitting.value = false

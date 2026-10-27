@@ -8,6 +8,7 @@ import { plusCheckout } from '../service/checkout.service'
 import { usePurchaseRestore } from '../composables/use-purchase-restore'
 import type { PlusStatus } from '../logic/plus-status'
 import { authAvailable } from '@/shared/utils/auth-available'
+import { errorSummary } from '@/shared/utils/error-summary'
 import { signInRoute } from '@/shared/utils/sign-in-route'
 import { MANAGE_SUBSCRIPTIONS_URL } from '@/shared/utils/google-play'
 import {
@@ -100,7 +101,8 @@ async function buy(plan: PaidPlan): Promise<void> {
   let next: CheckoutNext
   try {
     next = nextAfterCheckout(await plusCheckout.checkout(plan))
-  } catch {
+  } catch (cause) {
+    console.warn('Achat impossible :', errorSummary(cause))
     phase.value = 'failed'
     return
   }
