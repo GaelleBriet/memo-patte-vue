@@ -7,6 +7,7 @@ export default mergeConfig(
   defineConfig({
     test: {
       environment: 'jsdom',
+      fsModuleCache: false,
       exclude: [...configDefaults.exclude, 'e2e/**', '**/.claude/worktrees/**'],
       root: fileURLToPath(new URL('./', import.meta.url)),
       setupFiles: ['./vitest.setup.ts'],
