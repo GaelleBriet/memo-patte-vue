@@ -26,7 +26,7 @@ import { provideAuthRepository, useAuthStore } from '@/features/auth/store/auth.
 import { backfillCareSignalOnLaunch } from '@/features/home/service/care-signal-backfill.service'
 import { provideCheckoutAccount } from '@/features/purchase/service/checkout.service'
 import { installPlusAccountLink } from '@/features/purchase/service/plus-account-link.service'
-import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
+import { installPlusStatusRefresh } from '@/features/purchase/service/plus-status-refresh.service'
 import { clearExports } from '@/features/settings/service/export-delivery.service'
 import { getCarnetSettingsRepository } from '@/features/settings/repository/carnet-settings.repository'
 import { provideCarnetSettingsRepository } from '@/features/settings/store/carnet-settings.store'
@@ -80,7 +80,7 @@ installRemindersSync()
 installCarnetSettingsReminders()
 installLaunchPriming(router)
 installRestorePrompt(router)
-void usePurchaseStore().verifyKnownStatus()
+installPlusStatusRefresh()
 installPlusAccountLink(() => useAuthStore().userId)
 provideCheckoutAccount({
   accountId: () => useAuthStore().userId,

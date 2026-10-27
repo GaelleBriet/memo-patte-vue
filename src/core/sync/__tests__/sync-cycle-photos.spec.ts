@@ -135,6 +135,7 @@ describe('createSyncCycle — photos', () => {
       deletes?: PhotoDeletePort
       tables?: SyncableTable[]
       now?: () => Date
+      userId?: () => string | null
     } = {},
   ) {
     const isPhotoInCarnet = options.isPhotoInCarnet ?? (async () => true)
@@ -143,7 +144,7 @@ describe('createSyncCycle — photos', () => {
       outbox,
       pushes,
       tables: options.tables ?? [animalTable(options.order ?? [])],
-      userId: () => 'user-1',
+      userId: options.userId ?? (() => 'user-1'),
       isEligible: () => options.isEligible ?? true,
       now: options.now ?? (() => GRACE_OVER),
       photos: {
@@ -400,6 +401,27 @@ describe('createSyncCycle — photos', () => {
       expect(order).toEqual(['ligne a1', 'pull', `effacement ${MILO_PHOTO}`])
       expect(outbox.entries()).toEqual([])
       expect(outbox.lastSyncedAt()).not.toBeNull()
+    })
+
+    it('n’efface rien dans le cloud du compte quitté pendant le pull', async () => {
+      let account: string | null = 'user-1'
+      const table = animalTable([])
+      table.pullPage = async () => {
+        account = null
+        return { rows: [], stamps: [], cursor: null }
+      }
+      const outbox = createFakeOutbox([photoEntry(MILO_PHOTO)])
+      const deletes = fakeDeletes()
+
+      await cycleWith(outbox, fakeFiles(), fakeUploads(), {
+        ...unused,
+        deletes,
+        tables: [table],
+        userId: () => account,
+      }).runCycle()
+
+      expect(deletes.deleted).toEqual([])
+      expect(outbox.entries()).toEqual([photoEntry(MILO_PHOTO)])
     })
 
     it('garde la photo dans le cloud, sans requête, tant que son fichier existe : « Annuler » peut la rendre', async () => {

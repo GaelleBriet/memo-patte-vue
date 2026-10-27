@@ -36,6 +36,29 @@ describe('syncStateRepository', () => {
       await repository.setEnabled(false)
       await expect(repository.isEnabled()).resolves.toBe(false)
     })
+
+    it.each([true, false])(
+      'écrit hors de la file d’envoi, puis laisse la synchro à %s',
+      async (enabledAfter) => {
+        await repository.setEnabled(true)
+
+        await db.runMany(
+          repository.unqueuedStatements(
+            [
+              {
+                sql: `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device)
+                      VALUES (?, 'Miette', 'cat', ?, ?, 'appareil-test', 'appareil-test')`,
+                params: [ANIMAL_ID, T1, T1],
+              },
+            ],
+            enabledAfter,
+          ),
+        )
+
+        await expect(db.query('SELECT entity_id FROM sync_outbox')).resolves.toEqual([])
+        await expect(repository.isEnabled()).resolves.toBe(enabledAfter)
+      },
+    )
   })
 
   describe('curseur de pull par entité', () => {
