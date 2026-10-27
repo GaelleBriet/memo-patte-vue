@@ -67,6 +67,7 @@ import notificationsOff from '@material-symbols/svg-400/outlined/notifications_o
 import openInNew from '@material-symbols/svg-400/outlined/open_in_new.svg?raw'
 import personOff from '@material-symbols/svg-400/outlined/person_off.svg?raw'
 import pestControl from '@material-symbols/svg-400/outlined/pest_control.svg?raw'
+import pauseCircle from '@material-symbols/svg-400/outlined/pause_circle.svg?raw'
 import pendingActions from '@material-symbols/svg-400/outlined/pending_actions.svg?raw'
 import pets from '@material-symbols/svg-400/outlined/pets.svg?raw'
 import photoCamera from '@material-symbols/svg-400/outlined/photo_camera.svg?raw'
@@ -260,6 +261,7 @@ export const msIcons = {
   pause,
   person_off: personOff,
   pest_control: pestControl,
+  pause_circle: pauseCircle,
   pending_actions: pendingActions,
   pets,
   photo_camera: photoCamera,
