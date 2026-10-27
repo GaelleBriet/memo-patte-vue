@@ -38,11 +38,11 @@ import {
   nextReminderText,
   overdueBanner,
   reminderRows,
-  rowToReopen,
   scopeCounter,
   upToDateText,
   type ReminderRow,
 } from '../logic/home-summary'
+import { reopenTarget } from '../logic/reopen-target'
 import { currentAnimalId } from '../logic/current-animal'
 import { todoItems } from '../logic/todo-items'
 import { buildTodo } from '../logic/todo-window'
@@ -166,22 +166,15 @@ function reopenReminder(
   request: ReminderRequest,
   { fromNotification }: { fromNotification: boolean },
 ): void {
-  const { kind, id } = request
-  if (request.step === 'given-when') {
-    givenWhen.value = { id, due: request.due }
+  const target = reopenTarget(rows.value, request, fromNotification)
+  if (target.to === 'given-when') {
+    givenWhen.value = { id: target.id, due: target.due }
     isGivenWhenOpen.value = true
-    return
-  }
-  const reminder = { kind, id }
-  const row = rowToReopen(rows.value, request)
-  const { due } = request
-  if (fromNotification && kind === 'treatment' && due !== undefined && due !== 'unlogged') {
-    openReminder({ kind, id, due }, request.step)
-  } else if (row) {
-    openReminder(row.request, request.step)
+  } else if (target.to === 'sheet') {
+    openReminder(target.request, target.step)
   } else {
     sheetRequest.release()
-    if (fromNotification) void router.push(detailRoute(reminder))
+    if (target.to === 'detail') void router.push(detailRoute(target.reminder))
   }
 }
 
