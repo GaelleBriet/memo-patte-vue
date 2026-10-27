@@ -1,5 +1,10 @@
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import {
+  createWriteQueue,
+  treatmentWriteQueue,
+  type WriteQueue,
+} from '@/core/write-queue/treatment-write-queue'
+import {
   getTreatmentPeriodsRepository,
   type TreatmentPeriodStopStatements,
 } from '@/features/treatments/repository/treatment-periods.repository'
@@ -21,6 +26,7 @@ export type AnimalFollowDependencies = {
   periods: Provider<TreatmentPeriodStopStatements>
   reminders: Pick<AnimalRemindersService, 'withdraw' | 'reschedule'>
   today: () => string
+  queue?: WriteQueue
 }
 
 /** Ce que « Annuler » défait après « Ne plus suivre ». */
@@ -45,6 +51,7 @@ export function createAnimalFollowService({
   periods,
   reminders,
   today,
+  queue = createWriteQueue(),
 }: AnimalFollowDependencies) {
   async function departureOf(animalId: string): Promise<Departure> {
     const departure = await (await animals()).getDeparture(animalId)
@@ -52,44 +59,56 @@ export function createAnimalFollowService({
     return departure
   }
 
+  async function unfollowed(animalId: string): Promise<UnfollowUndo | null> {
+    if ((await departureOf(animalId)).unfollowedOn !== null) return null
+    const day = today()
+    const at = new Date().toISOString()
+    const animalTreatments = await (await treatments()).listWithPeriodsByAnimal(animalId)
+    const stoppedPeriodIds = animalTreatments.flatMap((treatment) => {
+      const id = ongoingPeriodId(treatment, day)
+      return id === null ? [] : [id]
+    })
+    const repository = await periods()
+    await (
+      await animals()
+    ).setDeparture(
+      animalId,
+      { ...FOLLOWED, unfollowedOn: day },
+      stoppedPeriodIds.map((id) => repository.stopPeriodStatement(id, day, at)),
+    )
+    await reminders.withdraw(animalId)
+    return { animalId, unfollowedOn: day, stoppedPeriodIds }
+  }
+
+  async function unfollowUndone({
+    animalId,
+    unfollowedOn,
+    stoppedPeriodIds,
+  }: UnfollowUndo): Promise<void> {
+    const at = new Date().toISOString()
+    const repository = await periods()
+    await (
+      await animals()
+    ).setDeparture(
+      animalId,
+      FOLLOWED,
+      stoppedPeriodIds.map((id) => repository.undoStopPeriodStatement(id, unfollowedOn, at)),
+    )
+    await reminders.reschedule(animalId)
+  }
+
   return {
     /**
      * AN-9, AN-11 : l'animal n'est plus suivi et ses traitements en cours sont arrêtés aujourd'hui,
      * en une transaction, puis ses rappels sont retirés. `null` s'il n'était déjà plus suivi.
      */
-    async unfollow(animalId: string): Promise<UnfollowUndo | null> {
-      if ((await departureOf(animalId)).unfollowedOn !== null) return null
-      const day = today()
-      const at = new Date().toISOString()
-      const animalTreatments = await (await treatments()).listWithPeriodsByAnimal(animalId)
-      const stoppedPeriodIds = animalTreatments.flatMap((treatment) => {
-        const id = ongoingPeriodId(treatment, day)
-        return id === null ? [] : [id]
-      })
-      const repository = await periods()
-      await (
-        await animals()
-      ).setDeparture(
-        animalId,
-        { ...FOLLOWED, unfollowedOn: day },
-        stoppedPeriodIds.map((id) => repository.stopPeriodStatement(id, day, at)),
-      )
-      await reminders.withdraw(animalId)
-      return { animalId, unfollowedOn: day, stoppedPeriodIds }
+    unfollow(animalId: string): Promise<UnfollowUndo | null> {
+      return queue(() => unfollowed(animalId))
     },
 
     /** Suivi rétabli avec les seules périodes arrêtées par `unfollow`, puis les rappels. */
-    async undoUnfollow({ animalId, unfollowedOn, stoppedPeriodIds }: UnfollowUndo): Promise<void> {
-      const at = new Date().toISOString()
-      const repository = await periods()
-      await (
-        await animals()
-      ).setDeparture(
-        animalId,
-        FOLLOWED,
-        stoppedPeriodIds.map((id) => repository.undoStopPeriodStatement(id, unfollowedOn, at)),
-      )
-      await reminders.reschedule(animalId)
+    undoUnfollow(undo: UnfollowUndo): Promise<void> {
+      return queue(() => unfollowUndone(undo))
     },
 
     /**
@@ -119,4 +138,5 @@ export const animalFollowService = createAnimalFollowService({
   periods: getTreatmentPeriodsRepository,
   reminders: animalRemindersService,
   today: todayIsoDate,
+  queue: treatmentWriteQueue,
 })
