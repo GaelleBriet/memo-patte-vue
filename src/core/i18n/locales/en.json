@@ -1340,7 +1340,7 @@
         "export": "Export a copy",
         "exportHint": "To Google Drive, an email or a computer"
       },
-      "plus": "MémoPatte Plus will add a guaranteed cloud backup, photos included, and restore it on a new phone.",
+      "plus": "MémoPatte Plus adds a guaranteed cloud backup, photos included, and restores it on a new phone.",
       "discoverPlus": "Explore MémoPatte Plus",
       "cloud": {
         "saved": {
@@ -1873,7 +1873,7 @@
     },
     "success": {
       "title": "Welcome to Plus",
-      "body": "Your health record will be backed up very soon.",
+      "body": "Your health record backup starts now, photos included.",
       "back": "Back"
     },
     "cancelled": {
