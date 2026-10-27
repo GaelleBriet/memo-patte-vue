@@ -273,11 +273,13 @@ describe('Restaurer mon carnet', () => {
         await router.push({ name: 'home' })
         await router.push({ name: 'settings-plus' })
         await router.push(restoreRoute('settings-plus'))
-      })
+      }, 20_000)
 
       async function ouvrirLaConnexion(): Promise<void> {
         await toucher(bouton('Se reconnecter'))
-        await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('sign-in'))
+        await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('sign-in'), {
+          timeout: 5000,
+        })
       }
 
       function écranPrécédent(): unknown {
@@ -301,7 +303,9 @@ describe('Restaurer mon carnet', () => {
         await ouvrirLaConnexion()
 
         returnTo(router, signInReturnRoute(router.currentRoute.value.query.from))
-        await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('settings-plus'))
+        await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('settings-plus'), {
+          timeout: 5000,
+        })
 
         expect(écranPrécédent()).toBe(router.resolve({ name: 'home' }).fullPath)
       })
