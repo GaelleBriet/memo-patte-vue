@@ -57,6 +57,7 @@ let apply: MockInstance<ReturnType<typeof useTreatmentsStore>['applyDoseAction']
 let stop: MockInstance<ReturnType<typeof useTreatmentsStore>['stop']>
 
 beforeEach(() => {
+  vi.spyOn(console, 'warn').mockImplementation(() => {})
   setActivePinia(createPinia())
   const animals = useAnimalsStore()
   animals.animals = [LUNA]
@@ -276,6 +277,7 @@ describe('useTreatmentDoseFlow — un geste à la fois', () => {
 
 describe('useTreatmentDoseFlow — doses déjà notées ailleurs (liste périmée)', () => {
   it('renseigner : le choix des jours se ferme, et la feuille avec', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     apply.mockRejectedValue(new DoseAlreadyLoggedError())
     const settled = vi.fn<() => void>()
     const result = flow({ settled })
@@ -287,6 +289,7 @@ describe('useTreatmentDoseFlow — doses déjà notées ailleurs (liste périmé
 
     expect(result.isChooseDaysOpen.value).toBe(false)
     expect(settled).toHaveBeenCalledOnce()
+    expect(warn).toHaveBeenCalledWith('Geste impossible :', 'DoseAlreadyLoggedError')
   })
 
   it('renseigner puis arrêter : le choix des jours se ferme, et la feuille avec', async () => {

@@ -129,6 +129,7 @@ let wrapper: VueWrapper | null = null
 let router: Router
 
 beforeEach(async () => {
+  vi.spyOn(console, 'warn').mockImplementation(() => {})
   vi.useFakeTimers({ now: TODAY, toFake: ['Date'] })
   vi.mocked(getExactRemindersStatus).mockResolvedValue('precise')
   vi.stubGlobal('visualViewport', {

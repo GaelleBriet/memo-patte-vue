@@ -208,6 +208,7 @@ describe('useCareForm — enregistrement', () => {
   })
 
   it('ne fait rien quand il n’y a rien à écrire, et efface l’échec précédent', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
     const { form } = monter({ animalId: 'milo' })
     await flushPromises()
     await form.saveThenLeave(() => Promise.reject(new Error('disque plein')), true)

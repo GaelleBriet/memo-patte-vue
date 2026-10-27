@@ -148,6 +148,7 @@ let undoStop: MockInstance
 let push: MockInstance
 
 beforeEach(async () => {
+  vi.spyOn(console, 'warn').mockImplementation(() => {})
   vi.useFakeTimers({ now: TODAY, toFake: ['Date'] })
   vi.stubGlobal('visualViewport', {
     addEventListener() {},
