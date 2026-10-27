@@ -22,7 +22,12 @@ type Step = {
  * Une autre écriture est passée depuis la lecture : ligne modifiée, supprimée ou rétablie, ou
  * traitement et période supprimés. Rien n'a été écrit.
  */
-export class ConcurrentWriteError extends Error {}
+export class ConcurrentWriteError extends Error {
+  constructor(message?: string, options?: ErrorOptions) {
+    super(message, options)
+    this.name = 'ConcurrentWriteError'
+  }
+}
 
 export function createDoseBatch(
   db: DbClient,
