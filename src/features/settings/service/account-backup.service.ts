@@ -1,4 +1,5 @@
 import type { AccountRestore, RestoreMode } from '@/core/sync/service/account-restore'
+import type { AccountBackupCheck } from '@/core/sync/service/account-sync'
 import type { LocalSyncOutbox } from '@/core/sync/service/local-sync-outbox'
 import {
   readBackupSummary,
@@ -11,14 +12,6 @@ import { errorSummary } from '@/shared/utils/error-summary'
 type Provider<T> = () => T | Promise<T>
 
 export type { BackupSummary }
-
-export type AccountBackupCheck =
-  | { kind: 'signed-out' }
-  | { kind: 'active' }
-  | { kind: 'seeded' }
-  | { kind: 'unreachable' }
-  | { kind: 'restore-pending'; mode: RestoreMode }
-  | { kind: 'backup-found'; summary: BackupSummary }
 
 export type AccountBackupDependencies = {
   outbox: Provider<Pick<LocalSyncOutbox, 'isEnabled' | 'enableAndQueueWholeCarnet'>>
