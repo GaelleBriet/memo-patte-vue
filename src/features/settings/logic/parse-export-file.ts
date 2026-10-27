@@ -8,6 +8,7 @@ import {
   exportHeaderSchema,
   exportVersionSchema,
 } from '../schema/export-file.schema'
+import { withReferenceDay } from '../schema/export-file-fields.schema'
 import { everyTreatmentReadable, withGridDatesClamped } from './export-file-versions'
 import { EXPORT_SCHEMA_VERSION } from './export-format'
 
@@ -62,7 +63,9 @@ export function parseExportFile(
 
   const header = exportHeaderSchema.safeParse(document)
   if (!header.success) return { ok: false, reason: refusalReason(header.error) }
-  const parsed = exportFileSchemaOf(schemaVersion, deviceId, today).safeParse(document)
+  const parsed = withReferenceDay(today, () =>
+    exportFileSchemaOf(schemaVersion, deviceId, today).safeParse(document),
+  )
   if (!parsed.success) return { ok: false, reason: refusalReason(parsed.error) }
   const data = withGridDatesClamped(parsed.data, header.data.exportedAt)
   if (!everyTreatmentReadable(data, today)) return { ok: false, reason: 'invalid' }

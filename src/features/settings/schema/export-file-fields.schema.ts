@@ -1,13 +1,24 @@
-import { isFuture, parseISO } from 'date-fns'
 import { z } from 'zod'
 
-import { isCalendarDay } from '@/shared/domain/calendar-day'
+import { isCalendarDay, isNotFuture, toDay } from '@/shared/domain/calendar-day'
 import { CLOCK_TIME_PATTERN } from '@/shared/domain/clock-time'
 import { instantSchema } from '@/shared/domain/instant'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
 export const day = z.string().refine(isCalendarDay)
-export const pastDay = day.refine((value) => !isFuture(parseISO(value)))
+let referenceDay = ''
+
+export function withReferenceDay<T>(today: string, read: () => T): T {
+  const previous = referenceDay
+  referenceDay = today
+  try {
+    return read()
+  } finally {
+    referenceDay = previous
+  }
+}
+
+export const pastDay = day.refine((value) => isNotFuture(value, referenceDay || toDay(new Date())))
 export const clockTime = z.string().regex(CLOCK_TIME_PATTERN)
 export const timestamps = { createdAt: instantSchema, updatedAt: instantSchema }
 export const stamps = { ...timestamps, createdByDevice: z.uuid(), updatedByDevice: z.uuid() }

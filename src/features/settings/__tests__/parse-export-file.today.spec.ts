@@ -39,3 +39,27 @@ describe('parseExportFile : le jour de l’import est le jour civil local', () =
     expect(parseExportFile(dailyAllHours()).ok).toBe(true)
   })
 })
+
+describe('parseExportFile : « jamais futur » suit le jour fourni, pas l’horloge', () => {
+  function withWeightOn(day: string): string {
+    const document = JSON.parse(importFixtureJson()) as ExportDocument
+    const [entry] = document.weightEntries as ExportDocument[]
+    entry!.measuredOn = day
+    return JSON.stringify(document)
+  }
+
+  it('une pesée du 28 est acceptée quand le jour fourni est le 28, horloge au 27', () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 27, 12) })
+
+    expect(parseExportFile(withWeightOn('2026-10-28'), undefined, '2026-10-28').ok).toBe(true)
+  })
+
+  it('une pesée du 28 est refusée quand le jour fourni est le 27, horloge au 28', () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 28, 12) })
+
+    expect(parseExportFile(withWeightOn('2026-10-28'), undefined, '2026-10-27')).toEqual({
+      ok: false,
+      reason: 'invalid',
+    })
+  })
+})
