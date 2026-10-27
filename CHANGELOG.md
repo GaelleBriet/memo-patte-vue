@@ -5,6 +5,20 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.135](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.134...memo-patte-v0.1.135) (2026-10-27)
+
+
+### 🐛 Corrections
+
+* **animals:** suppression d'un animal et son « Annuler » passent par la file d'écritures ([eedb3f6](https://github.com/GaelleBriet/memo-patte-vue/commit/eedb3f6854b7f30cb1320d317ac264b8604bb059))
+* **animaux:** la suppression d'un animal et son « Annuler » passent par la file d'écritures ([f87a9b5](https://github.com/GaelleBriet/memo-patte-vue/commit/f87a9b5f8402308f0f49eb61e2742298be57399b))
+* dire de se reconnecter quand la session expire pendant l'attente d'une restauration ([c828cf6](https://github.com/GaelleBriet/memo-patte-vue/commit/c828cf64941e4ed74e03b66dda5d9d2793fce010))
+* ouvrir la connexion à la place de « Restaurer mon carnet » pour ne pas le doubler ([581695b](https://github.com/GaelleBriet/memo-patte-vue/commit/581695b1356389dc4e29341f17fab88b902a5912))
+* **purge:** compter depuis la fin d'accès connue de revenuecat quand le webhook s'est perdu ([d7a8787](https://github.com/GaelleBriet/memo-patte-vue/commit/d7a87870f46f41551f569a20d70c0b7e69b45883)), closes [#1208](https://github.com/GaelleBriet/memo-patte-vue/issues/1208)
+* **purge:** ne garder un avis que si sa date j vient de la fin connue de revenuecat ([dcf1063](https://github.com/GaelleBriet/memo-patte-vue/commit/dcf1063ef8fc4adcbd8bf04f3e2f9bba62c11b33)), closes [#1208](https://github.com/GaelleBriet/memo-patte-vue/issues/1208)
+* **purge:** ne plus sauter un abonné dont le webhook d'achat s'est perdu ([1a0a8ed](https://github.com/GaelleBriet/memo-patte-vue/commit/1a0a8ed9b678070f20d296aa10eb250e8d52d00b))
+* **restauration:** dire de se reconnecter quand la session expire pendant l'attente ([5c45fca](https://github.com/GaelleBriet/memo-patte-vue/commit/5c45fcae8f21aa53131cd4f81117234bc7de9465))
+
 ## [0.1.134](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.133...memo-patte-v0.1.134) (2026-10-27)
 
 
