@@ -22,8 +22,7 @@ import {
 } from './dose-calendar.recette.aides'
 
 // Jeu de recette du moteur v2 (épic #758) : attentes des règles R1 à R12 et des décisions du
-// 2026-10-10 ; un cas que le moteur en essai ne tient pas encore est marqué `it.fails` avec son
-// ticket ou sa décision.
+// 2026-10-10.
 
 describe('R2, R3, R9 : première échéance, mois, nouveau réglage', () => {
   it('TR-7 : un mensuel du 31 janv. tombe le 28 févr., puis le 31 mars et le 30 avr.', () => {
