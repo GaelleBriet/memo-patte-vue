@@ -3,4 +3,4 @@
 # Le wasm doit venir du sql.js figé dans le bundle de jeep-sqlite 2.8.0 (#152)
 overrides:
   jeep-sqlite>sql.js: 1.11.0
-  dompurify: ">=3.4.16"
+  dompurify: ">=3.4.17"
