@@ -14,6 +14,7 @@ import {
   withInjectionDate,
   type VaccinationFormContext,
 } from '../logic/vaccination-form'
+import { useSameNameCheck } from '../composables/use-same-name-check'
 import { earliestOtherDate } from '../logic/vaccination-sheet'
 import type { Vaccination } from '../schema/vaccination.schema'
 import { useVaccinationsStore } from '../store/vaccinations.store'
@@ -45,11 +46,8 @@ const existing = ref<Vaccination | null>(null)
 const reminderLabelId = useId()
 const isOtherDateOpen = ref(false)
 
-const sameName = ref<Vaccination | null>(null)
-const isSameNameDialogOpen = ref(false)
 const isDoneSheetOpen = ref(false)
 const doneSheetInjectedOn = ref<string | null>(null)
-const isCheckingName = ref(false)
 
 const {
   from,
@@ -73,6 +71,12 @@ const {
   allowsUnfollowedAnimal: () => props.id !== undefined,
   load: (id) => vaccinations.getById(id),
   open,
+})
+
+const { sameName, isDialogOpen, isChecking, isNewName } = useSameNameCheck({
+  find: (animalId, name) => vaccinations.findSameName(animalId, name),
+  animalId: () => props.animalId,
+  name: () => values.value.name,
 })
 
 const context = computed((): VaccinationFormContext => ({
@@ -127,27 +131,9 @@ function open(loaded: Vaccination): void {
   values.value = vaccinationFormValuesFrom(loaded)
 }
 
-async function findSameName(): Promise<Vaccination | null> {
-  if (props.animalId === undefined || values.value.name.trim() === '') return null
-  try {
-    return await vaccinations.findSameName(props.animalId, values.value.name)
-  } catch {
-    return null
-  }
-}
-
 async function submit(): Promise<void> {
-  if (isSubmitting.value || isCheckingName.value || !canSave.value) return
-
-  if (!isEdit.value) {
-    isCheckingName.value = true
-    sameName.value = await findSameName()
-    isCheckingName.value = false
-    if (sameName.value !== null) {
-      isSameNameDialogOpen.value = true
-      return
-    }
-  }
+  if (isSubmitting.value || isChecking.value || !canSave.value) return
+  if (!isEdit.value && !(await isNewName())) return
   await save()
 }
 
@@ -269,7 +255,7 @@ async function save(): Promise<void> {
 
   <ConfirmDialog
     v-if="sameName"
-    v-model="isSameNameDialogOpen"
+    v-model="isDialogOpen"
     tone="primary"
     :title="t('vaccinations.form.duplicate.title', { name: sameName.name })"
     :text="t('vaccinations.form.duplicate.text', { name: sameName.name, animal: animalName ?? '' })"
