@@ -86,11 +86,12 @@ export const ANNUAL_PACKAGE = pkg('$rc_annual', '12,99 €')
 export const LIFETIME_PACKAGE = pkg('$rc_lifetime', '39,99 €')
 
 // Node 26 expose un `localStorage` vide qui masque celui de jsdom.
-export function memoryStorage(): Pick<Storage, 'getItem' | 'setItem'> {
+export function memoryStorage(): Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> {
   const items = new Map<string, string>()
   return {
     getItem: (key) => items.get(key) ?? null,
     setItem: (key, value) => void items.set(key, value),
+    removeItem: (key) => void items.delete(key),
   }
 }
 

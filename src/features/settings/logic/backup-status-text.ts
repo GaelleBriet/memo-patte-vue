@@ -2,6 +2,7 @@ import { differenceInMinutes, parseISO } from 'date-fns'
 
 import type { Translate } from '@/core/i18n/translate'
 import { toDay } from '@/shared/domain/calendar-day'
+import { formatLongDate } from '@/shared/utils/format'
 import type { BackupStatus, CloudBackupStatus } from './backup-status'
 import { lastBackupWhen } from './backup-summary-text'
 
@@ -71,5 +72,20 @@ export function cloudBackupText(
                 when: lastBackupWhen(t, status.since, toDay(now)),
               }),
       }
+  }
+}
+
+export function pausedBackupText(
+  t: Translate,
+  pause: { keptUntil: string | null },
+): { title: string; hint: string; risk: string; kept: string | null } {
+  return {
+    title: t('settings.backup.cloud.paused.title'),
+    hint: t('settings.backup.cloud.paused.hint'),
+    risk: t('settings.backup.cloud.paused.risk'),
+    kept:
+      pause.keptUntil === null
+        ? null
+        : t('settings.backup.cloud.paused.kept', { date: formatLongDate(pause.keptUntil) }),
   }
 }

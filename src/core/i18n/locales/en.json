@@ -1373,7 +1373,15 @@
           "label": "Photos backed up",
           "value": "Yes"
         },
-        "eraseHint": "Your cloud backup is not affected"
+        "eraseHint": "Your cloud backup is not affected",
+        "paused": {
+          "title": "Your cloud backup is paused",
+          "hint": "Your health records stay on your phone.",
+          "action": "Reactivate Plus",
+          "actionLabel": "Reactivate MémoPatte Plus",
+          "risk": "Since the pause, your changes are no longer backed up: if this phone is lost, they may be too.",
+          "kept": "Your last backup is kept until {date}. Reactivate Plus to pick up where it left off."
+        }
       }
     },
     "erase": {
