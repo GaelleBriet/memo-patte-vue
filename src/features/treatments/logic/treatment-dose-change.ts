@@ -68,9 +68,12 @@ export class DoseAlreadyLoggedError extends Error {
 }
 
 export class GestureRefusedError extends Error {
+  readonly reason: Refusal['reason']
+
   constructor(readonly refusal: Refusal) {
     super(`Geste refusé : ${refusal.reason}`)
     this.name = 'GestureRefusedError'
+    this.reason = refusal.reason
   }
 }
 
