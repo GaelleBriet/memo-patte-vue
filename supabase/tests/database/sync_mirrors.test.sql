@@ -377,6 +377,58 @@ select lives_ok($$
   update public.treatment_dose set status = 'missed', updated_at = now();
 $$, 'prise en plus, ligne de décalage et ligne « pas à donner » acceptées');
 
+select pg_temp.as_owner();
+create temp table all_hours as
+  select string_agg(lpad(hour::text, 2, '0') || ':00', ',' order by hour) as times
+  from generate_series(0, 23) hour;
+grant select on all_hours to authenticated;
+select pg_temp.as_user('a');
+
+select throws_ok(format($$ update public.treatment_period set %s $$, change), '23514', null, label)
+from (values
+  ('times = ''''', 'heures vides refusées : l''app écrit null'),
+  ('times = ''8:00''', 'heure sans zéro initial refusée'),
+  ('times = ''08:00:00''', 'heure avec des secondes refusée'),
+  ('times = ''24:00''', 'heure à 24 h refusée'),
+  ('times = ''08:00, 20:00''', 'heures séparées par une virgule et une espace refusées'),
+  ('times = ''08:00,''', 'virgule finale refusée'),
+  ('times = (select all_hours.times || '',23:30'' from all_hours)', 'plus de 24 heures par jour refusées'),
+  ('reminder_time = ''9:00''', 'heure du rappel invalide refusée'),
+  ('grid_before = repeat(''x'', 64001)', 'grille d''avant de plus de 64 000 caractères refusée')
+) as bad (change, label);
+
+select lives_ok($$
+  update public.treatment_period
+  set times = (select all_hours.times from all_hours), reminder_time = '23:59',
+    grid_before = repeat('x', 64000)
+$$, '24 heures par jour, une heure de rappel et une grille de 64 000 caractères acceptées');
+select is(
+  (select array[times, reminder_time, char_length(grid_before)::text] from public.treatment_period),
+  array[(select all_hours.times from all_hours), '23:59', '64000'], 'la période les garde telles quelles');
+update public.treatment_period
+set times = '08:00,20:00', reminder_time = null, grid_before = null;
+
+select throws_ok(format($$ update public.treatment_dose set %s $$, change), '23514', null, label)
+from (values
+  ('due_time = ''08:00,20:00''', 'plusieurs heures sur une prise refusées'),
+  ('due_time = ''08h00''', 'heure d''échéance invalide refusée'),
+  ('previous_target_time = ''25:00''', 'heure d''arrivée d''avant invalide refusée')
+) as bad (change, label);
+
+select lives_ok($$
+  update public.treatment_dose set previous_target_time = '20:00', due_time = '00:00'
+$$, 'heures d''échéance et d''arrivée d''avant au format de l''app acceptées');
+select is((select array[due_time, previous_target_time] from public.treatment_dose),
+  array['00:00', '20:00'], 'la prise les garde telles quelles');
+update public.treatment_dose set previous_target_time = null, due_time = '08:00';
+
+select throws_ok($$ update public.animal set photo_path = repeat('x', 201) $$, '23514', null,
+  'nom de photo de plus de 200 caractères refusé');
+select lives_ok($$
+  update public.animal set photo_path = repeat('x', 200);
+  update public.animal set photo_path = null;
+$$, 'nom de photo de 200 caractères accepté');
+
 select throws_ok($$ update public.device set model = repeat('x', 201) $$, '23514', null,
   'modèle d''appareil de plus de 200 caractères refusé');
 
