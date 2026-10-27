@@ -11,7 +11,6 @@ const TREATMENT = '0b6f7f2e-3a8d-4f0e-9a1c-5d2b7e8f9a01'
 const CARNETS = 200
 const LAST_DAY = '2026-09-01'
 
-type DatedRow = { injectedOn?: string; measuredOn?: string; createdAt?: string }
 type Dose = { givenOn: string; nextDueDate: string }
 
 const plusDays = (day: string, count: number) => format(addDays(parseISO(day), count), 'yyyy-MM-dd')
@@ -48,20 +47,10 @@ function oldCarnet(seed: number): { frequency: Frequency; doses: Dose[]; today: 
   return { frequency, doses, today: plusDays(last!, pick(3)) }
 }
 
-function exportOf({ frequency, doses, today }: ReturnType<typeof oldCarnet>): string {
+function exportOf({ frequency, doses }: ReturnType<typeof oldCarnet>): string {
   const file = JSON.parse(exportV2) as Record<string, unknown>
   const luna = (file.animals as { id: string }[])[0]!.id
   const at = '2025-01-01T08:00:00.000Z'
-  file.exportedAt = `${today}T08:00:00.000Z`
-  for (const row of [
-    ...(file.animals as DatedRow[]),
-    ...(file.vaccinationInjections as DatedRow[]),
-    ...(file.weightEntries as DatedRow[]),
-  ]) {
-    if (row.createdAt) row.createdAt = '2023-12-31T08:00:00.000Z'
-    if (row.injectedOn) row.injectedOn = '2023-12-31'
-    if (row.measuredOn) row.measuredOn = '2023-12-31'
-  }
   file.treatments = [
     {
       id: TREATMENT,

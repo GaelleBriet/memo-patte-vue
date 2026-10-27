@@ -1466,7 +1466,6 @@ describe('HomeView — A5 premier lancement, aucun animal', () => {
     })
 
     it('affiche le carnet importé puis propose l’explication des rappels depuis l’accueil', async () => {
-      vi.setSystemTime(new Date('2026-09-16T08:00:00'))
       const wrapper = await monterAttache()
       loadAnimals.mockClear()
       listSources.mockClear()

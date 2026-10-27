@@ -1,7 +1,7 @@
 import type { z } from 'zod'
 
 import { currentDeviceId } from '@/core/device/device-identity'
-import { isNotFuture, nextDay, toDay } from '@/shared/domain/calendar-day'
+import { nextDay, toDay } from '@/shared/domain/calendar-day'
 import type { ImportFile } from '@/shared/domain/import-plan'
 import {
   exportFileSchemaOf,
@@ -73,7 +73,6 @@ function readExportFile(text: string, deviceId: string, today: string): ParsedEx
   const header = exportHeaderSchema.safeParse(document)
   if (!header.success) return { ok: false, reason: refusalReason(header.error) }
   const exportDay = header.data.exportedAt.slice(0, 10)
-  if (!isNotFuture(exportDay, nextDay(today))) return { ok: false, reason: 'future' }
   const lastDay = nextDay(exportDay)
   const replayDay = lastDay > today ? lastDay : today
   const parsed = withReferenceDay(lastDay, () =>
