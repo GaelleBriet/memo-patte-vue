@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.128](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.127...memo-patte-v0.1.128) (2026-10-27)
+
+
+### 🐛 Corrections
+
+* **treatments:** ranger vide une grille d'avant trop longue pour être relue ([86bb717](https://github.com/GaelleBriet/memo-patte-vue/commit/86bb717b391f92bd526b8fbe9c2e77ce8255af73))
+
 ## [0.1.127](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.126...memo-patte-v0.1.127) (2026-10-27)
 
 
