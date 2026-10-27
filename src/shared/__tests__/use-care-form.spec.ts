@@ -1,6 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { defineComponent, h, reactive, shallowRef } from 'vue'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useCareForm, type CareFormAnimal } from '../composables/use-care-form'
 
@@ -74,6 +74,10 @@ function monter(options: {
   )
   return { form, animals, open }
 }
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 beforeEach(() => {
   replace.mockClear()
@@ -181,7 +185,6 @@ describe('useCareForm — chargement du soin', () => {
 
     expect(form.loadFailed.value).toBe(true)
     expect(warn).toHaveBeenCalledWith('Chargement du soin impossible :', 'Error')
-    warn.mockRestore()
     expect(form.isLoading.value).toBe(false)
     expect(form.canSave.value).toBe(false)
   })
@@ -242,7 +245,6 @@ describe('useCareForm — enregistrement', () => {
 
     expect(form.saveFailed.value).toBe(true)
     expect(warn).toHaveBeenCalledWith('Enregistrement du soin impossible :', 'Error')
-    warn.mockRestore()
     expect(form.isSaved.value).toBe(false)
     expect(form.canSave.value).toBe(true)
     expect(animals.select).not.toHaveBeenCalled()

@@ -60,11 +60,17 @@ export type DoseChange = {
   keptAhead?: readonly KeptLine[]
 }
 
-export class DoseAlreadyLoggedError extends Error {}
+export class DoseAlreadyLoggedError extends Error {
+  constructor(message?: string, options?: ErrorOptions) {
+    super(message, options)
+    this.name = 'DoseAlreadyLoggedError'
+  }
+}
 
 export class GestureRefusedError extends Error {
   constructor(readonly refusal: Refusal) {
     super(`Geste refusé : ${refusal.reason}`)
+    this.name = 'GestureRefusedError'
   }
 }
 

@@ -13,9 +13,17 @@ import {
   toastTone,
 } from '../utils/toast'
 
+class NamedError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'NamedError'
+  }
+}
+
 afterEach(() => {
   dismissToast()
   vi.useRealTimers()
+  vi.restoreAllMocks()
 })
 
 function gestures(options?: Parameters<typeof useGuardedGestures>[0]) {
@@ -65,6 +73,7 @@ describe('useGuardedGestures : un geste à la fois', () => {
   })
 
   it('dit l’échec en toast quand son texte est donné', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
     const { isBusy, guarded } = gestures()
 
     const done = await guarded(() => Promise.reject(new Error('base')), 'Échec de Milbemax')
@@ -82,10 +91,19 @@ describe('useGuardedGestures : un geste à la fois', () => {
     await guarded(() => Promise.reject(new Error('base de Milo')), 'Échec')
 
     expect(warn).toHaveBeenCalledWith('Geste impossible :', 'Error')
-    warn.mockRestore()
+  })
+
+  it('trace une erreur nommée sous son nom', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { guarded } = gestures()
+
+    await guarded(() => Promise.reject(new NamedError('Dose de Milo')), 'Échec')
+
+    expect(warn).toHaveBeenCalledWith('Geste impossible :', 'NamedError')
   })
 
   it('échoue sans toast quand aucun texte d’échec n’est donné', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
     const { guarded } = gestures()
 
     expect(await guarded(() => Promise.reject(new Error('base')))).toBe(false)
