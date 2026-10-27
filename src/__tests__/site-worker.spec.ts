@@ -34,4 +34,61 @@ describe('site/_worker.js', () => {
       expect(assets.fetch).toHaveBeenCalledOnce()
     },
   )
+
+  describe('en-têtes de sécurité', () => {
+    const expected = {
+      'x-content-type-options': 'nosniff',
+      'referrer-policy': 'strict-origin-when-cross-origin',
+      'x-frame-options': 'DENY',
+      'content-security-policy': "frame-ancestors 'none'",
+    }
+
+    function expectSecurityHeaders(res: Response) {
+      for (const [name, value] of Object.entries(expected)) {
+        expect(res.headers.get(name)).toBe(value)
+      }
+    }
+
+    it('les pose sur une réponse normale en gardant les en-têtes existants', async () => {
+      const assets = {
+        fetch: async () =>
+          new Response('page', {
+            headers: { 'cache-control': 'public, max-age=3600', etag: '"abc"' },
+          }),
+      }
+      const res = await worker.fetch(new Request('https://memopatte.app/aide/'), {
+        ASSETS: assets,
+      })
+      expectSecurityHeaders(res)
+      expect(res.status).toBe(200)
+      expect(res.headers.get('cache-control')).toBe('public, max-age=3600')
+      expect(res.headers.get('etag')).toBe('"abc"')
+      expect(await res.text()).toBe('page')
+    })
+
+    it('les pose sur une redirection vers le domaine canonique', async () => {
+      const { response } = serve('https://www.memopatte.app/aide/')
+      const res = await response
+      expectSecurityHeaders(res)
+      expect(res.status).toBe(301)
+      expect(res.headers.get('location')).toBe('https://memopatte.app/aide/')
+    })
+
+    it('les pose sur une 404 sans changer son statut', async () => {
+      const assets = { fetch: async () => new Response('absent', { status: 404 }) }
+      const res = await worker.fetch(new Request('https://memopatte.app/nope'), {
+        ASSETS: assets,
+      })
+      expectSecurityHeaders(res)
+      expect(res.status).toBe(404)
+      expect(await res.text()).toBe('absent')
+    })
+
+    it('les pose sur une réponse sans corps (304)', async () => {
+      const assets = { fetch: async () => new Response(null, { status: 304 }) }
+      const res = await worker.fetch(new Request('https://memopatte.app/'), { ASSETS: assets })
+      expectSecurityHeaders(res)
+      expect(res.status).toBe(304)
+    })
+  })
 })
