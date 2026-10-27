@@ -7,8 +7,11 @@ import type { RestoreMode } from '@/core/sync/repository/sync-state.repository'
 import { createRestoreFlow, type RestoreFlowState } from '@/core/sync/service/restore-flow'
 import { SYNC_BACKOFF_STEPS_MS, SYNC_DEBOUNCE_MS } from '@/core/sync/service/sync-scheduler'
 import type { SyncCycleOutbox } from '@/core/sync/service/sync-cycle'
-import type { AccountBackupCheck } from '@/features/settings/service/account-backup.service'
-import { installSync, type SyncDependencies } from '../sync'
+import {
+  installSync,
+  type AccountBackupCheck,
+  type SyncDependencies,
+} from '../service/account-sync'
 
 type NetworkListener = (status: { connected: boolean; connectionType: string }) => void
 type AddNetworkListener = (
