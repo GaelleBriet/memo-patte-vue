@@ -16,6 +16,7 @@ export interface PullCycle {
     onRemindersTouched: (entity: string) => void,
   ): Promise<void>
   keepServerRows(
+    userId: string,
     keptRows: readonly KeptRow[],
     onRemindersTouched: (entity: string) => void,
   ): Promise<void>
@@ -28,12 +29,16 @@ function withMargin(lastPulledAt: string | null): string {
 }
 
 export function createPullCycle(
-  deps: Pick<SyncCycleDependencies, 'db' | 'outbox' | 'tables'>,
+  deps: Pick<SyncCycleDependencies, 'db' | 'outbox' | 'tables' | 'userId'>,
 ): PullCycle {
-  /** Les écritures de la synchro ne repartent pas dans la file d'envoi. */
-  async function runUnqueued(statements: SqlStatement[]): Promise<void> {
+  const isCurrent = (userId: string) => deps.userId() === userId
+
+  /** Faux, sans rien écrire, quand le compte du cycle n'est plus le compte courant. */
+  async function runUnqueued(userId: string, statements: SqlStatement[]): Promise<boolean> {
     const wasEnabled = await deps.outbox.isEnabled()
+    if (!isCurrent(userId)) return false
     await deps.db.runMany(deps.outbox.unqueuedStatements(statements, wasEnabled))
+    return true
   }
 
   /**
@@ -41,12 +46,14 @@ export function createPullCycle(
    * échouer le cycle : la ligne reste en file et repart au suivant.
    */
   async function keepServerRows(
+    userId: string,
     keptRows: readonly KeptRow[],
     onRemindersTouched: (entity: string) => void,
   ): Promise<void> {
     for (const { table, entry, sent, kept } of keptRows) {
       try {
-        await runUnqueued([table.replacePushedRowStatement(kept, sent.updated_at)])
+        const statement = table.replacePushedRowStatement(kept, sent.updated_at)
+        if (!(await runUnqueued(userId, [statement]))) return
         await deps.outbox.removeIfUnchanged(entry)
         onRemindersTouched(table.entity)
       } catch (cause) {
@@ -63,16 +70,19 @@ export function createPullCycle(
    * locale, encore datée par l'horloge du téléphone, refuserait sinon la garde du pull.
    */
   async function applyPage(
+    userId: string,
     table: SyncableTable,
     rows: SyncRow[],
     keptByKey: ReadonlyMap<string, KeptRow>,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const normalized = rows.map(normalizeSyncTimestamps)
-    await runUnqueued(normalized.map((row) => table.applyRemoteRowStatement(row)))
+    const statements = normalized.map((row) => table.applyRemoteRowStatement(row))
+    if (!(await runUnqueued(userId, statements))) return false
     for (const row of normalized) {
       const kept = keptByKey.get(keyOf(table.entity, row.id))
       if (kept && row.updated_at > kept.kept.updated_at) kept.kept = row
     }
+    return true
   }
 
   /** Une ligne relue dans la marge ne touche le carnet que si elle y manque ou y est plus ancienne. */
@@ -94,7 +104,7 @@ export function createPullCycle(
     table: SyncableTable,
     keptByKey: ReadonlyMap<string, KeptRow>,
     onCarnetTouched: () => void,
-  ): Promise<void> {
+  ): Promise<boolean> {
     let lastPulledAt = await deps.outbox.getLastPulledAt(table.entity)
     let since = withMargin(lastPulledAt)
     let afterId: string | undefined
@@ -105,7 +115,7 @@ export function createPullCycle(
       if (!lastRow) break
 
       const touched = await touchesCarnet(table, page, lastPulledAt)
-      await applyPage(table, page.rows, keptByKey)
+      if (!(await applyPage(userId, table, page.rows, keptByKey))) return false
 
       const cursor = page.cursor
       if (cursor === null) break
@@ -116,6 +126,7 @@ export function createPullCycle(
         console.warn(`Pagination du pull arrêtée sans progrès pour ${table.entity}.`)
         break
       }
+      if (!isCurrent(userId)) return false
       if (lastPulledAt === null || cursor > lastPulledAt) {
         await deps.outbox.setLastPulledAt(table.entity, cursor)
         lastPulledAt = cursor
@@ -125,6 +136,7 @@ export function createPullCycle(
       since = cursor
       afterId = lastRow.id
     }
+    return true
   }
 
   async function pull(
@@ -136,7 +148,8 @@ export function createPullCycle(
       keptRows.map((kept) => [keyOf(kept.table.entity, kept.sent.id), kept]),
     )
     for (const table of deps.tables) {
-      await pullTable(userId, table, keptByKey, () => onRemindersTouched(table.entity))
+      if (!(await pullTable(userId, table, keptByKey, () => onRemindersTouched(table.entity))))
+        return
     }
   }
 

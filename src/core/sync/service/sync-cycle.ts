@@ -88,12 +88,13 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
         pushFailure ??= photoFailure
         await pullCycle.pull(userId, keptRows, onRemindersTouched)
       } finally {
-        await pullCycle.keepServerRows(keptRows, onRemindersTouched)
+        await pullCycle.keepServerRows(userId, keptRows, onRemindersTouched)
         if (touchedReminders) await deps.onRemindersOutdated?.()
       }
       const removalFailure = photoRemoval ? await photoRemoval.remove(userId) : null
       pushFailure ??= removalFailure
       if (pushFailure) throw pushFailure.cause
+      if (deps.userId() !== userId) return
       await deps.outbox.setLastSyncedAt(now().toISOString())
     },
   }
