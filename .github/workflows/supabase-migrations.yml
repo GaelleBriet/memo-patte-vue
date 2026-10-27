@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: supabase-migrations
+  group: supabase-migrations-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
