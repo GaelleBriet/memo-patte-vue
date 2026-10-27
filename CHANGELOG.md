@@ -5,6 +5,15 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.134](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.133...memo-patte-v0.1.134) (2026-10-27)
+
+
+### 🐛 Corrections
+
+* **traitements:** nommer les erreurs de geste et tracer le code d'un refus ([00183ed](https://github.com/GaelleBriet/memo-patte-vue/commit/00183ed2c2474ba6eba758815136c72787b0686f))
+* **traitements:** nommer les erreurs des doses et tracer leur nom ([8e7f0ef](https://github.com/GaelleBriet/memo-patte-vue/commit/8e7f0ef85405e609a232776d887d984162a97724))
+* **traitements:** tracer le code d'un geste refusé, sans date ([cf5c560](https://github.com/GaelleBriet/memo-patte-vue/commit/cf5c560077e18178dfd2fd6190bbe6b0356b12cc))
+
 ## [0.1.133](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.132...memo-patte-v0.1.133) (2026-10-27)
 
 
