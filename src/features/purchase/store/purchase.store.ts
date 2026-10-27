@@ -36,10 +36,12 @@ function remember(next: PlusStatus, previous: StoredPlusStatus): StoredPlusStatu
 
 export const usePurchaseStore = defineStore('purchase', () => {
   const stored = ref<StoredPlusStatus>(readStoredPlusStatus())
+  /** Instant de la dernière vérification : l'échéance se relit à chacune. */
+  const now = ref(Date.now())
   /** Une échéance passée se lit « aucun » ; le stocké reste, pour retrouver un renouvellement. */
   const status = computed<PlusStatus>(() => {
     const { plan, expiresAt } = stored.value
-    return expiresAt !== null && Date.parse(expiresAt) <= Date.now() ? NO_PLUS : { plan, expiresAt }
+    return expiresAt !== null && Date.parse(expiresAt) <= now.value ? NO_PLUS : { plan, expiresAt }
   })
   /** Abonnement échu, que `status` lit déjà « aucun » : de quoi écrire « expiré ». */
   const expiredPlan = computed<SubscriptionPlan | null>(() =>
@@ -82,6 +84,8 @@ export const usePurchaseStore = defineStore('purchase', () => {
       } catch (cause) {
         console.warn('Statut Plus non revérifié :', errorSummary(cause))
         return false
+      } finally {
+        now.value = Date.now()
       }
     },
 
