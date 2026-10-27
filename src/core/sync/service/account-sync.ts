@@ -44,8 +44,8 @@ export interface SyncDependencies {
 }
 
 /**
- * Branche la synchro et le contrôle de la sauvegarde, une fois par compte et par lancement, sur le
- * lancement, le premier plan, le réseau et le changement de compte ; renvoie le débranchement. Le
+ * Branche la synchro sur le lancement, le premier plan, le réseau et le changement de compte, et le
+ * contrôle de la sauvegarde une fois par compte et par lancement ; renvoie le débranchement. Le
  * debounce après écriture vient des triggers SQLite, pas d'ici.
  */
 export async function installSync(deps: SyncDependencies): Promise<() => void> {

@@ -238,6 +238,24 @@ describe('installSync', () => {
       stop()
     })
 
+    it('une session expirée, compte gardé, n’oublie ni la file ni les curseurs', async () => {
+      const outbox = fakeOutbox(2)
+      const active = ref(true)
+      const stop = await installSync({
+        outbox,
+        runCycle: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+        userId: () => 'user-1',
+        ...withoutSession,
+        sessionActive: () => active.value,
+      })
+
+      active.value = false
+      await nextTick()
+
+      expect(outbox.forgetAccount).not.toHaveBeenCalled()
+      stop()
+    })
+
     it('n’oublie rien au lancement sans compte', async () => {
       const outbox = fakeOutbox(0)
       const stop = await installSync({

@@ -13,8 +13,8 @@ export interface RestorePromptNavigation {
 }
 
 /**
- * Dit si « Restaurer mon carnet » doit s'ouvrir : au plus une fois par jour local tant que la
- * sauvegarde attend un choix, sur l'accueil sans feuille.
+ * Dit si « Restaurer mon carnet » doit s'ouvrir : une fois par jour local tant que la sauvegarde
+ * attend un choix, et de nouveau quand un choix est reproposé, sur l'accueil sans feuille.
  */
 export function createRestorePrompt() {
   let shownOn: string | null = null
