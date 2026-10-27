@@ -39,10 +39,7 @@ export function readAtRevenuecat(
   }
   const { warnedAt, purgeOn } = dates.notice
   const warnedFromThisEnd =
-    warnedAt !== null &&
-    purgeOn !== null &&
-    Date.parse(warnedAt) >= ended &&
-    purgeOn >= purgeDateOf(since, Date.parse(warnedAt))
+    warnedAt !== null && purgeOn !== null && purgeOn >= purgeDateOf(since, Date.parse(warnedAt))
   return {
     subscribed: false,
     dates: { ...withEnd, notice: warnedFromThisEnd ? dates.notice : NO_NOTICE },

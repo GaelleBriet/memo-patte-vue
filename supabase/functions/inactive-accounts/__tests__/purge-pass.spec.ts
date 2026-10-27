@@ -857,6 +857,91 @@ describe('runPurgePass : webhook d’achat perdu, fin d’accès connue de Reven
     expect(due.sent).toEqual([])
   })
 
+  it('remboursement dont le webhook s’est perdu : la fin de la base, plus tardive, reste la référence', async () => {
+    const id = 'aaaaaaaa-0000-4000-8000-000000000032'
+    const refunded = {
+      entitlements: {
+        plus: { expires_date: '2026-06-01T00:00:00Z', product_identifier: 'plus:annual' },
+      },
+    }
+    const known = { expiresAt: '2026-11-15T00:00:00.000Z' }
+
+    useClock('2027-05-01T03:00:00.000Z')
+    const early = fakePurgePorts({
+      candidates: [candidate(id, { plus: known })],
+      subscribers: { [id]: refunded },
+    })
+    const earlyReport = await runPurgePass(early.ports, 'apply')
+    expect(earlyReport.done).toEqual({ ...ZERO_DONE, revenuecatErasures: 1 })
+    expect(early.sent).toEqual([])
+
+    useClock('2027-10-15T03:00:00.000Z')
+    const erased = { purgeOn: null, warnedAt: null, revenuecatErasedAt: '2027-05-01T03:00:00.000Z' }
+    const due = fakePurgePorts({
+      candidates: [candidate(id, { plus: known, notice: erased })],
+      subscribers: { [id]: refunded },
+    })
+    await runPurgePass(due.ports, 'apply')
+    expect(due.sent[0]?.text).toContain('a pris fin le 15 novembre 2026.')
+  })
+
+  it('Noé, achat restauré plus ancien que le compte et inconnu de la base : averti 11 mois après la création, RevenueCat effacé', async () => {
+    const id = 'aaaaaaaa-0000-4000-8000-000000000033'
+    const created = '2026-06-01T10:00:00.000Z'
+    const restored = {
+      entitlements: {
+        plus: { expires_date: '2026-03-01T00:00:00Z', product_identifier: 'plus:annual' },
+      },
+    }
+    useClock('2027-05-02T03:00:00.000Z')
+    const fake = fakePurgePorts({
+      candidates: [candidate(id, { createdAt: created })],
+      subscribers: { [id]: restored },
+    })
+
+    const report = await runPurgePass(fake.ports, 'apply')
+
+    expect(report.due).toEqual({ ...ZERO_DUE, warnings: 1 })
+    expect(report.done).toEqual({ ...ZERO_DONE, warnings: 1, revenuecatErasures: 1 })
+    expect(fake.sent[0]?.text).toContain('a pris fin le 1er mars 2026.')
+    expect(fake.notices[id]).toMatchObject({ inactiveSince: created, purgeOn: '2027-06-02' })
+    expect(fake.calls.map((c) => c.kind)).toEqual([
+      'list',
+      'read',
+      'revenuecat-read',
+      'revenuecat-erase',
+      'save',
+      'send',
+      'save',
+    ])
+  })
+
+  it.each([
+    ['webhook perdu', null],
+    ['webhook reçu', { expiresAt: '2027-11-05T00:00:00.000Z' }],
+  ])(
+    'adresse jamais confirmée, accès fini le 5 novembre (%s) : supprimée au bout de 7 jours, sans e-mail',
+    async (_, plus) => {
+      const id = 'aaaaaaaa-0000-4000-8000-000000000034'
+      const ended = {
+        entitlements: {
+          plus: { expires_date: '2027-11-05T00:00:00Z', product_identifier: 'plus:monthly' },
+        },
+      }
+      const fake = fakePurgePorts({
+        candidates: [
+          candidate(id, { createdAt: '2027-11-01T10:00:00.000Z', emailConfirmed: false, plus }),
+        ],
+        subscribers: { [id]: ended },
+      })
+
+      const report = await runPurgePass(fake.ports, 'apply')
+
+      expect(report.done).toEqual({ ...ZERO_DONE, unconfirmedDeletions: 1 })
+      expect(fake.sent).toEqual([])
+    },
+  )
+
   it.each([
     [
       'accès en cours',
