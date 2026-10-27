@@ -419,6 +419,17 @@ describe('parcours de restauration', () => {
       expect(flow.state.value).toEqual({ step: 'waiting-sign-in', chosen: false })
     })
 
+    it('la connexion apprend l’attente de la reconnexion, que le contrôle ait déjà répondu ou non', async () => {
+      const flow = createRestoreFlow(fakeRunner(), () => true)
+
+      flow.checking()
+      const answer = flow.whenChecked()
+      flow.unreachable()
+
+      await expect(answer).resolves.toEqual({ step: 'waiting-sign-in', chosen: false })
+      await expect(flow.whenChecked()).resolves.toEqual({ step: 'waiting-sign-in', chosen: false })
+    })
+
     it('ne change rien aux autres étapes', () => {
       const flow = createRestoreFlow(fakeRunner(), () => true)
 
