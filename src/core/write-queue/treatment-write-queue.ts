@@ -10,5 +10,5 @@ export function createWriteQueue(): WriteQueue {
   }
 }
 
-/** Partagée par les gestes, leurs « Annuler », le formulaire, « Ne plus suivre » et la suppression d'un animal, fiche comme notification. */
+/** Partagée par tout service qui écrit des traitements, depuis une fiche comme depuis une notification. */
 export const treatmentWriteQueue = createWriteQueue()
