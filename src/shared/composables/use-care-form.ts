@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { leaveAfterReminderSaved } from '@/core/notifications/reminder-saved-priming'
 import { primingReturnRoute, type ReminderKind } from '../domain/notification-priming'
 import { takesNewCare } from '../domain/unfollowed-animals'
+import { errorSummary } from '../utils/error-summary'
 import { returnTo } from '../utils/return-to'
 
 export interface CareFormAnimal {
@@ -97,7 +98,8 @@ export function useCareForm<T, A extends CareFormAnimal>(options: CareFormOption
       const pending = write()
       if (pending === null || (await pending) === null) return
       isSaved.value = true
-    } catch {
+    } catch (cause) {
+      console.warn('Enregistrement du soin impossible :', errorSummary(cause))
       saveFailed.value = true
       return
     } finally {
@@ -120,7 +122,8 @@ export function useCareForm<T, A extends CareFormAnimal>(options: CareFormOption
         const loaded = await options.load(id)
         notFound.value = loaded === null
         if (loaded) options.open(loaded)
-      } catch {
+      } catch (cause) {
+        console.warn('Chargement du soin impossible :', errorSummary(cause))
         loadFailed.value = true
       } finally {
         isLoading.value = false
