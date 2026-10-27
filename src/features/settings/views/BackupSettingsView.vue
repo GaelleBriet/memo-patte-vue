@@ -8,6 +8,7 @@ import { useRestorePending } from '../composables/use-restore-pending'
 import type { CloudBackupStatus } from '../logic/backup-status'
 import { cloudBackupText, refusedItemsHelpText } from '../logic/backup-status-text'
 import BackupCopyRow from './BackupCopyRow.vue'
+import RestoreProgressCard from './RestoreProgressCard.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { returnTo } from '@/shared/utils/return-to'
 import { helpRoute, signInRoute } from '@/shared/utils/sign-in-route'
@@ -21,13 +22,14 @@ const STATUS_LOOK: Record<CloudBackupStatus['kind'], { icon: string; tone: strin
 
 const { t } = useI18n()
 const router = useRouter()
-const { status, refused, photosBackedUp, now } = useBackupStatus()
+const { status, refused, photosBackedUp, now, awaitsRestoredStatus } = useBackupStatus()
 const {
   isPending: isRestorePending,
   isWaitingNetwork: isRestoreWaitingNetwork,
+  restoreProgress,
   showsLocalBackup,
   choose: chooseRestore,
-} = useRestorePending(status)
+} = useRestorePending(status, awaitsRestoredStatus)
 
 const cloud = computed<CloudBackupStatus | null>(() =>
   status.value === null || status.value.kind === 'local' || status.value.kind === 'unread'
@@ -107,6 +109,12 @@ function goBack(): void {
           <span class="settings-row__hint">{{ t('settings.restore.offline') }}</span>
         </span>
       </div>
+
+      <RestoreProgressCard
+        v-if="restoreProgress"
+        class="backup-settings__card backup-settings__restore-progress"
+        :progress="restoreProgress"
+      />
 
       <template v-if="cloud && cloudText && cloudLook">
         <div
