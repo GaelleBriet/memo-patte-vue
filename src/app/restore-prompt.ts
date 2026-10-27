@@ -1,4 +1,4 @@
-import { watch } from 'vue'
+import { nextTick, watch } from 'vue'
 import type { RouteLocationNormalized, Router } from 'vue-router'
 
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
@@ -19,6 +19,7 @@ export function installRestorePrompt(
 ): () => void {
   let shownOn: string | null = null
   let choiceRan = false
+  let installed = true
 
   function promptIfOffered(navigation: { arrived: boolean; leftRestore: boolean } | null): void {
     const step = flow()?.state.value.step
@@ -47,13 +48,19 @@ export function installRestorePrompt(
     () => flow()?.state.value.step,
     () => promptIfOffered(null),
   )
-  const stopAfterEach = router.afterEach((to, from, failure) =>
-    promptIfOffered({
+  const stopAfterEach = router.afterEach((to, from, failure) => {
+    const navigation = {
       arrived: !failure && isArrivalOnHome(to, from),
       leftRestore: !failure && from.name === RESTORE_ROUTE,
-    }),
-  )
+    }
+    if (!navigation.arrived) return promptIfOffered(navigation)
+    // L'écran quitté n'est démonté qu'au rendu suivant : ses feuilles compteraient encore ici.
+    void nextTick(() => {
+      if (installed) promptIfOffered(navigation)
+    })
+  })
   return () => {
+    installed = false
     stopWatch()
     stopAfterEach()
   }

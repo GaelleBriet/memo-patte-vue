@@ -1,7 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, ref, type Ref } from 'vue'
-import { createMemoryHistory, createRouter, type Router } from 'vue-router'
+import { createMemoryHistory, createRouter, RouterView, type Router } from 'vue-router'
 
 import { createRestoreFlow, type RestoreFlow } from '@/core/sync/service/restore-flow'
 import { useOpenSheet, useSheetRequest } from '@/shared/composables/use-open-sheet'
@@ -210,6 +210,70 @@ describe('installRestorePrompt', () => {
       await router.push('/')
       await flushPromises()
       expect(router.currentRoute.value.name).toBe('account-restore')
+    })
+
+    it('une feuille de l’écran quitté ne retient pas l’arrivée sur l’accueil', async () => {
+      const CarnetAvecPesee = defineComponent(() => {
+        useOpenSheet(ref(true))
+        return () => h('div')
+      })
+      const router = createRouter({
+        history: createMemoryHistory(),
+        routes: [
+          { path: '/', name: 'home', component: Vide },
+          { path: '/animals', name: 'carnet', component: CarnetAvecPesee },
+          { path: '/restore', name: 'account-restore', component: Vide },
+        ],
+      })
+      const flow = parcours()
+      await router.push('/animals')
+      feuilles.push(
+        mount(
+          defineComponent(() => () => h(RouterView)),
+          { global: { plugins: [router] } },
+        ),
+      )
+      await flushPromises()
+      uninstall = installRestorePrompt(router, () => flow)
+      flow.offer(SUMMARY)
+      await flushPromises()
+
+      await router.push('/')
+      await flushPromises()
+
+      expect(router.currentRoute.value.name).toBe('account-restore')
+    })
+
+    it('une feuille ouverte par l’accueil à son arrivée retient toujours l’écran', async () => {
+      const AccueilAvecFeuille = defineComponent(() => {
+        useOpenSheet(ref(true))
+        return () => h('div')
+      })
+      const router = createRouter({
+        history: createMemoryHistory(),
+        routes: [
+          { path: '/', name: 'home', component: AccueilAvecFeuille },
+          { path: '/animals', name: 'carnet', component: Vide },
+          { path: '/restore', name: 'account-restore', component: Vide },
+        ],
+      })
+      const flow = parcours()
+      await router.push('/animals')
+      feuilles.push(
+        mount(
+          defineComponent(() => () => h(RouterView)),
+          { global: { plugins: [router] } },
+        ),
+      )
+      await flushPromises()
+      uninstall = installRestorePrompt(router, () => flow)
+      flow.offer(SUMMARY)
+      await flushPromises()
+
+      await router.push('/')
+      await flushPromises()
+
+      expect(router.currentRoute.value.name).toBe('home')
     })
 
     it('attend que toutes les feuilles ouvertes soient fermées', async () => {
