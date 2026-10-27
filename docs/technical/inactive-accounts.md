@@ -30,10 +30,35 @@ Gaelle n'a pas fait les étapes ci-dessous, elle ne fait que compter.
   confirmée entre-temps annule tout (le compte suit alors la règle des 12 mois).
 - **Relecture avant d'agir** : avant chaque avertissement, suppression ou effacement RevenueCat, la
   fonction relit les dates du compte puis **RevenueCat pour tout compte** (qu'il ait ou non une ligne
-  `plus_entitlements` : un webhook perdu laisse un abonné sans ligne). Un accès actif, une fin plus
-  tardive que la base, un droit que la base ne connaît pas ou une pause avec reprise à venir annulent
-  tout. La lecture recrée le client chez RevenueCat : il est effacé aussitôt, sauf pour un compte
-  qu'on supprime (`eraseAccount` l'efface).
+  `plus_entitlements` : un webhook perdu laisse un abonné sans ligne). Un accès actif, un achat à vie,
+  une fin d'accès (`expires_date`) illisible ou une pause avec reprise à venir annulent tout
+  (`skipped.reactivated`) ; une fin de période de grâce illisible est ignorée, comme pour le webhook. La lecture
+  recrée le client chez RevenueCat : il est effacé aussitôt, sauf pour un compte qu'on supprime
+  (`eraseAccount` l'efface).
+- **Webhook perdu** (#1208) : une fin d'accès passée que RevenueCat connaît et pas la base (achat ou
+  renouvellement jamais écrit) devient la fin retenue, sans rien écrire dans `plus_entitlements`. Léo,
+  inscrit le 1er décembre 2026, abonné jusqu'au 2 janvier 2027 sans ligne en base : la liste le
+  propose dès le 2 novembre 2027, la passe le saute (`skipped.laterEnd`) sans effacer RevenueCat,
+  qui garde seul cette date ; averti le 2 décembre 2027 (« a pris fin le 2 janvier 2027 », J = 2
+  janvier 2028), l'avis enregistré sous la référence que calcule la base (ici, la création du
+  compte), pour que la liste le relise, puis RevenueCat effacé ; supprimé le 3 janvier 2028. Un avis
+  dont la date J vient d'une fin plus ancienne ne sert plus : Mia, inscrite le 1er janvier 2026,
+  avertie le 1er décembre 2026 depuis sa création (J = 2 janvier 2027), puis RevenueCat connaît un
+  accès fini le 1er novembre 2026 : sautée le 3 janvier 2027, avertie de nouveau le 1er octobre 2027
+  (J = 1er novembre 2027). Une fin plus ancienne que celle de la base (remboursement dont le webhook
+  s'est perdu) ne change rien : la base reste la référence. Achat restauré plus ancien que le compte
+  et inconnu de la base : Noé, inscrit le 1er juin 2026, accès fini le 1er mars 2026, averti le 2 mai
+  2027 (« a pris fin le 1er mars 2026 ») et son client RevenueCat effacé comme celui de tout ancien
+  abonné ; `done.revenuecatErasures` compte alors 1 alors que `due.revenuecatErasures` dit 0, car
+  `due` ne compte que ce que la base sait, `done` ce que la passe a fait après la relecture. Une
+  adresse jamais confirmée dont RevenueCat seul connaît un accès fini (créée le 1er novembre 2027,
+  accès fini le 5 novembre) est supprimée au bout de 7 jours (`unconfirmedDeletions`), comme si le
+  webhook avait été reçu : pour ces comptes, seul un accès en cours compte. Limites : pour ces
+  comptes, RevenueCat n'est effacé qu'à l'avertissement, pas 60 jours après la fin ; un webhook arrivé
+  après l'avertissement change la fin retenue en base et fait partir un second avertissement, avec
+  une date J plus tardive.
+- **E-mail parti, avis non enregistré** : si l'écriture de l'avis échoue après l'envoi, la passe
+  suivante envoie un second e-mail (`failures.database`), pour tous les comptes.
 - **Fenêtre résiduelle** : de la relecture en base à `deleteUser` passent la lecture RevenueCat,
   l'effacement PostHog, l'effacement RevenueCat et les pages de photos. Chaque appel attend au plus
   15 s : en pratique 1 à 3 s, au pire environ 45 s plus les photos. Un achat fait pendant cette
@@ -49,8 +74,8 @@ Gaelle n'a pas fait les étapes ci-dessous, elle ne fait que compter.
   inscriptions abandonnées par jour, leur arriéré grossit. Question laissée à Gaelle : la limite de 10
   doit-elle compter ces comptes ?
 - Journal (`Edge Functions › inactive-accounts › Logs`) : une ligne « Purge des comptes inactifs : »
-  suivie des nombres (`channel`, `revenuecat`, `due`, `done`, `skipped`, `failures`), jamais
-  d'identifiant ni d'adresse.
+  suivie des nombres (`channel`, `revenuecat`, `due`, `done`, `skipped` (`reactivated`, `batchFull`,
+  `laterEnd`), `failures`), jamais d'identifiant ni d'adresse.
 - Durées et calendrier : `purge-calendar.ts` ; la liste SQL `public.inactive_account_steps` reprend
   les mêmes durées et donne la même étape aux mêmes instants (tests).
 - Aucune exemption (compte de démo de la revue Play, comptes de test) : question ouverte pour Gaelle.
