@@ -4441,3 +4441,13 @@ Décision d'affichage de bonne pratique, prise par Claude en autonomie (cohéren
   qui dirait une attente alors que les données arrivent.
 - Pour revenir dessus : `use-restore-pending.ts` choisit ce qui s'affiche ; `use-backup-status.ts`
   relit la sauvegarde à la fin d'une restauration.
+
+## 2026-10-27 — Carnet : traitements en cours en premier, terminés en dernier
+
+Premier retour d'une utilisatrice, décision de Gaelle : les traitements sont plus utilisés que les vaccins, ils passent donc en premier.
+
+- Sur le Carnet d'un animal, l'ordre est : traitements en cours, vaccins, poids, traitements terminés. Le bloc « Traitements terminés » garde son aspect (grisé, replié, avec son compteur) et passe tout en bas. Exemple (Milo) : Panacur, Drontal, Bravecto, puis CHPPi et Rage, puis la courbe de poids, puis « Traitements terminés 1 ».
+- Alternatives écartées : traitements en cours et terminés groupés au-dessus des vaccins (les vaccins descendent trop quand il y a beaucoup de terminés) ; ordre inchangé.
+- À l'accueil, « À faire » reste trié par urgence : en retard (le plus ancien d'abord), puis aujourd'hui, puis à venir dans les 30 jours ; à égalité, l'heure, puis le nom.
+- Ne change pas : le PDF et l'export CSV (vaccins avant traitements), à demander à Gaelle ; les captures du site et de la FAQ, qui montrent peut-être l'ancien ordre.
+- Pour revenir dessus : l'ordre des sections est dans `CarnetView.vue` ; le bloc terminé est `FinishedTreatmentsSection.vue`, alimenté par l'événement `finished` de `TreatmentsSection`.
