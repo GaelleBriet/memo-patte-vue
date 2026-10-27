@@ -169,6 +169,7 @@ describe('useCareForm — chargement du soin', () => {
   })
 
   it('dit l’échec du chargement', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const { form } = monter({
       id: 's1',
       animalId: 'milo',
@@ -179,7 +180,8 @@ describe('useCareForm — chargement du soin', () => {
     await flushPromises()
 
     expect(form.loadFailed.value).toBe(true)
-    expect(form.loadFailed.value).toBe(true)
+    expect(warn).toHaveBeenCalledWith('Chargement du soin impossible :', 'Error')
+    warn.mockRestore()
     expect(form.isLoading.value).toBe(false)
     expect(form.canSave.value).toBe(false)
   })
@@ -230,6 +232,7 @@ describe('useCareForm — enregistrement', () => {
   })
 
   it('dit l’échec de l’écriture et reste sur l’écran', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const { form, animals } = monter({ animalId: 'milo' })
     await flushPromises()
 
@@ -238,6 +241,8 @@ describe('useCareForm — enregistrement', () => {
     }, false)
 
     expect(form.saveFailed.value).toBe(true)
+    expect(warn).toHaveBeenCalledWith('Enregistrement du soin impossible :', 'Error')
+    warn.mockRestore()
     expect(form.isSaved.value).toBe(false)
     expect(form.canSave.value).toBe(true)
     expect(animals.select).not.toHaveBeenCalled()

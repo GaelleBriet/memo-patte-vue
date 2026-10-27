@@ -6,6 +6,7 @@ import {
   PLUS_NUDGE_ENTRIES,
   PLUS_NUDGE_SPACING_DAYS,
   PLUS_NUDGE_STORAGE_KEY,
+  clearPlusNudgeState,
   forgetPlusNudgeSession,
   markPlusNudgeShown,
   nextPlusNudge,
@@ -139,12 +140,25 @@ describe('règles du rappel doux', () => {
         throw new Error('stockage refusé')
       },
     })
-    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     recordUsageSignal('photo')
 
     expect(() => stopPlusNudges()).not.toThrow()
+    expect(warn).toHaveBeenCalledWith('Rappel MémoPatte Plus non enregistré :', 'Error')
     expect(readPlusNudgeState().stopped).toBe(true)
     expect(nextPlusNudge(SEUL)).toBeNull()
+  })
+
+  it('trace un effacement refusé par le stockage', () => {
+    vi.stubGlobal('localStorage', {
+      removeItem: () => {
+        throw new Error('stockage refusé')
+      },
+    })
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+    expect(() => clearPlusNudgeState()).not.toThrow()
+    expect(warn).toHaveBeenCalledWith('Rappel MémoPatte Plus non effacé :', 'Error')
   })
 
   it('tient « un rappel par déclencheur » même si le stockage refuse d’écrire', () => {
