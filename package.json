@@ -1,6 +1,6 @@
 {
   "name": "memo-patte",
-  "version": "0.1.126",
+  "version": "0.1.127",
   "private": true,
   "type": "module",
   "scripts": {
@@ -72,7 +72,7 @@
     "vue": "^3.5.43",
     "vue-i18n": "^11.4.14",
     "vue-router": "^5.4.0",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.3",
