@@ -352,10 +352,6 @@ describe('validation stricte d’un ancien export : tout ou rien', () => {
       'un identifiant en double',
       (file) => (rows(file, 'weightEntries')[1]!.id = rows(file, 'weightEntries')[0]!.id),
     ],
-    [
-      'une prise datée dans le futur',
-      (file) => (rows(file, 'treatmentDoses')[0]!.givenOn = '2199-01-01'),
-    ],
     ['une espèce inconnue', (file) => (rows(file, 'animals')[0]!.species = 'rabbit')],
     [
       'un type de traitement inconnu à l’époque',
@@ -364,6 +360,12 @@ describe('validation stricte d’un ancien export : tout ou rien', () => {
     ['une table absente', (file) => delete file.weightEntries],
   ])('refuse un export v2 avec %s', (_, change) => {
     expect(reasonOf(edited(exportV2, change))).toBe('invalid')
+  })
+
+  it('refuse un export v2 avec une prise datée après son export, avec le motif des dates futures', () => {
+    const file = edited(exportV2, (doc) => (rows(doc, 'treatmentDoses')[0]!.givenOn = '2199-01-01'))
+
+    expect(reasonOf(file)).toBe('future')
   })
 
   it.each<[string, (file: Document) => void]>([

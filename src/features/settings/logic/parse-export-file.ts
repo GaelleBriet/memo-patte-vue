@@ -1,18 +1,18 @@
 import type { z } from 'zod'
 
 import { currentDeviceId } from '@/core/device/device-identity'
-import { toDay } from '@/shared/domain/calendar-day'
+import { nextDay, toDay } from '@/shared/domain/calendar-day'
 import type { ImportFile } from '@/shared/domain/import-plan'
 import {
   exportFileSchemaOf,
   exportHeaderSchema,
   exportVersionSchema,
 } from '../schema/export-file.schema'
-import { withReferenceDay } from '../schema/export-file-fields.schema'
+import { FUTURE_DAY_MESSAGE, withReferenceDay } from '../schema/export-file-fields.schema'
 import { everyTreatmentReadable, withGridDatesClamped } from './export-file-versions'
 import { EXPORT_SCHEMA_VERSION } from './export-format'
 
-export type ImportFileError = 'invalid' | 'newer' | 'outOfRange' | 'nameTooLong'
+export type ImportFileError = 'invalid' | 'newer' | 'outOfRange' | 'nameTooLong' | 'future'
 
 export type ParsedExportFile =
   { ok: true; file: ImportFile } | { ok: false; reason: ImportFileError }
@@ -42,7 +42,8 @@ function onlyTooBig(error: z.ZodError, fields: string[][]): boolean {
 
 function refusalReason(error: z.ZodError): ImportFileError {
   if (onlyTooBig(error, NAME_FIELDS)) return 'nameTooLong'
-  return onlyTooBig(error, BOUNDED_FIELDS) ? 'outOfRange' : 'invalid'
+  if (onlyTooBig(error, BOUNDED_FIELDS)) return 'outOfRange'
+  return error.issues.every((issue) => issue.message === FUTURE_DAY_MESSAGE) ? 'future' : 'invalid'
 }
 
 /**
@@ -63,7 +64,7 @@ export function parseExportFile(
 
   const header = exportHeaderSchema.safeParse(document)
   if (!header.success) return { ok: false, reason: refusalReason(header.error) }
-  const parsed = withReferenceDay(today, () =>
+  const parsed = withReferenceDay(nextDay(header.data.exportedAt.slice(0, 10)), () =>
     exportFileSchemaOf(schemaVersion, deviceId, today).safeParse(document),
   )
   if (!parsed.success) return { ok: false, reason: refusalReason(parsed.error) }

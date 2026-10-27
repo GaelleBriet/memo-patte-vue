@@ -18,7 +18,11 @@ export function withReferenceDay<T>(today: string, read: () => T): T {
   }
 }
 
-export const pastDay = day.refine((value) => isNotFuture(value, referenceDay))
+export const FUTURE_DAY_MESSAGE = 'future-day'
+
+export const pastDay = day.refine((value) => isNotFuture(value, referenceDay), {
+  message: FUTURE_DAY_MESSAGE,
+})
 export const clockTime = z.string().regex(CLOCK_TIME_PATTERN)
 export const timestamps = { createdAt: instantSchema, updatedAt: instantSchema }
 export const stamps = { ...timestamps, createdByDevice: z.uuid(), updatedByDevice: z.uuid() }

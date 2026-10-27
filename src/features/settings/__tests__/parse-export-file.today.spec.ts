@@ -40,26 +40,39 @@ describe('parseExportFile : le jour de l’import est le jour civil local', () =
   })
 })
 
-describe('parseExportFile : « jamais futur » suit le jour fourni, pas l’horloge', () => {
-  function withWeightOn(day: string): string {
+describe('parseExportFile : « jamais futur » se juge contre la date de l’export', () => {
+  function withWeightOn(day: string, exportedAt: string): string {
     const document = JSON.parse(importFixtureJson()) as ExportDocument
     const [entry] = document.weightEntries as ExportDocument[]
     entry!.measuredOn = day
+    document.exportedAt = exportedAt
     return JSON.stringify(document)
   }
 
-  it('une pesée du 28 est acceptée quand le jour fourni est le 28, horloge au 27', () => {
-    vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 27, 12) })
+  it.each([new Date(2026, 9, 27, 12), new Date(2026, 9, 29, 12)])(
+    'une pesée du 28 est acceptée pour un export du 28, quel que soit le jour local (%s)',
+    (now) => {
+      vi.useFakeTimers({ toFake: ['Date'], now })
 
-    expect(parseExportFile(withWeightOn('2026-10-28'), undefined, '2026-10-28').ok).toBe(true)
+      expect(parseExportFile(withWeightOn('2026-10-28', '2026-10-28T08:00:00.000Z')).ok).toBe(true)
+    },
+  )
+
+  it('absorbe le fuseau de l’appareil exportateur : le lendemain de l’export est accepté', () => {
+    expect(parseExportFile(withWeightOn('2026-10-29', '2026-10-28T08:00:00.000Z')).ok).toBe(true)
   })
 
-  it('une pesée du 28 est refusée quand le jour fourni est le 27, horloge au 28', () => {
-    vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 28, 12) })
-
-    expect(parseExportFile(withWeightOn('2026-10-28'), undefined, '2026-10-27')).toEqual({
+  it('refuse une date deux jours après l’export, avec un motif à elle', () => {
+    expect(parseExportFile(withWeightOn('2026-10-30', '2026-10-28T08:00:00.000Z'))).toEqual({
       ok: false,
-      reason: 'invalid',
+      reason: 'future',
     })
+  })
+
+  it('un fichier sans date d’export reste illisible', () => {
+    const document = JSON.parse(importFixtureJson()) as ExportDocument
+    delete document.exportedAt
+
+    expect(parseExportFile(JSON.stringify(document))).toEqual({ ok: false, reason: 'invalid' })
   })
 })
