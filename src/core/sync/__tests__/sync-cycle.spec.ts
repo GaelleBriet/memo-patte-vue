@@ -1191,6 +1191,202 @@ describe('createSyncCycle', () => {
     })
   })
 
+  describe('compte quitté pendant le pull', () => {
+    async function syncEnabled(): Promise<number | undefined> {
+      const [state] = await db.query<{ enabled: number }>(
+        'SELECT enabled FROM sync_state WHERE id = 1',
+      )
+      return state?.enabled
+    }
+
+    async function forgetAccount(): Promise<void> {
+      await db.run('UPDATE sync_state SET enabled = 0 WHERE id = 1')
+    }
+
+    it.each([
+      ['une déconnexion', null],
+      ['un changement de compte', 'user-2'],
+    ])(
+      'après %s, ni la page, ni le curseur, ni la dernière synchro du compte quitté',
+      async (_label, nextAccount) => {
+        await enableSync(db)
+        let account: string | null = 'user-1'
+        const animal = fakeTable('animal')
+        animal.pullPage = async (_userId, since, limit) => {
+          animal.pullCalls.push({ since, limit })
+          account = nextAccount
+          await forgetAccount()
+          return page([row('a1', T_ROW, 'Milo')], '2026-01-01T00:00:00.000Z')
+        }
+        const vaccination = fakeTable('vaccination', [
+          page([row('v1', T_ROW, 'Rage')], '2026-01-01T00:00:00.000Z'),
+        ])
+        const outbox = createFakeOutbox()
+        const cycle = createSyncCycle({
+          db,
+          outbox,
+          pushes,
+          tables: [animal, vaccination],
+          userId: () => account,
+          isEligible: () => true,
+        })
+
+        await cycle.runCycle()
+
+        await expect(db.query('SELECT id FROM sync_scratch')).resolves.toEqual([])
+        expect(outbox.cursor('animal')).toBeNull()
+        expect(vaccination.pullCalls).toEqual([])
+        expect(outbox.lastSyncedAt()).toBeNull()
+        await expect(syncEnabled()).resolves.toBe(0)
+      },
+    )
+
+    it('ne réactive pas la synchro coupée par une déconnexion pendant sa relecture', async () => {
+      await enableSync(db)
+      let account: string | null = 'user-1'
+      const animal = fakeTable('animal', [
+        page([row('a1', T_ROW, 'Milo')], '2026-01-01T00:00:00.000Z'),
+      ])
+      const outbox = createFakeOutbox()
+      let reads = 0
+      outbox.isEnabled = async () => {
+        reads += 1
+        if (reads === 2) {
+          account = null
+          await forgetAccount()
+        }
+        return true
+      }
+      const cycle = createSyncCycle({
+        db,
+        outbox,
+        pushes,
+        tables: [animal],
+        userId: () => account,
+        isEligible: () => true,
+      })
+
+      await cycle.runCycle()
+
+      await expect(syncEnabled()).resolves.toBe(0)
+      await expect(db.query('SELECT id FROM sync_scratch')).resolves.toEqual([])
+      expect(outbox.cursor('animal')).toBeNull()
+    })
+
+    it('ne repose pas le curseur quand le compte change pendant l’écriture de la page', async () => {
+      await enableSync(db)
+      let account: string | null = 'user-1'
+      const animal = fakeTable('animal', [
+        page([row('a1', T_ROW, 'Milo')], '2026-01-01T00:00:00.000Z'),
+      ])
+      const runMany = db.runMany.bind(db)
+      db.runMany = async (statements) => {
+        await runMany(statements)
+        account = null
+      }
+      const outbox = createFakeOutbox()
+      const cycle = createSyncCycle({
+        db,
+        outbox,
+        pushes,
+        tables: [animal],
+        userId: () => account,
+        isEligible: () => true,
+      })
+
+      await cycle.runCycle()
+
+      expect(outbox.cursor('animal')).toBeNull()
+      expect(outbox.lastSyncedAt()).toBeNull()
+    })
+
+    it('reconstruit les rappels de la page écrite avant le changement de compte', async () => {
+      await enableSync(db)
+      let account: string | null = 'user-1'
+      const animal = fakeTable('animal', [
+        page([row('a1', T_ROW, 'Milo')], '2026-01-01T00:00:00.000Z'),
+      ])
+      const runMany = db.runMany.bind(db)
+      db.runMany = async (statements) => {
+        await runMany(statements)
+        account = null
+      }
+      const onRemindersOutdated = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
+      const cycle = createSyncCycle({
+        db,
+        outbox: createFakeOutbox(),
+        pushes,
+        tables: [animal],
+        userId: () => account,
+        isEligible: () => true,
+        onRemindersOutdated,
+      })
+
+      await cycle.runCycle()
+
+      expect(onRemindersOutdated).toHaveBeenCalledOnce()
+    })
+
+    describe('ligne gardée par le serveur', () => {
+      const SENT = row('a1', '2026-10-22T08:05:00.000Z', 'Milbemax')
+      const KEPT = row('a1', '2026-10-19T08:05:00.000Z', 'Drontal')
+
+      async function keptRowCycle(leave: 'pull' | 'relecture') {
+        await enableSync(db)
+        await db.run(
+          'INSERT INTO sync_scratch (id, entity, value, updated_at) VALUES (?, ?, ?, ?)',
+          [SENT.id, 'animal', SENT.value as string, SENT.updated_at],
+        )
+        let account: string | null = 'user-1'
+        const animal = fakeTable('animal')
+        animal.localRows.set(SENT.id, SENT)
+        animal.serverKeeps.set(SENT.id, KEPT)
+        if (leave === 'pull') {
+          animal.pullPage = async () => {
+            account = null
+            await forgetAccount()
+            return page([], null)
+          }
+        }
+        const entry = { entity: 'animal', entityId: SENT.id, queuedAt: T_ROW, attempts: 0 }
+        const outbox = createFakeOutbox([entry])
+        if (leave === 'relecture') {
+          let reads = 0
+          outbox.isEnabled = async () => {
+            reads += 1
+            if (reads === 2) {
+              account = null
+              await forgetAccount()
+            }
+            return true
+          }
+        }
+        await createSyncCycle({
+          db,
+          outbox,
+          pushes,
+          tables: [animal],
+          userId: () => account,
+          isEligible: () => true,
+        }).runCycle()
+        return { outbox, entry }
+      }
+
+      it.each([
+        ['le pull', 'pull'],
+        ['la relecture de la synchro', 'relecture'],
+      ] as const)('n’est pas reprise quand le compte part pendant %s', async (_label, leave) => {
+        const { outbox, entry } = await keptRowCycle(leave)
+
+        await expect(db.query('SELECT id, value, updated_at FROM sync_scratch')).resolves.toEqual([
+          { id: 'a1', value: 'Milbemax', updated_at: SENT.updated_at },
+        ])
+        expect(outbox.entries()).toEqual([entry])
+        await expect(syncEnabled()).resolves.toBe(0)
+      })
+    })
+  })
+
   describe('dernière synchronisation réussie', () => {
     afterEach(() => {
       vi.useRealTimers()

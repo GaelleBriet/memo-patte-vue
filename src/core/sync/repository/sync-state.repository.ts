@@ -73,6 +73,15 @@ export function createSyncStateRepository(db: DbClient) {
       await db.run('UPDATE sync_state SET restoring = 0 WHERE id = 1')
     },
 
+    /** Synchro coupée le temps de `statements` : ce qu'elles écrivent ne part pas dans la file d'envoi. */
+    unqueuedStatements(statements: SqlStatement[], enabledAfter: boolean): SqlStatement[] {
+      return [
+        { sql: 'UPDATE sync_state SET enabled = 0 WHERE id = 1' },
+        ...statements,
+        { sql: 'UPDATE sync_state SET enabled = ? WHERE id = 1', params: [enabledAfter ? 1 : 0] },
+      ]
+    },
+
     /** Le pull suivant repart du début : il ramène tout le carnet du compte. */
     enableFromStartStatements(): SqlStatement[] {
       return [
