@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import type { Translate } from '@/core/i18n/translate'
+import { errorSummary } from '@/shared/utils/error-summary'
 import { showToast, showUndoableToast, type UndoOptions } from '@/shared/utils/toast'
 
 export type UndoableGesture = Pick<
@@ -44,7 +45,8 @@ export function useGuardedGestures({ afterUndo }: { afterUndo?: () => void } = {
       try {
         await action()
         return true
-      } catch {
+      } catch (cause) {
+        console.warn('Geste impossible :', errorSummary(cause))
         if (failed) showToast(failed, { tone: 'error' })
         return false
       }

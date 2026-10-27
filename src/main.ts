@@ -17,6 +17,7 @@ import { installBackButton } from '@/core/app-lifecycle/back-button'
 import { registerCurrentDevice } from '@/core/device/register-device'
 import { installSync } from '@/core/sync/service/account-sync'
 import { restoreWeightUnit } from '@/core/preferences/weight-unit-preference'
+import { errorSummary } from '@/shared/utils/error-summary'
 import vuetify from '@/core/theme/vuetify'
 import i18n, { applyLocale, detectLocale } from '@/core/i18n'
 import { getAnimalsRepository } from '@/features/animals/repository/animals.repository'
@@ -91,4 +92,6 @@ provideCheckoutAccount({
 })
 installPendingCheckoutGuard(router)
 void useAuthStore().restore()
-void createDefaultSyncDependencies().then(installSync)
+void createDefaultSyncDependencies()
+  .then(installSync)
+  .catch((cause) => console.warn('Synchro non installée :', errorSummary(cause)))

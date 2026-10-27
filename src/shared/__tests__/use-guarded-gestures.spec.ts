@@ -75,6 +75,16 @@ describe('useGuardedGestures : un geste à la fois', () => {
     expect(toastTone.value).toBe('error')
   })
 
+  it('trace l’échec sans en citer le contenu', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { guarded } = gestures()
+
+    await guarded(() => Promise.reject(new Error('base de Milo')), 'Échec')
+
+    expect(warn).toHaveBeenCalledWith('Geste impossible :', 'Error')
+    warn.mockRestore()
+  })
+
   it('échoue sans toast quand aucun texte d’échec n’est donné', async () => {
     const { guarded } = gestures()
 

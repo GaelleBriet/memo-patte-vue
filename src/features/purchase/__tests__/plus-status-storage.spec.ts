@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  clearStoredPlusStatus,
   NO_STORED_PLUS,
   PLUS_STATUS_STORAGE_KEY,
   readStoredPlusStatus,
@@ -111,8 +112,11 @@ describe('statut Plus en préférence locale', () => {
   })
 
   it('ne lève pas quand le stockage est inaccessible', () => {
-    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     vi.stubGlobal('localStorage', {
+      removeItem: () => {
+        throw new DOMException('bloqué', 'SecurityError')
+      },
       getItem: () => {
         throw new DOMException('bloqué', 'SecurityError')
       },
@@ -122,6 +126,9 @@ describe('statut Plus en préférence locale', () => {
     })
 
     expect(() => writeStoredPlusStatus({ plan: 'lifetime', expiresAt: null })).not.toThrow()
+    clearStoredPlusStatus()
     expect(readStoredPlusStatus()).toEqual(NO_STORED_PLUS)
+    expect(warn).toHaveBeenCalledWith('Statut Plus non enregistré :', 'QuotaExceededError 22')
+    expect(warn).toHaveBeenCalledWith('Statut Plus non effacé :', 'SecurityError 18')
   })
 })

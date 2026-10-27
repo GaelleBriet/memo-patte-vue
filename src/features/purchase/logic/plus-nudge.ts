@@ -2,6 +2,7 @@ import { differenceInCalendarDays, parseISO } from 'date-fns'
 import { z } from 'zod'
 
 import { readUsageSignals, type UsageSignals } from '@/core/usage/usage-signals'
+import { errorSummary } from '@/shared/utils/error-summary'
 
 export const PLUS_NUDGE_STORAGE_KEY = 'memopatte.plus.nudge'
 
@@ -58,7 +59,7 @@ export function clearPlusNudgeState(): void {
   try {
     localStorage.removeItem(PLUS_NUDGE_STORAGE_KEY)
   } catch (cause) {
-    console.warn('Rappel MémoPatte Plus non effacé :', cause)
+    console.warn('Rappel MémoPatte Plus non effacé :', errorSummary(cause))
   }
 }
 
@@ -68,7 +69,7 @@ function write(state: PlusNudgeState): void {
     session = null
   } catch (cause) {
     session = state
-    console.warn('Rappel MémoPatte Plus non enregistré :', cause)
+    console.warn('Rappel MémoPatte Plus non enregistré :', errorSummary(cause))
   }
 }
 
