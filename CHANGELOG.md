@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.131](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.130...memo-patte-v0.1.131) (2026-10-27)
+
+
+### 🐛 Corrections
+
+* **plus:** dire au présent la sauvegarde de Plus dans l'app ([0d2b9b1](https://github.com/GaelleBriet/memo-patte-vue/commit/0d2b9b191f2188e3c397a69490c2e18decd4c797))
+* **plus:** dire au présent la sauvegarde de Plus dans l'app ([d4e089b](https://github.com/GaelleBriet/memo-patte-vue/commit/d4e089ba6ca97f3c51d1ac0e3f160b6e90bf81cd))
+
 ## [0.1.130](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.129...memo-patte-v0.1.130) (2026-10-27)
 
 
