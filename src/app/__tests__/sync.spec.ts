@@ -790,4 +790,54 @@ describe('restauration qui attend le réseau', () => {
     expect(flow.state.value.step).toBe('done')
     stop()
   })
+
+  it('réseau coupé pendant la restauration d’un compte parti : le contrôle du compte suivant donne sa propre réponse', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const userId = ref<string | null>('user-a')
+    const active = ref(true)
+    let pending: RestoreMode | null = 'merge'
+    let cut: () => void = () => {}
+    const run = vi.fn<() => Promise<'restored'>>(
+      () =>
+        new Promise((_resolve, reject) => {
+          cut = () => reject(new Error('réseau coupé'))
+        }),
+    )
+    const flow = createRestoreFlow({
+      pendingMode: async () => pending,
+      start: async (mode) => {
+        pending = mode
+      },
+      run,
+      progress: { done: 0, total: 0 },
+      onProgress: () => () => {},
+    })
+    const stop = await installSync({
+      outbox: fakeOutbox(0),
+      runCycle: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      userId: () => userId.value,
+      ...withoutSession,
+      sessionActive: () => active.value,
+      checkAccountBackup: vi.fn<() => Promise<AccountBackupCheck>>(async () =>
+        userId.value === 'user-a' ? { kind: 'restore-pending', mode: 'merge' } : { kind: 'seeded' },
+      ),
+      restoreFlow: flow,
+    })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(run).toHaveBeenCalledOnce()
+
+    userId.value = null
+    active.value = false
+    pending = null
+    userId.value = 'user-b'
+    active.value = true
+    const answered = flow.whenChecked()
+
+    cut()
+    await vi.advanceTimersByTimeAsync(0)
+
+    await expect(answered).resolves.toEqual({ step: 'idle' })
+    expect(run).toHaveBeenCalledOnce()
+    stop()
+  })
 })
