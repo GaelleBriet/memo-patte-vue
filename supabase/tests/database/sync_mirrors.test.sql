@@ -405,6 +405,9 @@ $$, '24 heures par jour, une heure de rappel et une grille de 64 000 caractères
 select is(
   (select array[times, reminder_time, char_length(grid_before)::text] from public.treatment_period),
   array[(select all_hours.times from all_hours), '23:59', '64000'], 'la période les garde telles quelles');
+select lives_ok($$ update public.treatment_period set times = null $$,
+  'période sans heure acceptée : l''app écrit null');
+select is((select times from public.treatment_period), null, 'la période garde des heures vides');
 update public.treatment_period
 set times = '08:00,20:00', reminder_time = null, grid_before = null;
 
