@@ -91,6 +91,7 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
         await pullCycle.keepServerRows(userId, keptRows, onRemindersTouched)
         if (touchedReminders) await deps.onRemindersOutdated?.()
       }
+      if (deps.userId() !== userId) return
       const removalFailure = photoRemoval ? await photoRemoval.remove(userId) : null
       pushFailure ??= removalFailure
       if (pushFailure) throw pushFailure.cause
