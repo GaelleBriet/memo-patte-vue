@@ -19,7 +19,7 @@ type CarnetTreatmentRow = {
   unlogged: string | null
 }
 
-type FinishedTreatmentRow = { id: string; name: string; icon: string; detail: string }
+export type FinishedTreatmentRow = { id: string; name: string; icon: string; detail: string }
 
 export type TreatmentsSummary = ReminderCounts & {
   /** Lignes de « Traitements en cours », traitements à renseigner et illisibles compris. */

@@ -20,7 +20,9 @@ import { useForegroundRefresh } from '@/core/app-lifecycle/use-foreground-refres
 import { usePhotoUrls } from '@/core/photos/use-photo-urls'
 import PlusNudgeSection from '@/features/purchase/views/PlusNudgeSection.vue'
 import type { PdfExportAnimal } from '@/features/settings/views/PdfExportSheet.vue'
+import FinishedTreatmentsSection from '@/features/treatments/views/FinishedTreatmentsSection.vue'
 import TreatmentsSection, {
+  type FinishedTreatmentRow,
   type TreatmentsSummary,
 } from '@/features/treatments/views/TreatmentsSection.vue'
 import VaccinationsSection, {
@@ -57,6 +59,7 @@ const { entry: unfollowed, open: openUnfollowed } = useOpenUnfollowed(
 
 const vaccinationsSummary = ref<VaccinationsSummary>({ total: 0, overdue: 0 })
 const treatmentsSummary = ref<TreatmentsSummary>({ total: 0, overdue: 0, ongoing: 0 })
+const finishedTreatments = ref<FinishedTreatmentRow[]>([])
 const weightSummary = ref<WeightSectionSummary>(null)
 
 const isPhotoSheetOpen = ref(false)
@@ -331,19 +334,21 @@ onMounted(() => {
           </v-btn>
         </section>
         <PlusNudgeSection :animal-count="animals.animals.length" />
+        <TreatmentsSection
+          :animal-id="animal.id"
+          :today="today"
+          :followed="isFollowed"
+          @summary="treatmentsSummary = $event"
+          @finished="finishedTreatments = $event"
+        />
         <VaccinationsSection
           :animal-id="animal.id"
           :today="today"
           :followed="isFollowed"
           @summary="vaccinationsSummary = $event"
         />
-        <TreatmentsSection
-          :animal-id="animal.id"
-          :today="today"
-          :followed="isFollowed"
-          @summary="treatmentsSummary = $event"
-        />
         <WeightSection :animal-id="animal.id" :today="today" @summary="weightSummary = $event" />
+        <FinishedTreatmentsSection :animal-id="animal.id" :rows="finishedTreatments" />
         <UnfollowedAnimalsLink
           v-if="unfollowed"
           class="carnet__unfollowed-link"

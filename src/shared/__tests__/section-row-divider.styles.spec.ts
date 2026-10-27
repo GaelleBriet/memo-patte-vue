@@ -35,6 +35,7 @@ function declaration(feuille: string, selecteur: string, propriete: string): str
 const SECTIONS = [
   'src/features/vaccinations/views/VaccinationsSection.vue',
   'src/features/treatments/views/TreatmentsSection.vue',
+  'src/features/treatments/views/FinishedTreatmentsSection.vue',
 ]
 
 const REMISE_A_ZERO = /(?:^|;)\s*border(?:-top)?(?:-width|-style)?\s*:\s*(?:0|none)\s*(?:;|$)/

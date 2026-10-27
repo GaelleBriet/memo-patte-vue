@@ -241,7 +241,7 @@ describe('TreatmentsSection — lignes (B · V15)', () => {
     expect(badge.find('svg').exists()).toBe(false)
     expect(texte(row.get('.treatment-row__detail'))).toBe('Arrêté le 6 sept.')
     expect(texte(row.get('.treatment-row__unlogged'))).toBe('3 doses non renseignées')
-    expect(wrapper.find('.finished-treatments').exists()).toBe(false)
+    expect(wrapper.emitted('finished')?.at(-1)).toEqual([[]])
     expect(resume(wrapper)).toEqual([{ total: 0, overdue: 0, ongoing: 1 }])
   })
 
@@ -256,7 +256,7 @@ describe('TreatmentsSection — lignes (B · V15)', () => {
     const wrapper = await monter(MILO, false)
 
     expect(wrapper.find('.treatment-row__badge').exists()).toBe(false)
-    expect(wrapper.find('.finished-treatments').exists()).toBe(true)
+    expect(wrapper.emitted('finished')?.at(-1)?.[0]).toHaveLength(1)
     expect(resume(wrapper)).toEqual([{ total: 0, overdue: 0, ongoing: 0 }])
   })
 
@@ -351,79 +351,6 @@ describe('TreatmentsSection — détail', () => {
   })
 })
 
-describe('TreatmentsSection — traitements terminés (F9)', () => {
-  /** Deux prises trimestrielles, arrêté avant la troisième : plus rien à renseigner. */
-  const ARRETE: Overrides = {
-    period: { startsOn: '2025-12-01', firstDueOn: '2025-12-01', stoppedOn: '2026-05-26' },
-    doses: [dose('2025-12-01', '2026-03-01'), dose('2026-03-01', '2026-06-01')],
-  }
-
-  function terminés(wrapper: ReturnType<typeof mount>) {
-    return wrapper.findAll('.finished-treatment-row')
-  }
-
-  it('y range un traitement dont la date de fin est passée, tout renseigné', async () => {
-    treatments = [
-      treatment({
-        name: 'Métacam',
-        period: { ...QUOTIDIEN, endsOn: '2026-09-02' },
-        doses: DEUX_PRISES,
-      }),
-    ]
-    const wrapper = await monter()
-    await wrapper.get('.finished-treatments__toggle').trigger('click')
-
-    expect(wrapper.findAll('.treatment-row')).toHaveLength(0)
-    expect(terminés(wrapper).map(texte)).toEqual(['MétacamTerminé le 2 sept. · 2 prises'])
-  })
-
-  it('replie par défaut les traitements terminés, avec leur nombre', async () => {
-    treatments = [treatment({ name: 'Milbemax', ...ARRETE }), treatment()]
-    const wrapper = await monter()
-
-    const bouton = wrapper.get('.finished-treatments__toggle')
-    expect(bouton.text()).toContain('Traitements terminés')
-    expect(bouton.get('.finished-treatments__counter').text()).toBe('1')
-    expect(bouton.attributes('aria-expanded')).toBe('false')
-    expect(terminés(wrapper)).toHaveLength(0)
-  })
-
-  it('déplie : date d’arrêt et nombre de prises, ligne qui ouvre le détail (F9 ter)', async () => {
-    const milbemax = treatment({ name: 'Milbemax', ...ARRETE })
-    treatments = [milbemax]
-    const push = vi.spyOn(router, 'push').mockResolvedValue()
-    const wrapper = await monter()
-
-    await wrapper.get('.finished-treatments__toggle').trigger('click')
-
-    expect(wrapper.get('.finished-treatments__toggle').attributes('aria-expanded')).toBe('true')
-    expect(terminés(wrapper).map(texte)).toEqual(['MilbemaxArrêté le 26 mai · 2 prises'])
-    await terminés(wrapper)[0]!.trigger('click')
-    expect(push).toHaveBeenCalledWith({ name: 'treatment-detail', params: { id: milbemax.id } })
-  })
-
-  it('n’affiche pas la partie sans traitement terminé', async () => {
-    treatments = [treatment()]
-    const wrapper = await monter()
-
-    expect(wrapper.find('.finished-treatments').exists()).toBe(false)
-  })
-
-  it('replie de nouveau la partie quand l’animal change', async () => {
-    treatments = [
-      treatment({ name: 'Milbemax', ...ARRETE }),
-      treatment({ animalId: LUNA, name: 'Drontal', ...ARRETE }),
-    ]
-    const wrapper = await monter()
-    await wrapper.get('.finished-treatments__toggle').trigger('click')
-
-    await wrapper.setProps({ animalId: LUNA })
-    await flushPromises()
-
-    expect(wrapper.get('.finished-treatments__toggle').attributes('aria-expanded')).toBe('false')
-  })
-})
-
 describe('TreatmentsSection — ajout', () => {
   it('termine la carte par « Ajouter un traitement », même sans traitement', async () => {
     const wrapper = await monter()
@@ -473,24 +400,5 @@ describe('TreatmentsSection — pastille d’icône (B · V15)', () => {
       { icon: 'ms:medication', muted: false },
     ])
     expect(texte(ligne(wrapper, 0))).toMatch(/^Bravecto/)
-  })
-
-  it('ouvre une ligne terminée par une pastille grise', async () => {
-    treatments = [
-      treatment({
-        name: 'Advocate',
-        period: { startsOn: '2025-12-01', firstDueOn: '2025-12-01', stoppedOn: '2026-05-26' },
-        doses: [dose('2025-12-01', '2026-03-01'), dose('2026-03-01', '2026-06-01')],
-      }),
-    ]
-    const wrapper = await monter()
-    await wrapper.get('.finished-treatments__toggle').trigger('click')
-
-    const [row] = wrapper.findAll('.finished-treatment-row')
-    expect(pastille(row!)).toEqual({
-      icon: 'ms:pest_control',
-      muted: true,
-    })
-    expect(texte(row!)).toBe('AdvocateArrêté le 26 mai · 2 prises')
   })
 })
