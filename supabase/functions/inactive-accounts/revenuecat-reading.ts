@@ -1,5 +1,5 @@
 import { plusAccessFrom, type RevenuecatSubscriber } from '../_shared/plus-access.ts'
-import { inactiveSinceOf, type AccountDates } from './purge-calendar.ts'
+import { inactiveSinceOf, purgeDateOf, type AccountDates } from './purge-calendar.ts'
 
 const NO_NOTICE = { purgeOn: null, warnedAt: null, revenuecatErasedAt: null }
 
@@ -37,11 +37,15 @@ export function readAtRevenuecat(
   if (since === null || baseSince === null || Date.parse(since) <= Date.parse(baseSince)) {
     return { subscribed: false, dates: withEnd, laterEnd: false }
   }
-  const { warnedAt } = dates.notice
-  const warnedAfterEnd = warnedAt !== null && Date.parse(warnedAt) >= ended
+  const { warnedAt, purgeOn } = dates.notice
+  const warnedFromThisEnd =
+    warnedAt !== null &&
+    purgeOn !== null &&
+    Date.parse(warnedAt) >= ended &&
+    purgeOn >= purgeDateOf(since, Date.parse(warnedAt))
   return {
     subscribed: false,
-    dates: { ...withEnd, notice: warnedAfterEnd ? dates.notice : NO_NOTICE },
+    dates: { ...withEnd, notice: warnedFromThisEnd ? dates.notice : NO_NOTICE },
     laterEnd: true,
   }
 }

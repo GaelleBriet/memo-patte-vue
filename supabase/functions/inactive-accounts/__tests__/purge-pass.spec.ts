@@ -809,6 +809,54 @@ describe('runPurgePass : webhook d’achat perdu, fin d’accès connue de Reven
     expect(fake.sent).toEqual([])
   })
 
+  it('Mia, avertie depuis sa création, puis RevenueCat connaît une fin plus tardive : pas supprimée avant 12 mois après cette fin', async () => {
+    const miaId = 'aaaaaaaa-0000-4000-8000-000000000031'
+    const created = '2026-01-01T10:00:00.000Z'
+    const ended = {
+      entitlements: {
+        plus: { expires_date: '2026-11-01T00:00:00Z', product_identifier: 'plus:monthly' },
+      },
+    }
+    const warnedFromCreation = candidate(miaId, {
+      createdAt: created,
+      notice: {
+        purgeOn: '2027-01-02',
+        warnedAt: '2026-12-01T10:00:00.000Z',
+        revenuecatErasedAt: null,
+      },
+    })
+
+    useClock('2027-01-03T03:00:00.000Z')
+    const early = fakePurgePorts({
+      candidates: [warnedFromCreation],
+      subscribers: { [miaId]: ended },
+    })
+    const earlyReport = await runPurgePass(early.ports, 'apply')
+    expect(earlyReport.due.deletions).toBe(1)
+    expect(earlyReport.skipped).toEqual({ ...ZERO_SKIPPED, laterEnd: 1 })
+    expect(early.calls.map((c) => c.kind)).not.toContain('deleteUser')
+
+    useClock('2027-10-01T03:00:00.000Z')
+    const warning = fakePurgePorts({
+      candidates: [warnedFromCreation],
+      subscribers: { [miaId]: ended },
+    })
+    await runPurgePass(warning.ports, 'apply')
+    expect(warning.calls.map((c) => c.kind)).not.toContain('deleteUser')
+    expect(warning.sent[0]?.text).toContain('a pris fin le 1er novembre 2026.')
+    const notice = warning.notices[miaId]!
+    expect(notice).toMatchObject({ inactiveSince: created, purgeOn: '2027-11-01' })
+
+    useClock('2027-11-02T03:00:00.000Z')
+    const due = fakePurgePorts({
+      candidates: [candidate(miaId, { createdAt: created, notice })],
+      subscribers: { [miaId]: ended },
+    })
+    const dueReport = await runPurgePass(due.ports, 'apply')
+    expect(dueReport.done.deletions).toBe(1)
+    expect(due.sent).toEqual([])
+  })
+
   it.each([
     [
       'accès en cours',
