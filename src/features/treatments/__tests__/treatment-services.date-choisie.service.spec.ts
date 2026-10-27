@@ -159,7 +159,7 @@ describe('La date choisie, déplacée par les vrais services', () => {
     ])
   })
 
-  // R6, R7 : #988 fermé, conforme.
+  // R6, R7 : le décalage du 13 supprimé, le report du 24 au 1er mai refixe la suite depuis son arrivée.
   it('Luna, chaque semaine sans heure ; le décalage du 13 avril supprimé : 20 avril, 1er mai, 8 mai', async () => {
     const luna = await carnet('2026-04-16', WEEK, [], '2026-04-11', '2026-05-10')
     await luna.modify([], '2026-04-13', '2026-05-10')
