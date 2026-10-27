@@ -38,8 +38,6 @@ import WeightSheet from '@/features/weight/views/WeightSheet.vue'
 import AnimalChipSelector from '@/shared/components/AnimalChipSelector.vue'
 import { plain } from '@/shared/__tests__/plain'
 import { isAnySheetOpen } from '@/shared/composables/use-open-sheet'
-import { installRestorePrompt } from '@/app/restore-prompt'
-import { createRestoreFlow } from '@/core/sync/service/restore-flow'
 import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
 import { recordUsageSignal } from '@/core/usage/usage-signals'
 import {
@@ -1985,27 +1983,15 @@ describe('HomeView — feuille d’un rappel', () => {
       query: { reminder: `treatment:${VERMIFUGE_LUNA_AUJOURDHUI.id}`, step: 'actions' },
     } as const
 
-    it('retient « Restaurer mon carnet » quand la sauvegarde est trouvée avant l’affichage', async () => {
+    it('compte la feuille comme ouverte dès que l’adresse est effacée', async () => {
       await router.replace(notification)
-      await monter()
+
+      const wrapper = await monter()
       await vi.waitFor(() => expect(router.currentRoute.value.query).toEqual({}))
-      const flow = createRestoreFlow({
-        pendingMode: async () => null,
-        start: async () => {},
-        run: async () => 'restored',
-        progress: { done: 0, total: 0 },
-        onProgress: () => () => {},
-      })
-      const uninstall = installRestorePrompt(router, () => flow)
 
-      flow.offer({ animalCount: 2, lastBackupAt: '2026-09-08T19:04:00.000Z' })
-      await flushPromises()
-      uninstall()
-
+      expect(wrapper.getComponent(TreatmentReminderSheet).props('modelValue')).toBe(true)
+      expect(document.body.querySelector('.treatment-reminder-sheet')).toBeNull()
       expect(isAnySheetOpen.value).toBe(true)
-      expect(push.mock.calls.map(([to]) => JSON.stringify(to))).not.toContainEqual(
-        expect.stringContaining('restore'),
-      )
     })
 
     it('retombe quand le traitement demandé est introuvable', async () => {

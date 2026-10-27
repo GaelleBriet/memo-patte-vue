@@ -121,6 +121,25 @@ describe('useSheetRequest', () => {
     expect(isAnySheetOpen.value).toBe(false)
   })
 
+  it('une nouvelle demande repart pour un délai entier', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const wrapper = accueil()
+
+    demande.hold()
+    vi.advanceTimersByTime(3000)
+    demande.hold()
+    vi.advanceTimersByTime(SHEET_REQUEST_TIMEOUT_MS - 3000 + 1)
+    expect(isAnySheetOpen.value).toBe(true)
+
+    vi.advanceTimersByTime(3000 - 1)
+    expect(isAnySheetOpen.value).toBe(false)
+
+    demande.hold()
+    wrapper.unmount()
+    montes.splice(0)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
   it('retombe quand l’écran qui l’a demandée est démonté', () => {
     const wrapper = accueil()
     demande.hold()
