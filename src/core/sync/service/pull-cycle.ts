@@ -116,6 +116,7 @@ export function createPullCycle(
 
       const touched = await touchesCarnet(table, page, lastPulledAt)
       if (!(await applyPage(userId, table, page.rows, keptByKey))) return false
+      if (touched) onCarnetTouched()
 
       const cursor = page.cursor
       if (cursor === null) break
@@ -131,7 +132,6 @@ export function createPullCycle(
         await deps.outbox.setLastPulledAt(table.entity, cursor)
         lastPulledAt = cursor
       }
-      if (touched) onCarnetTouched()
       if (page.rows.length < PULL_PAGE_SIZE) break
       since = cursor
       afterId = lastRow.id
