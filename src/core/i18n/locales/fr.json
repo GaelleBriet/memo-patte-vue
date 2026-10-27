@@ -1551,6 +1551,7 @@
         "count": "{done} élément sur {total} | {done} élément sur {total} | {done} éléments sur {total}"
       },
       "offline": "La restauration reprendra dès le retour du réseau. Rien n’est perdu.",
+      "sessionExpired": "Ta connexion a expiré. Reconnecte-toi pour reprendre la restauration. Rien n’est perdu.",
       "later": "Plus tard"
     },
     "csv": {

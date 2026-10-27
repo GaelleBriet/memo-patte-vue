@@ -34,6 +34,7 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
   ]
   const userId = () => useAuthStore().userId
   const sessionActive = () => useAuthStore().sessionState === 'active'
+  const signInNeeded = () => useAuthStore().sessionState === 'needs-sign-in'
   const isEligible = () =>
     useAuthStore().hasPlusAccount && usePurchaseStore().status.plan !== 'none'
   const { outbox, cycle, restore, photoRestore } = await createLocalSyncContext({
@@ -48,11 +49,11 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
     createBackupFactsReader({
       outbox,
       isEligible,
-      signInNeeded: () => useAuthStore().sessionState === 'needs-sign-in',
+      signInNeeded,
       isOnline: isNetworkConnected,
     }),
   )
-  const restoreFlow = createRestoreFlow(restore)
+  const restoreFlow = createRestoreFlow(restore, signInNeeded)
   provideRestoreFlow(restoreFlow)
   const accountBackup = createAccountBackupService({
     outbox: () => outbox,

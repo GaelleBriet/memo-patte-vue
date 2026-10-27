@@ -20,6 +20,7 @@ const {
   submit,
   confirmReplace,
   leave,
+  signIn,
   later,
 } = useAccountRestore()
 
@@ -73,9 +74,25 @@ const groupLabelId = useId()
         <v-icon icon="ms:cloud_off" size="19" />
         <span>{{ t('settings.restore.offline') }}</span>
       </p>
+
+      <p
+        v-else-if="state.step === 'waiting-sign-in'"
+        class="account-restore__notice account-restore__session-expired"
+        role="status"
+      >
+        <v-icon icon="ms:sync_problem" size="19" />
+        <span>{{ t('settings.restore.sessionExpired') }}</span>
+      </p>
     </div>
 
-    <template v-if="state.step === 'choice' || state.step === 'waiting-network'" #actions>
+    <template
+      v-if="
+        state.step === 'choice' ||
+        state.step === 'waiting-network' ||
+        state.step === 'waiting-sign-in'
+      "
+      #actions
+    >
       <div class="account-restore__actions">
         <v-btn
           v-if="state.step === 'choice'"
@@ -88,7 +105,17 @@ const groupLabelId = useId()
           {{ t('settings.import.submit') }}
         </v-btn>
         <v-btn
-          v-else
+          v-if="state.step === 'waiting-sign-in'"
+          class="account-restore__action account-restore__sign-in"
+          variant="flat"
+          color="primary"
+          prepend-icon="ms:login"
+          @click="signIn"
+        >
+          {{ t('settings.backup.cloud.interrupted.signIn') }}
+        </v-btn>
+        <v-btn
+          v-if="state.step !== 'choice'"
           class="account-restore__action account-restore__later"
           variant="outlined"
           color="primary"
@@ -166,6 +193,9 @@ const groupLabelId = useId()
 }
 
 .account-restore__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   padding: 12px 20px 30px;
 }
 
