@@ -2976,6 +2976,14 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-27 — Une feuille affichée retient « Restaurer mon carnet », adresse ou non (#1320)
+
+- Choix de bonnes pratiques : chaque feuille du bas se déclare ouverte dans un état partagé
+  (`shared/composables/use-open-sheet.ts`) tant qu'elle est affichée et montée, et
+  `app/restore-prompt.ts` le lit avec l'adresse. Raison : l'accueil efface tout de suite de
+  l'adresse la feuille demandée par une notification, et une feuille ouverte d'un tap n'y a jamais
+  été. — Alternative écartée : lire l'adresse seule, qui laissait l'écran recouvrir la feuille.
+
 ## 2026-10-26 — Première proposition de restauration et attente du réseau dans Paramètres › Sauvegarde (#1299, Q53, Q62)
 
 Cas : le 25 octobre, la sauvegarde cloud de Milo et Luna est trouvée pendant que le Carnet de Milo
