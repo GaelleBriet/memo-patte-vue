@@ -192,6 +192,14 @@ describe('VaccinationReminderSheet — feuille d’un vaccin', () => {
     expect(texte('.reminder-actions__due')).toBe('Prochain rappel le 10 août 2025')
   })
 
+  it('trace le chargement raté du vaccin', async () => {
+    vi.spyOn(useVaccinationsStore(), 'getById').mockRejectedValue(new Error('base fermée'))
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    await monter()
+
+    expect(warn).toHaveBeenCalledWith('Chargement du vaccin impossible :', 'Error')
+  })
+
   it('ouvre l’écran de modification du vaccin', async () => {
     await monter()
 
