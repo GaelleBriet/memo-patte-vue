@@ -185,6 +185,37 @@ describe('usePurchaseStore', () => {
     })
   })
 
+  describe('abonnement qui échoit en cours de session', () => {
+    const ENDING: PlusStatus = { plan: 'monthly', expiresAt: '2026-09-20T10:00:00Z' }
+
+    beforeEach(() => {
+      writeStoredPlusStatus(ENDING)
+    })
+
+    it('se lit « aucun » à la revérification qui suit l’échéance, même sans réseau', async () => {
+      service.fetchStatus.mockRejectedValueOnce(new BillingError('failed'))
+      const store = usePurchaseStore()
+      expect(store.status).toEqual(ENDING)
+      vi.setSystemTime(new Date('2026-09-21T10:00:00Z'))
+
+      await store.verifyKnownStatus()
+
+      expect(store.status).toEqual(NO_PLUS)
+      expect(store.expiredPlan).toBe('monthly')
+    })
+
+    it('reste Plus quand la revérification trouve un renouvellement', async () => {
+      const renewed: PlusStatus = { plan: 'monthly', expiresAt: '2026-10-20T10:00:00Z' }
+      service.fetchStatus.mockResolvedValueOnce(renewed)
+      const store = usePurchaseStore()
+      vi.setSystemTime(new Date('2026-09-21T10:00:00Z'))
+
+      await store.verifyKnownStatus()
+
+      expect(store.status).toEqual(renewed)
+    })
+  })
+
   it('n’invente aucun plan échu à qui n’a jamais payé, même après vérification', async () => {
     const store = usePurchaseStore()
 
