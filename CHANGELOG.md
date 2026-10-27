@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.130](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.129...memo-patte-v0.1.130) (2026-10-27)
+
+
+### 🐛 Corrections
+
+* **animaux:** « Ne plus suivre » passe par la file d'écriture des traitements ([ee32400](https://github.com/GaelleBriet/memo-patte-vue/commit/ee32400e7f98bfbbcabdeffe81dd99c0b898e8ea))
+* **animaux:** faire passer « ne plus suivre » par la file d'écriture des traitements ([d1d48db](https://github.com/GaelleBriet/memo-patte-vue/commit/d1d48dbb3b71c101c7ec38d7c82a3bd5f4232dc8)), closes [#1354](https://github.com/GaelleBriet/memo-patte-vue/issues/1354)
+
 ## [0.1.129](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.128...memo-patte-v0.1.129) (2026-10-27)
 
 
