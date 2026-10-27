@@ -15,7 +15,7 @@ import {
   createTreatmentsRepository,
   type TreatmentsRepository,
 } from '../repository/treatments.repository'
-import { createWriteQueue } from '../logic/treatment-write-queue'
+import { createWriteQueue } from '@/core/write-queue/treatment-write-queue'
 import { createTreatmentDosesService } from '../service/treatment-doses.service'
 import {
   createTreatmentRemindersService,

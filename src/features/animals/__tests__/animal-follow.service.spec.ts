@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
+import { createWriteQueue } from '@/core/write-queue/treatment-write-queue'
 import {
   createTreatmentPeriodsRepository,
   type TreatmentPeriodsRepository,
@@ -150,6 +151,39 @@ describe('animalFollowService', () => {
       expect(reminders.withdraw).not.toHaveBeenCalled()
     })
 
+    it('attend l’écriture d’une dose déjà en file avant de lire ses traitements', async () => {
+      const luna = await animals.create({ name: 'Luna', species: 'cat' })
+      await treatment(luna.id, 'Métacam')
+      const queue = createWriteQueue()
+      const order: string[] = []
+      const queued = createAnimalFollowService({
+        animals: () => animals,
+        treatments: () => ({
+          listWithPeriodsByAnimal: (animalId: string) => {
+            order.push('lecture des traitements')
+            return treatments.listWithPeriodsByAnimal(animalId)
+          },
+        }),
+        periods: () => periods,
+        reminders,
+        today: () => TODAY,
+        queue,
+      })
+      let release!: () => void
+      const dose = queue(async () => {
+        await new Promise<void>((resolve) => (release = resolve))
+        order.push('dose écrite')
+      })
+
+      const unfollowing = queued.unfollow(luna.id)
+      await vi.waitFor(() => expect(release).toBeTypeOf('function'))
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      release()
+      await Promise.all([dose, unfollowing])
+
+      expect(order).toEqual(['dose écrite', 'lecture des traitements'])
+    })
+
     it('ne fait rien pour un animal qu’on ne suit déjà plus', async () => {
       const luna = await animals.create({ name: 'Luna', species: 'cat' })
       await animals.setDeparture(luna.id, { ...FOLLOWED, unfollowedOn: '2026-09-20' })
@@ -180,6 +214,41 @@ describe('animalFollowService', () => {
         expect.objectContaining({ id: period?.id, stoppedOn: null }),
       ])
       expect(reminders.reschedule).toHaveBeenCalledExactlyOnceWith(luna.id)
+    })
+
+    it('attend l’écriture d’une dose déjà en file avant de reprendre les traitements', async () => {
+      const luna = await animals.create({ name: 'Luna', species: 'cat' })
+      await treatment(luna.id, 'Métacam')
+      const queue = createWriteQueue()
+      const order: string[] = []
+      const queued = createAnimalFollowService({
+        animals: () => animals,
+        treatments: () => treatments,
+        periods: () => ({
+          ...periods,
+          undoStopPeriodStatement: (...args) => {
+            order.push('reprise des traitements')
+            return periods.undoStopPeriodStatement(...args)
+          },
+        }),
+        reminders,
+        today: () => TODAY,
+        queue,
+      })
+      const undo = (await queued.unfollow(luna.id))!
+      let release!: () => void
+      const dose = queue(async () => {
+        await new Promise<void>((resolve) => (release = resolve))
+        order.push('dose écrite')
+      })
+
+      const undoing = queued.undoUnfollow(undo)
+      await vi.waitFor(() => expect(release).toBeTypeOf('function'))
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      release()
+      await Promise.all([dose, undoing])
+
+      expect(order).toEqual(['dose écrite', 'reprise des traitements'])
     })
 
     it('ne reprend pas un traitement arrêté à la main le même jour', async () => {
