@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.133](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.132...memo-patte-v0.1.133) (2026-10-27)
+
+
+### ✨ Fonctionnalités
+
+* **carnet:** traitements en cours avant les vaccins, terminés après le poids ([70efcfb](https://github.com/GaelleBriet/memo-patte-vue/commit/70efcfbc37c460f6e9edd1ca9472e7ba35e4c138))
+* **carnet:** traitements en cours avant les vaccins, terminés en dernier ([db7a99b](https://github.com/GaelleBriet/memo-patte-vue/commit/db7a99bfb7a5e547096f8bb8147cc71fd165f0bc))
+
 ## [0.1.132](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.131...memo-patte-v0.1.132) (2026-10-27)
 
 
