@@ -23,6 +23,12 @@ describe('grille d’avant l’ouverture, telle qu’elle se range dans la colon
     expect(gridBeforeFromColumn(gridBeforeColumn(grid as never))).toEqual(grid)
   })
 
+  it('trop longue pour être relue, elle se range vide', () => {
+    const runs = Array.from({ length: MAX_GRID_BEFORE_LENGTH }, () => ['2026-03-26', null])
+
+    expect(gridBeforeColumn({ ...grid, runs } as never)).toBeNull()
+  })
+
   it('vide reste vide', () => {
     expect(gridBeforeColumn(null)).toBeNull()
     expect(gridBeforeFromColumn(null)).toBeNull()
