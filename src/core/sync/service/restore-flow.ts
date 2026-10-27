@@ -1,4 +1,4 @@
-import { readonly, shallowRef, watch, type Ref } from 'vue'
+import { computed, shallowRef, watch, type Ref } from 'vue'
 
 import { errorSummary, localErrorMessage } from '@/shared/utils/error-summary'
 import type { RestoreMode } from '../repository/sync-state.repository'
@@ -12,6 +12,7 @@ export type RestoreFlowState =
   | { step: 'choice'; summary: BackupSummary }
   | { step: 'restoring'; progress: RestoreProgress }
   | { step: 'waiting-network'; chosen: boolean }
+  | { step: 'waiting-sign-in'; chosen: boolean }
   | { step: 'done' }
 
 export type RestoreRunner = Pick<
@@ -20,11 +21,19 @@ export type RestoreRunner = Pick<
 >
 
 /**
- * Ce que l'écran « Restaurer mon carnet » montre : le choix, la progression, l'attente du réseau
- * ou le carnet prêt. Aucune méthode ne lève.
+ * Ce que l'écran « Restaurer mon carnet » montre : le choix, la progression, l'attente du réseau,
+ * celle de la reconnexion quand la session a expiré, ou le carnet prêt. Aucune méthode ne lève.
  */
-export function createRestoreFlow(runner: RestoreRunner) {
+export function createRestoreFlow(
+  runner: RestoreRunner,
+  signInNeeded: () => boolean = () => false,
+) {
   const state = shallowRef<RestoreFlowState>({ step: 'idle' })
+  const visible: Readonly<Ref<RestoreFlowState>> = computed(() =>
+    state.value.step === 'waiting-network' && signInNeeded()
+      ? { step: 'waiting-sign-in', chosen: state.value.chosen }
+      : state.value,
+  )
   const restoredListeners = new Set<() => void>()
   const retryListeners = new Set<() => void>()
 
@@ -65,7 +74,7 @@ export function createRestoreFlow(runner: RestoreRunner) {
   }
 
   return {
-    state: readonly(state) as Readonly<Ref<RestoreFlowState>>,
+    state: visible,
 
     /** Sans effet sur un écran déjà affiché : il garde son message jusqu'à la réponse. */
     checking(): void {
@@ -74,10 +83,10 @@ export function createRestoreFlow(runner: RestoreRunner) {
 
     /** Ce que le contrôle de la sauvegarde a trouvé, dès qu'il a répondu. */
     whenChecked(): Promise<RestoreFlowState> {
-      if (state.value.step !== 'checking') return Promise.resolve(state.value)
+      if (state.value.step !== 'checking') return Promise.resolve(visible.value)
       return new Promise((resolve) => {
         const stop = watch(
-          state,
+          visible,
           (current) => {
             if (current.step === 'checking') return
             stop()

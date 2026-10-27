@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { ref } from 'vue'
 
 import type { RestoreMode } from '../repository/sync-state.repository'
 import type { RestoreProgress } from '../service/account-restore'
@@ -389,5 +390,52 @@ describe('parcours de restauration', () => {
     flow.retryCheck()
     expect(flow.state.value).toEqual({ step: 'checking', chosen: false })
     expect(retried).toHaveBeenCalledOnce()
+  })
+
+  describe('session expirée pendant l’attente du réseau', () => {
+    it('attend la reconnexion, restauration choisie, puis de nouveau le réseau une fois reconnecté', async () => {
+      const runner = fakeRunner({
+        run: vi.fn<RestoreRunner['run']>(async () => {
+          throw new Error('réseau coupé')
+        }),
+      })
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const expired = ref(false)
+      const flow = createRestoreFlow(runner, () => expired.value)
+      await flow.choose('merge')
+
+      expired.value = true
+      expect(flow.state.value).toEqual({ step: 'waiting-sign-in', chosen: true })
+
+      expired.value = false
+      expect(flow.state.value).toEqual({ step: 'waiting-network', chosen: true })
+    })
+
+    it('attend aussi la reconnexion quand le contrôle de la sauvegarde n’a pas abouti', () => {
+      const flow = createRestoreFlow(fakeRunner(), () => true)
+
+      flow.unreachable()
+
+      expect(flow.state.value).toEqual({ step: 'waiting-sign-in', chosen: false })
+    })
+
+    it('la connexion apprend l’attente de la reconnexion, que le contrôle ait déjà répondu ou non', async () => {
+      const flow = createRestoreFlow(fakeRunner(), () => true)
+
+      flow.checking()
+      const answer = flow.whenChecked()
+      flow.unreachable()
+
+      await expect(answer).resolves.toEqual({ step: 'waiting-sign-in', chosen: false })
+      await expect(flow.whenChecked()).resolves.toEqual({ step: 'waiting-sign-in', chosen: false })
+    })
+
+    it('ne change rien aux autres étapes', () => {
+      const flow = createRestoreFlow(fakeRunner(), () => true)
+
+      flow.offer(SUMMARY)
+
+      expect(flow.state.value).toEqual({ step: 'choice', summary: SUMMARY })
+    })
   })
 })

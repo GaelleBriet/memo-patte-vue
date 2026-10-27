@@ -1,6 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
+import { ref } from 'vue'
 
 import AccountRestoreView from '../views/AccountRestoreView.vue'
 import { memoryStorage, USER_ID } from '@/features/auth/__tests__/auth-fixture'
@@ -19,6 +20,9 @@ import {
 import vuetify from '@/core/theme/vuetify'
 import router from '@/router'
 import { plain } from '@/shared/__tests__/plain'
+import { restoreRoute } from '@/shared/utils/restore-route'
+import { returnTo } from '@/shared/utils/return-to'
+import { afterSignInRoute, signInReturnRoute } from '@/shared/utils/sign-in-route'
 
 const promptNotificationsIfReminders = vi.hoisted(() =>
   vi.fn<(router: unknown, from: string, options?: { ready?: boolean }) => Promise<boolean>>(
@@ -27,6 +31,7 @@ const promptNotificationsIfReminders = vi.hoisted(() =>
 )
 
 vi.mock('@/core/notifications/reminders-priming', () => ({ promptNotificationsIfReminders }))
+vi.mock('@/shared/utils/auth-available', () => ({ authAvailable: () => true }))
 vi.mock('@/core/app-lifecycle/app-resume', () => ({
   useAppResume: () => {},
   onAppResume: () => () => {},
@@ -220,8 +225,113 @@ describe('Restaurer mon carnet', () => {
     expect(texte('.account-restore__offline')).toBe(
       'La restauration reprendra dès le retour du réseau. Rien n’est perdu.',
     )
+    expect(texte('.account-restore__session-expired')).toBeUndefined()
+    expect(bouton('Se reconnecter')).toBeUndefined()
     await toucher(bouton('Plus tard'))
     expect(replace).toHaveBeenCalledWith({ name: 'home' })
+  })
+
+  describe('session expirée pendant l’attente du réseau', () => {
+    const expired = ref(false)
+
+    beforeEach(() => {
+      expired.value = false
+      flow = createRestoreFlow(runner, () => expired.value)
+      provideRestoreFlow(flow)
+      flow.offer(SUMMARY)
+    })
+
+    async function sessionExpiréePendantLAttente(): Promise<void> {
+      await monter()
+      await toucher(carte(i18n.global.locale.value === 'en' ? 'Merge' : 'Fusionner'))
+      await toucher(bouton(i18n.global.locale.value === 'en' ? 'Continue' : 'Continuer'))
+      runner.fail()
+      await flushPromises()
+      expired.value = true
+      await flushPromises()
+    }
+
+    it('demande de se reconnecter : « Se reconnecter » ouvre la connexion, qui ramène ici', async () => {
+      await sessionExpiréePendantLAttente()
+
+      expect(texte('.account-restore__session-expired')).toBe(
+        'Ta connexion a expiré. Reconnecte-toi pour reprendre la restauration. Rien n’est perdu.',
+      )
+      expect(texte('.account-restore__offline')).toBeUndefined()
+      expect(bouton('Plus tard')).toBeDefined()
+      await toucher(bouton('Se reconnecter'))
+
+      expect(replace).toHaveBeenCalledWith({
+        name: 'sign-in',
+        query: { from: 'settings-plus', restore: '1' },
+      })
+    })
+
+    describe('historique, depuis « Plus » ouvert sur l’accueil', () => {
+      beforeEach(async () => {
+        replace.mockRestore()
+        await router.push({ name: 'home' })
+        await router.push({ name: 'settings-plus' })
+        await router.push(restoreRoute('settings-plus'))
+      }, 20_000)
+
+      async function ouvrirLaConnexion(): Promise<void> {
+        await toucher(bouton('Se reconnecter'))
+        await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('sign-in'), {
+          timeout: 5000,
+        })
+      }
+
+      function écranPrécédent(): unknown {
+        return router.options.history.state.back
+      }
+
+      it('connexion réussie : la restauration remplace la connexion, le retour mène à « Plus »', async () => {
+        await sessionExpiréePendantLAttente()
+        await ouvrirLaConnexion()
+
+        expired.value = false
+        const next = afterSignInRoute(router.currentRoute.value.query, await flow.whenChecked())
+        await router.replace(next!)
+
+        expect(router.currentRoute.value.name).toBe('account-restore')
+        expect(écranPrécédent()).toBe(router.resolve({ name: 'settings-plus' }).fullPath)
+      })
+
+      it('connexion abandonnée : la flèche ramène à « Plus », sans « Restaurer mon carnet » derrière', async () => {
+        await sessionExpiréePendantLAttente()
+        await ouvrirLaConnexion()
+
+        returnTo(router, signInReturnRoute(router.currentRoute.value.query.from))
+        await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('settings-plus'), {
+          timeout: 5000,
+        })
+
+        expect(écranPrécédent()).toBe(router.resolve({ name: 'home' }).fullPath)
+      })
+    })
+
+    it('se lit en anglais', async () => {
+      i18n.global.locale.value = 'en'
+      await sessionExpiréePendantLAttente()
+
+      expect(texte('.account-restore__session-expired')).toBe(
+        'Your session has expired. Sign in again to resume the restore. Nothing is lost.',
+      )
+      expect(bouton('Sign in again')).toBeDefined()
+    })
+
+    it('reconnecté, attend de nouveau le réseau', async () => {
+      await sessionExpiréePendantLAttente()
+
+      expired.value = false
+      await flushPromises()
+
+      expect(texte('.account-restore__offline')).toBe(
+        'La restauration reprendra dès le retour du réseau. Rien n’est perdu.',
+      )
+      expect(bouton('Se reconnecter')).toBeUndefined()
+    })
   })
 
   it('reprend seule au retour du réseau, l’écran resté ouvert', async () => {

@@ -1559,6 +1559,7 @@
         "count": "{done} of {total} items"
       },
       "offline": "Restoring will resume when you’re back online. Nothing is lost.",
+      "sessionExpired": "Your session has expired. Sign in again to resume the restore. Nothing is lost.",
       "later": "Not now"
     },
     "csv": {

@@ -1,6 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
+import { ref } from 'vue'
 
 import BackupSettingsView from '../views/BackupSettingsView.vue'
 import type { DataExportService } from '../service/data-export.service'
@@ -673,16 +674,21 @@ describe('BackupSettingsView', () => {
       refusedPhotos: 0,
     }
 
-    async function choixCoupéParLeRéseau(): Promise<RestoreFlow> {
-      const flow = createRestoreFlow({
-        pendingMode: async () => 'merge',
-        start: async () => {},
-        run: async () => {
-          throw new Error('réseau coupé')
+    async function choixCoupéParLeRéseau(
+      signInNeeded: () => boolean = () => false,
+    ): Promise<RestoreFlow> {
+      const flow = createRestoreFlow(
+        {
+          pendingMode: async () => 'merge',
+          start: async () => {},
+          run: async () => {
+            throw new Error('réseau coupé')
+          },
+          progress: { done: 0, total: 0 },
+          onProgress: () => () => {},
         },
-        progress: { done: 0, total: 0 },
-        onProgress: () => () => {},
-      })
+        signInNeeded,
+      )
       provideRestoreFlow(flow)
       vi.spyOn(console, 'warn').mockImplementation(() => {})
       flow.offer(SUMMARY)
@@ -740,6 +746,64 @@ describe('BackupSettingsView', () => {
       expect(texteDuBloc(wrapper)).toBe(
         'Waiting for network Restoring will resume when you’re back online. Nothing is lost.',
       )
+    })
+
+    describe('session expirée pendant l’attente', () => {
+      async function monterSessionExpirée() {
+        const expired = ref(false)
+        await choixCoupéParLeRéseau(() => expired.value)
+        expired.value = true
+        return monterPlus({ ...PLUS_SANS_SAUVEGARDE, signInNeeded: true })
+      }
+
+      function texteSessionExpirée(wrapper: VueWrapper) {
+        return wrapper
+          .get('.backup-settings__restore-session-expired .settings-row__label')
+          .text()
+          .replace(/\s+/g, ' ')
+      }
+
+      it('« Ta connexion a expiré », puis « Se reconnecter » ouvre la connexion', async () => {
+        const wrapper = await monterSessionExpirée()
+
+        expect(texteSessionExpirée(wrapper)).toBe(
+          'Ta connexion a expiré. Reconnecte-toi pour reprendre la restauration. Rien n’est perdu.',
+        )
+        expect(bloc(wrapper).exists()).toBe(false)
+        expect(wrapper.text()).not.toContain('La restauration reprendra')
+        expect(wrapper.text()).not.toContain('Ton carnet est sur ce téléphone')
+        expect(
+          wrapper.findAll('.backup-settings__content > *').map((element) => element.classes()),
+        ).toEqual([
+          expect.arrayContaining(['backup-settings__restore-session-expired']),
+          expect.arrayContaining(['backup-settings__sign-in']),
+          expect.arrayContaining(['backup-settings__export']),
+          expect.arrayContaining(['backup-settings__erase']),
+        ])
+        expect(wrapper.get('.backup-settings__sign-in').text()).toBe('Se reconnecter')
+        await wrapper.get('.backup-settings__sign-in').trigger('click')
+
+        expect(push).toHaveBeenCalledWith({ name: 'sign-in', query: { from: 'settings-backup' } })
+      })
+
+      it('se lit en anglais', async () => {
+        i18n.global.locale.value = 'en'
+        const wrapper = await monterSessionExpirée()
+
+        expect(texteSessionExpirée(wrapper)).toBe(
+          'Your session has expired. Sign in again to resume the restore. Nothing is lost.',
+        )
+        expect(wrapper.get('.backup-settings__sign-in').text()).toBe('Sign in again')
+      })
+    })
+
+    it('sans expiration, garde l’attente du réseau sans « Se reconnecter »', async () => {
+      await choixCoupéParLeRéseau()
+      const wrapper = await monterPlus()
+
+      expect(bloc(wrapper).exists()).toBe(true)
+      expect(wrapper.find('.backup-settings__restore-session-expired').exists()).toBe(false)
+      expect(wrapper.find('.backup-settings__sign-in').exists()).toBe(false)
     })
 
     it('contrôle de la sauvegarde injoignable, sans restauration choisie : écran gratuit complet', async () => {
