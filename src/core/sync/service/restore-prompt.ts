@@ -13,10 +13,8 @@ export interface RestorePromptNavigation {
 }
 
 /**
- * « Restaurer mon carnet » s'ouvre de lui-même une fois par jour local tant que la sauvegarde
- * attend « Fusionner » ou « Remplacer », et de nouveau quand un choix est reproposé. La première
- * proposition s'ouvre dès que la sauvegarde est trouvée sur l'accueil sans feuille, ni affichée ni
- * dans l'adresse ; ensuite, seule une arrivée sur l'accueil sans feuille l'ouvre.
+ * Dit si « Restaurer mon carnet » doit s'ouvrir : au plus une fois par jour local tant que la
+ * sauvegarde attend un choix, sur l'accueil sans feuille.
  */
 export function createRestorePrompt() {
   let shownOn: string | null = null

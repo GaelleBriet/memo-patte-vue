@@ -44,16 +44,9 @@ export interface SyncDependencies {
 }
 
 /**
- * Branche le cycle sur ses déclencheurs (lancement, retour au premier plan, retour du réseau,
- * connexion réussie) ; le debounce après écriture est déjà câblé côté triggers SQLite. Le compte
- * ne disparaît qu'à la déconnexion explicite : la synchro oublie alors sa file, ses curseurs et sa
- * dernière sauvegarde.
- * Un compte qui en remplace un autre repart, comme une première connexion, du contrôle de sa
- * sauvegarde, fait une fois par lancement et par compte dès que sa session est active. Une
- * restauration choisie reprend seule au lancement, au retour au premier plan et du réseau, et à
- * chaque palier de recul tant que l'écran attend le réseau, comme un contrôle que le serveur n'a pas
- * pu faire. Les photos du carnet viennent ensuite, sans rien
- * retenir : à la fin d'une restauration, puis à chaque lancement d'un carnet déjà lié au compte.
+ * Branche la synchro et le contrôle de la sauvegarde, une fois par compte et par lancement, sur le
+ * lancement, le premier plan, le réseau et le changement de compte ; renvoie le débranchement. Le
+ * debounce après écriture vient des triggers SQLite, pas d'ici.
  */
 export async function installSync(deps: SyncDependencies): Promise<() => void> {
   const scheduler = createSyncScheduler({ runCycle: deps.runCycle })
