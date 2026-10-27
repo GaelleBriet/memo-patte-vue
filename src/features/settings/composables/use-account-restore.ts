@@ -14,13 +14,15 @@ import {
 } from '@/core/sync/service/restore-flow'
 import { restoreReturnRoute } from '@/shared/utils/restore-route'
 import { returnTo } from '@/shared/utils/return-to'
+import { signInRoute } from '@/shared/utils/sign-in-route'
 
 const IDLE: RestoreFlowState = { step: 'idle' }
 
 /**
  * « Restaurer mon carnet » : « Fusionner » part tout de suite, « Remplacer » après confirmation ;
  * l'écran reste affiché pendant la restauration, puis ouvre l'accueil, ou « Ton carnet est prêt »
- * si l'autorisation des notifications n'a jamais été demandée.
+ * si l'autorisation des notifications n'a jamais été demandée. Session expirée : la connexion
+ * ramène ici.
  */
 export function useAccountRestore(flow: () => RestoreFlow | null = currentRestoreFlow) {
   const { t } = useI18n()
@@ -67,6 +69,10 @@ export function useAccountRestore(flow: () => RestoreFlow | null = currentRestor
     await promptNotificationsIfReminders(router, 'home', { ready: true })
   }
 
+  function signIn(): void {
+    void router.replace(signInRoute(origin.name, { restore: true }))
+  }
+
   function later(): void {
     void router.replace({ name: 'home' })
   }
@@ -92,6 +98,7 @@ export function useAccountRestore(flow: () => RestoreFlow | null = currentRestor
     submit,
     confirmReplace,
     leave,
+    signIn,
     later,
   }
 }
