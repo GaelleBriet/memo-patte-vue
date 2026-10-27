@@ -20,6 +20,9 @@ import {
 import vuetify from '@/core/theme/vuetify'
 import router from '@/router'
 import { plain } from '@/shared/__tests__/plain'
+import { restoreRoute } from '@/shared/utils/restore-route'
+import { returnTo } from '@/shared/utils/return-to'
+import { afterSignInRoute, signInReturnRoute } from '@/shared/utils/sign-in-route'
 
 const promptNotificationsIfReminders = vi.hoisted(() =>
   vi.fn<(router: unknown, from: string, options?: { ready?: boolean }) => Promise<boolean>>(
@@ -28,6 +31,7 @@ const promptNotificationsIfReminders = vi.hoisted(() =>
 )
 
 vi.mock('@/core/notifications/reminders-priming', () => ({ promptNotificationsIfReminders }))
+vi.mock('@/shared/utils/auth-available', () => ({ authAvailable: () => true }))
 vi.mock('@/core/app-lifecycle/app-resume', () => ({
   useAppResume: () => {},
   onAppResume: () => () => {},
@@ -249,7 +253,6 @@ describe('Restaurer mon carnet', () => {
 
     it('demande de se reconnecter : « Se reconnecter » ouvre la connexion, qui ramène ici', async () => {
       await sessionExpiréePendantLAttente()
-      const push = vi.spyOn(router, 'push').mockResolvedValue()
 
       expect(texte('.account-restore__session-expired')).toBe(
         'Ta connexion a expiré. Reconnecte-toi pour reprendre la restauration. Rien n’est perdu.',
@@ -258,9 +261,49 @@ describe('Restaurer mon carnet', () => {
       expect(bouton('Plus tard')).toBeDefined()
       await toucher(bouton('Se reconnecter'))
 
-      expect(push).toHaveBeenCalledWith({
+      expect(replace).toHaveBeenCalledWith({
         name: 'sign-in',
         query: { from: 'settings-plus', restore: '1' },
+      })
+    })
+
+    describe('historique, depuis « Plus » ouvert sur l’accueil', () => {
+      beforeEach(async () => {
+        replace.mockRestore()
+        await router.push({ name: 'home' })
+        await router.push({ name: 'settings-plus' })
+        await router.push(restoreRoute('settings-plus'))
+      })
+
+      async function ouvrirLaConnexion(): Promise<void> {
+        await toucher(bouton('Se reconnecter'))
+        await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('sign-in'))
+      }
+
+      function écranPrécédent(): unknown {
+        return router.options.history.state.back
+      }
+
+      it('connexion réussie : la restauration remplace la connexion, le retour mène à « Plus »', async () => {
+        await sessionExpiréePendantLAttente()
+        await ouvrirLaConnexion()
+
+        expired.value = false
+        const next = afterSignInRoute(router.currentRoute.value.query, await flow.whenChecked())
+        await router.replace(next!)
+
+        expect(router.currentRoute.value.name).toBe('account-restore')
+        expect(écranPrécédent()).toBe(router.resolve({ name: 'settings-plus' }).fullPath)
+      })
+
+      it('connexion abandonnée : la flèche ramène à « Plus », sans « Restaurer mon carnet » derrière', async () => {
+        await sessionExpiréePendantLAttente()
+        await ouvrirLaConnexion()
+
+        returnTo(router, signInReturnRoute(router.currentRoute.value.query.from))
+        await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('settings-plus'))
+
+        expect(écranPrécédent()).toBe(router.resolve({ name: 'home' }).fullPath)
       })
     })
 

@@ -70,7 +70,7 @@ export function useAccountRestore(flow: () => RestoreFlow | null = currentRestor
   }
 
   function signIn(): void {
-    void router.push(signInRoute(origin.name, { restore: true }))
+    void router.replace(signInRoute(origin.name, { restore: true }))
   }
 
   function later(): void {
