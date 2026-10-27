@@ -129,7 +129,8 @@ watch(
       vaccination.value = props.vaccinationId
         ? await vaccinations.getById(props.vaccinationId)
         : null
-    } catch {
+    } catch (cause) {
+      console.warn('Chargement du vaccin impossible :', errorSummary(cause))
       vaccination.value = null
     }
     if (vaccination.value === null && open.value) {
