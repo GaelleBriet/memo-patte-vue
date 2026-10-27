@@ -333,7 +333,9 @@ celui qui a motivé le ticket #260 — une CI verte qui ne construit rien.
 
 `.github/workflows/supabase-migrations.yml` pousse les migrations de `supabase/migrations/` vers le vrai projet
 Supabase (`supabase db push --db-url ...`) quand un push sur `main` touche `supabase/migrations/` ou ce workflow.
-Il se relance aussi à la main (Actions › Supabase migrations › Run workflow), par exemple après un échec.
+Il se relance aussi à la main, **depuis `main`** (Actions › Supabase migrations › Run workflow, branche `main`) :
+après un échec, ou après un refus (Reject) du déploiement, car le filtre de chemins ne relancera pas la migration
+tout seul. Lancé depuis une autre branche, le job est sauté.
 `db push` est idempotent : il ne rejoue que ce qui manque, donc chaque passage rattrape aussi tout ce qui a pu
 manquer avant. Passe par le **Session Pooler** (compatible IPv4, contrairement à la
 connexion directe) plutôt que par `supabase link` (cassé avec les tokens à permissions fines du Dashboard,
@@ -352,14 +354,16 @@ Ce workflow détient le mot de passe de la base de production, il est donc verro
 Réglage de l'environnement, une fois, dans GitHub (Settings › Environments) :
 
 1. New environment, nom `production`.
-2. Required reviewers : cocher, ajouter Gaelle, Save protection rules.
+2. Required reviewers : cocher, ajouter Gaelle, laisser « Prevent self-review » décoché (Gaelle est seule
+   approbatrice et les merges partent sous son compte), Save protection rules.
 3. Deployment branches and tags : Selected branches and tags, ajouter la règle `main`.
 4. Environment secrets : y recréer `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID` et `SUPABASE_POOLER_HOST`, puis
    les supprimer de Settings › Secrets and variables › Actions › Repository secrets, pour qu'aucun autre workflow
    ne puisse les lire.
 
-Tant que l'environnement n'est pas réglé, GitHub le crée sans protection au premier passage et le job lit les
-secrets du dépôt : rien ne casse, mais rien n'attend d'approbation.
+Les quatre étapes sont nécessaires. Tant que l'environnement n'est pas réglé, GitHub le crée sans protection au
+premier passage et le job lit les secrets du dépôt : les migrations partent sans approbation, et seule la garde
+`main` du workflow empêche une autre branche de les pousser.
 
 Reproduire le job `android` en local :
 
