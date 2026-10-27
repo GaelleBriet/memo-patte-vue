@@ -46,6 +46,23 @@ const LOCAL_ROW = {
   updated_by_device: 'appareil-test',
 }
 
+const READABLE_GRID = JSON.stringify({
+  frequency: { value: 1, unit: 'day' },
+  endsOn: '2026-01-31',
+  writtenAt: '2026-01-01T08:00:00.000Z',
+  runs: [['2026-01-02', '2026-01-31']],
+})
+
+const TOO_LONG_GRID = JSON.stringify({
+  frequency: { value: 1, unit: 'day' },
+  endsOn: null,
+  writtenAt: '2026-01-01T08:00:00.000Z',
+  runs: Array.from({ length: 1_000 }, (_, index) => {
+    const day = new Date(Date.UTC(2026, 0, 2 + index * 2)).toISOString().slice(0, 10)
+    return [day, day]
+  }),
+})
+
 function remotePeriod(overrides: Record<string, string | number | null> = {}) {
   return { ...LOCAL_ROW, id: LATER_ID, created_at: T_NEW, updated_at: T_NEW, ...overrides }
 }
@@ -222,6 +239,24 @@ describe('treatmentPeriodsRepository — port de synchronisation', () => {
       stamps: [],
       cursor: null,
     })
+  })
+
+  it.each<[string, string, string | null]>([
+    ['une grille lisible part telle quelle', READABLE_GRID, READABLE_GRID],
+    ['une grille de plus de 20 000 caractères part vide', TOO_LONG_GRID, null],
+  ])('envoie la grille d’avant l’ouverture : %s', async (_label, local, expected) => {
+    await db.run('UPDATE treatment_period SET grid_before = ? WHERE id = ?', [local, TREATMENT_ID])
+    const treatments = createTreatmentsRepository(db, {
+      loadSupabaseClient: async () => server.client,
+    })
+    await server.client.from('animal').upsert({ user_id: USER_ID, id: ANIMAL_ID })
+    await treatments.pushRow(USER_ID, (await treatments.getRowForPush(TREATMENT_ID))!)
+
+    const sent = await repository.getRowForPush(TREATMENT_ID)
+    await repository.pushRow(USER_ID, sent!)
+
+    expect(sent!.grid_before).toBe(expected)
+    expect(server.rows('treatment_period')[0]).toMatchObject({ grid_before: expected })
   })
 
   it('pushRow lève l’erreur Supabase : une période sans son traitement côté serveur', async () => {
