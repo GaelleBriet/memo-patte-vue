@@ -5,6 +5,16 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.129](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.128...memo-patte-v0.1.129) (2026-10-27)
+
+
+### 🐛 Corrections
+
+* **synchro:** normaliser grid_before à l'envoi comme à la réception ([83ec70c](https://github.com/GaelleBriet/memo-patte-vue/commit/83ec70cd09ab7d193f10ad1fdda0a959f2cbc267))
+* **synchro:** normaliser grid_before à l'envoi comme à la réception ([7d53a87](https://github.com/GaelleBriet/memo-patte-vue/commit/7d53a87cc5ca94be089b6643151a656a3cde0e0c))
+* **vaccinations:** tracer le chargement raté du vaccin dans la feuille de rappel ([5e35bb0](https://github.com/GaelleBriet/memo-patte-vue/commit/5e35bb0fe281c4bcb9bb89e1b0097483dfdbe2d0))
+* **vaccinations:** tracer le chargement raté du vaccin dans la feuille de rappel ([0b98560](https://github.com/GaelleBriet/memo-patte-vue/commit/0b985600f9a654827d50ac54a6d774af21ee0542))
+
 ## [0.1.128](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.127...memo-patte-v0.1.128) (2026-10-27)
 
 
