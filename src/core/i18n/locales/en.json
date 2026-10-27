@@ -1786,7 +1786,7 @@
     "passwordReset": {
       "link": "Forgot password?",
       "title": "Forgot password",
-      "intro": "Enter your account’s address. An 8-digit code will be sent to it.",
+      "intro": "Enter your account’s address. An {length}-digit code will be sent to it.",
       "send": "Get the code",
       "codeMessage": "Enter the {length}-digit code sent to {email}, then choose a new password.",
       "codeLabel": "Code received",
