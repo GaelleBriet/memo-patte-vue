@@ -2,6 +2,7 @@
 import { computed, ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import { useSameNameCheck } from '../composables/use-same-name-check'
 import {
   emptyVaccinationFormValues,
   enteredInjectionDate,
@@ -14,7 +15,6 @@ import {
   withInjectionDate,
   type VaccinationFormContext,
 } from '../logic/vaccination-form'
-import { useSameNameCheck } from '../composables/use-same-name-check'
 import { earliestOtherDate } from '../logic/vaccination-sheet'
 import type { Vaccination } from '../schema/vaccination.schema'
 import { useVaccinationsStore } from '../store/vaccinations.store'

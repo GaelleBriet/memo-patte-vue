@@ -42,8 +42,8 @@ import {
   upToDateText,
   type ReminderRow,
 } from '../logic/home-summary'
-import { reopenTarget } from '../logic/reopen-target'
 import { currentAnimalId } from '../logic/current-animal'
+import { reopenTarget } from '../logic/reopen-target'
 import { todoItems } from '../logic/todo-items'
 import { buildTodo } from '../logic/todo-window'
 
