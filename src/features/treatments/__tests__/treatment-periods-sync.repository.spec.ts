@@ -244,6 +244,7 @@ describe('treatmentPeriodsRepository — port de synchronisation', () => {
   it.each<[string, string, string | null]>([
     ['une grille lisible part telle quelle', READABLE_GRID, READABLE_GRID],
     ['une grille de plus de 20 000 caractères part vide', TOO_LONG_GRID, null],
+    ['une grille illisible part vide', 'pas du json', null],
   ])('envoie la grille d’avant l’ouverture : %s', async (_label, local, expected) => {
     await db.run('UPDATE treatment_period SET grid_before = ? WHERE id = ?', [local, TREATMENT_ID])
     const treatments = createTreatmentsRepository(db, {
