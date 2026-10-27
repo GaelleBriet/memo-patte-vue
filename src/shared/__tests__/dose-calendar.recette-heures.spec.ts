@@ -136,17 +136,14 @@ describe('R7 : 8 h du 3 donnée, 20 h du 3 reportée au 4', () => {
     ])
   })
 
-  it.fails(
-    'fréquence changée le 3, jour d’origine : 20 h le 3, puis le 6 (question du pas 4 : R9.2 et R7 donnent 20 h le 4, puis le 7)',
-    () => {
-      const c = modifie(reporte20h(), '2026-10-03', jours(3), H)
-      expect(affiche(c, '2026-10-03', 3)).toEqual([
-        '2026-10-03 20:00',
-        '2026-10-06 08:00',
-        '2026-10-06 20:00',
-      ])
-    },
-  )
+  it('fréquence changée le 3, jour d’origine, R9.2 : 20 h le 4, puis le 7', () => {
+    const c = modifie(reporte20h(), '2026-10-03', jours(3), H)
+    expect(affiche(c, '2026-10-03', 3)).toEqual([
+      '2026-10-04 20:00',
+      '2026-10-07 08:00',
+      '2026-10-07 20:00',
+    ])
+  })
 
   it('R10, Q-#744 : plusieurs changements le 4, fréquence ramenée aussitôt : 20 h le 4, puis le 5', () => {
     let c = modifie(reporte20h(), '2026-10-04', jours(3), H)
