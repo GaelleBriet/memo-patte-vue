@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.132](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.131...memo-patte-v0.1.132) (2026-10-27)
+
+
+### 🐛 Corrections
+
+* **gestes:** tracer les échecs des gestes, des formulaires de soin et du démarrage ([5bca77d](https://github.com/GaelleBriet/memo-patte-vue/commit/5bca77d41daef19c420014d18440afdcf736a4fa))
+
 ## [0.1.131](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.130...memo-patte-v0.1.131) (2026-10-27)
 
 
