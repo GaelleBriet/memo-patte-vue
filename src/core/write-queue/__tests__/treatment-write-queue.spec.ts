@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { createWriteQueue } from '../logic/treatment-write-queue'
+import { createWriteQueue } from '../treatment-write-queue'
 
 describe('createWriteQueue', () => {
   it('lance chaque tâche après la fin de la précédente', async () => {

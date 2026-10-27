@@ -15,7 +15,7 @@ import {
 } from '../repository/treatments.repository'
 import type { TreatmentCreationInput, TreatmentEditionInput } from '../schema/treatment-form.schema'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
-import { createWriteQueue } from '../logic/treatment-write-queue'
+import { createWriteQueue } from '@/core/write-queue/treatment-write-queue'
 import { createTreatmentDosesService, type NotedMoment } from '../service/treatment-doses.service'
 import {
   createTreatmentPlanService,
