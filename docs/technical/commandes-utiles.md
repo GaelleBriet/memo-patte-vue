@@ -362,8 +362,9 @@ Réglage de l'environnement, une fois, dans GitHub (Settings › Environments) :
    ne puisse les lire.
 
 Les quatre étapes sont nécessaires. Tant que l'environnement n'est pas réglé, GitHub le crée sans protection au
-premier passage et le job lit les secrets du dépôt : les migrations partent sans approbation, et seule la garde
-`main` du workflow empêche une autre branche de les pousser.
+premier passage et le job lit les secrets du dépôt : les migrations partent sans approbation. La garde `main` n'arrête
+qu'un lancement depuis une branche qui n'a pas modifié ce fichier ; seule l'étape 3 bloque vraiment les autres
+branches.
 
 Reproduire le job `android` en local :
 
