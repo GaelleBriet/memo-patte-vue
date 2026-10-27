@@ -6,6 +6,7 @@ import { defineComponent, h, ref } from 'vue'
 
 import BottomSheet from '../components/BottomSheet.vue'
 import { installBackButton } from '@/core/app-lifecycle/back-button'
+import { isAnySheetOpen } from '../composables/use-open-sheet'
 import vuetify from '@/core/theme/vuetify'
 
 type BackListener = (event: BackButtonListenerEvent) => void
@@ -463,5 +464,28 @@ describe('BottomSheet — bouton retour Android', () => {
     retour()
     await flushPromises()
     expect(premiere.value).toBe(false)
+  })
+})
+
+describe('BottomSheet — feuille ouverte', () => {
+  it('se déclare ouverte tant qu’elle est affichée', async () => {
+    const feuille = await monter({ modelValue: false })
+    expect(isAnySheetOpen.value).toBe(false)
+
+    await feuille.setProps({ modelValue: true })
+    expect(isAnySheetOpen.value).toBe(true)
+
+    await feuille.setProps({ modelValue: false })
+    expect(isAnySheetOpen.value).toBe(false)
+  })
+
+  it('cesse de se déclarer ouverte quand elle est démontée ouverte', async () => {
+    const feuille = await monter()
+    expect(isAnySheetOpen.value).toBe(true)
+
+    feuille.unmount()
+    wrapper = null
+
+    expect(isAnySheetOpen.value).toBe(false)
   })
 })
