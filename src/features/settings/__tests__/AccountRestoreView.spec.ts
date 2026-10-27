@@ -1,6 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
+import { ref } from 'vue'
 
 import AccountRestoreView from '../views/AccountRestoreView.vue'
 import { memoryStorage, USER_ID } from '@/features/auth/__tests__/auth-fixture'
@@ -220,8 +221,70 @@ describe('Restaurer mon carnet', () => {
     expect(texte('.account-restore__offline')).toBe(
       'La restauration reprendra dès le retour du réseau. Rien n’est perdu.',
     )
+    expect(texte('.account-restore__session-expired')).toBeUndefined()
+    expect(bouton('Se reconnecter')).toBeUndefined()
     await toucher(bouton('Plus tard'))
     expect(replace).toHaveBeenCalledWith({ name: 'home' })
+  })
+
+  describe('session expirée pendant l’attente du réseau', () => {
+    const expired = ref(false)
+
+    beforeEach(() => {
+      expired.value = false
+      flow = createRestoreFlow(runner, () => expired.value)
+      provideRestoreFlow(flow)
+      flow.offer(SUMMARY)
+    })
+
+    async function sessionExpiréePendantLAttente(): Promise<void> {
+      await monter()
+      await toucher(carte(i18n.global.locale.value === 'en' ? 'Merge' : 'Fusionner'))
+      await toucher(bouton(i18n.global.locale.value === 'en' ? 'Continue' : 'Continuer'))
+      runner.fail()
+      await flushPromises()
+      expired.value = true
+      await flushPromises()
+    }
+
+    it('demande de se reconnecter : « Se reconnecter » ouvre la connexion, qui ramène ici', async () => {
+      await sessionExpiréePendantLAttente()
+      const push = vi.spyOn(router, 'push').mockResolvedValue()
+
+      expect(texte('.account-restore__session-expired')).toBe(
+        'Ta connexion a expiré. Reconnecte-toi pour reprendre la restauration. Rien n’est perdu.',
+      )
+      expect(texte('.account-restore__offline')).toBeUndefined()
+      expect(bouton('Plus tard')).toBeDefined()
+      await toucher(bouton('Se reconnecter'))
+
+      expect(push).toHaveBeenCalledWith({
+        name: 'sign-in',
+        query: { from: 'settings-plus', restore: '1' },
+      })
+    })
+
+    it('se lit en anglais', async () => {
+      i18n.global.locale.value = 'en'
+      await sessionExpiréePendantLAttente()
+
+      expect(texte('.account-restore__session-expired')).toBe(
+        'Your session has expired. Sign in again to resume the restore. Nothing is lost.',
+      )
+      expect(bouton('Sign in again')).toBeDefined()
+    })
+
+    it('reconnecté, attend de nouveau le réseau', async () => {
+      await sessionExpiréePendantLAttente()
+
+      expired.value = false
+      await flushPromises()
+
+      expect(texte('.account-restore__offline')).toBe(
+        'La restauration reprendra dès le retour du réseau. Rien n’est perdu.',
+      )
+      expect(bouton('Se reconnecter')).toBeUndefined()
+    })
   })
 
   it('reprend seule au retour du réseau, l’écran resté ouvert', async () => {

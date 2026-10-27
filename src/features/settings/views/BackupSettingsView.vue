@@ -26,6 +26,7 @@ const { status, refused, photosBackedUp, now, awaitsRestoredStatus } = useBackup
 const {
   isPending: isRestorePending,
   isWaitingNetwork: isRestoreWaitingNetwork,
+  isWaitingSignIn: isRestoreWaitingSignIn,
   restoreProgress,
   showsLocalBackup,
   choose: chooseRestore,
@@ -109,6 +110,27 @@ function goBack(): void {
           <span class="settings-row__hint">{{ t('settings.restore.offline') }}</span>
         </span>
       </div>
+
+      <template v-if="isRestoreWaitingSignIn">
+        <div
+          class="settings-row settings-row--multiline backup-settings__card backup-settings__status--warning backup-settings__restore-session-expired"
+        >
+          <v-icon class="settings-row__icon" icon="ms:sync_problem" size="24" />
+          <span class="settings-row__text">
+            <span class="settings-row__label">{{ t('settings.restore.sessionExpired') }}</span>
+          </span>
+        </div>
+        <v-btn
+          class="backup-settings__action backup-settings__sign-in"
+          variant="flat"
+          color="primary"
+          block
+          prepend-icon="ms:login"
+          @click="signInAgain"
+        >
+          {{ t('settings.backup.cloud.interrupted.signIn') }}
+        </v-btn>
+      </template>
 
       <RestoreProgressCard
         v-if="restoreProgress"
