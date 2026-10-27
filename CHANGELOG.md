@@ -5,6 +5,33 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.125](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.124...memo-patte-v0.1.125) (2026-10-27)
+
+
+### ✨ Fonctionnalités
+
+* **auth:** confirmer ou dire l'annulation de la connexion Google par un toast ([e309914](https://github.com/GaelleBriet/memo-patte-vue/commit/e309914bfea7d8763a895176647c362885f6e7f3))
+* **auth:** dire quand la connexion Google réussit ou est annulée ([a46841f](https://github.com/GaelleBriet/memo-patte-vue/commit/a46841f28df74133cac10e2ee04e75d361abb3d4))
+
+
+### 🐛 Corrections
+
+* **android:** ignorer le contrôle FullBackupContent sur les règles de sauvegarde ([6c0d5b9](https://github.com/GaelleBriet/memo-patte-vue/commit/6c0d5b95e5747d6f6b1b82128a9f5382b286006c))
+* **android:** le build de publication passe malgré le contrôle FullBackupContent des règles de sauvegarde ([a059583](https://github.com/GaelleBriet/memo-patte-vue/commit/a059583660cf1c9eac2bf9f90eb1f98963dbb24f))
+* **android:** n'écarter du lint que le message des exclusions hors inclusion ([85722c9](https://github.com/GaelleBriet/memo-patte-vue/commit/85722c929a532049896a892091f53258d2f21b4d))
+* **i18n:** tournure neutre du toast de connexion Google ([64f6943](https://github.com/GaelleBriet/memo-patte-vue/commit/64f6943608058dcaa35c8ae5369c37ddb8cefe8b))
+* **plus:** dire au journal que le secret de signature peut recopier l'en-tête ([4c8b750](https://github.com/GaelleBriet/memo-patte-vue/commit/4c8b7502d4de1bdb44d560e1f29373e93e2e0518)), closes [#89](https://github.com/GaelleBriet/memo-patte-vue/issues/89)
+* **plus:** le webhook refuse un secret de signature que l'en-tête d'autorisation contient ([5f77226](https://github.com/GaelleBriet/memo-patte-vue/commit/5f772260b2eaf4755a38fc3acf42a171b81787b4))
+* **plus:** refuser un en-tête du webhook qui contient le secret de signature ([25832d9](https://github.com/GaelleBriet/memo-patte-vue/commit/25832d985f43e267ad7d48dea59824660ab06b46)), closes [#89](https://github.com/GaelleBriet/memo-patte-vue/issues/89)
+* **plus:** refuser un secret de signature identique à l'en-tête du webhook ([38e0d0b](https://github.com/GaelleBriet/memo-patte-vue/commit/38e0d0b7d3a5b114ce9cec18ff0e465d3c882dd5)), closes [#89](https://github.com/GaelleBriet/memo-patte-vue/issues/89)
+* **restauration:** l'erreur réseau d'un compte parti ne remplace plus l'écran du compte suivant ([33d6a07](https://github.com/GaelleBriet/memo-patte-vue/commit/33d6a07523312b140973139bfd2eb65d14e422c9))
+* **restauration:** le nouveau contrôle qui suit un choix se distingue du premier ([5b9e6c1](https://github.com/GaelleBriet/memo-patte-vue/commit/5b9e6c1582604aa5ed108ae65d520f9679a53b5b))
+* **restauration:** une erreur réseau du téléchargement d'un ancien compte ne touche plus l'écran du nouveau ([f065596](https://github.com/GaelleBriet/memo-patte-vue/commit/f06559609dd45067c520718627f91b3b403f4a9a))
+* **sauvegarde:** fin de restauration relue sans repasser par l'écran gratuit ([94cd978](https://github.com/GaelleBriet/memo-patte-vue/commit/94cd978941b2813edfc1c0a5029e03d8e9443b09))
+* **sauvegarde:** la rubrique ne réaffiche plus l'écran gratuit pendant ni après une restauration ([d9e9a4c](https://github.com/GaelleBriet/memo-patte-vue/commit/d9e9a4cb39a7f3fac1811e269948d38eaa10472d))
+* **sauvegarde:** lecture ratée après une restauration dite illisible ([c1335fc](https://github.com/GaelleBriet/memo-patte-vue/commit/c1335fcaec9aab1b6c23af47c5d3e47165e31470))
+* **sauvegarde:** restauration en cours ou recontrôlée sans réafficher l'écran gratuit ([2598470](https://github.com/GaelleBriet/memo-patte-vue/commit/259847089559b59e19e2d2cae6ac3296193c065c))
+
 ## [0.1.124](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.123...memo-patte-v0.1.124) (2026-10-26)
 
 
