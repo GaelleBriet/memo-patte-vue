@@ -142,7 +142,6 @@ onMounted(() => {
         <v-icon :icon="phase === 'success' ? 'ms:check_circle' : 'ms:info'" size="40" />
       </span>
       <h2 class="plus-outcome__title">{{ t(`plus.${phase}.title`) }}</h2>
-      <!-- #83 : rétablir « Envoi de ton carnet vers le cloud… » puis « Carnet sauvegardé. Tu es tranquille. » -->
       <p class="plus-outcome__body">{{ t(`plus.${phase}.body`) }}</p>
 
       <v-btn

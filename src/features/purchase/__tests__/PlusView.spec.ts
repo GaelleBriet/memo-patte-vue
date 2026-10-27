@@ -529,9 +529,8 @@ describe('PlusView — achat', () => {
     await flushPromises()
 
     expect(wrapper.get('.plus-outcome__title').text()).toBe('Bienvenue dans Plus')
-    // #83 : « Carnet sauvegardé. Tu es tranquille. » ne se dira qu'une fois l'envoi initial livré.
     expect(wrapper.get('.plus-outcome__body').text()).toBe(
-      'La sauvegarde de ton carnet arrive très vite.',
+      'La sauvegarde de ton carnet commence maintenant, photos comprises.',
     )
     expect(wrapper.find('.pushed-screen__actions').exists()).toBe(false)
     expect(wrapper.get('.plus-outcome__primary').text()).toBe('Retour')
