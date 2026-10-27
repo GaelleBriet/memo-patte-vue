@@ -3022,7 +3022,8 @@ carnet » recouvrait la feuille ouverte sur l'accueil.
   « Remplacer », ou un choix gardé repris au lancement). Un contrôle de la sauvegarde injoignable,
   sans choix (compte sans Plus lancé hors réseau, par exemple), laisse l'écran sans sauvegarde cloud
   complet, comme avant.
-- Pour revenir dessus : l'arrivée se juge dans `app/restore-prompt.ts` ; le bloc d'attente vient de
+- Pour revenir dessus : l'arrivée se juge dans `core/sync/service/restore-prompt.ts`, à partir de
+  la navigation lue par `app/restore-prompt.ts` ; le bloc d'attente vient de
   `use-restore-pending.ts`.
 
 ## 2026-10-25 — Retour du réseau : « état inconnu → en ligne » compte comme un passage (#1295)
@@ -3085,8 +3086,8 @@ choisir. Android garde l'app vivante plusieurs jours : l'écran ne revenait qu'a
   et « Effacer les données de ce téléphone ». Aucun texte nouveau. Raison : une personne abonnée ne
   doit pas lire qu'elle a une sauvegarde cloud, puis une invitation à découvrir Plus. — Alternative
   écartée : garder l'écran sans sauvegarde cloud sous le bloc.
-- Pour revenir dessus : la journée et l'arrivée se jugent dans `app/restore-prompt.ts` ; le bloc et
-  ce qu'il masque viennent de `use-restore-pending.ts`.
+- Pour revenir dessus : la journée et l'arrivée se jugent dans `core/sync/service/restore-prompt.ts` ;
+  le bloc et ce qu'il masque viennent de `use-restore-pending.ts`.
 
 ## 2026-10-25 — « Remplacer » différé : rien n'est effacé si le carnet du téléphone a changé depuis le choix (#1293)
 
@@ -3125,7 +3126,7 @@ plan) la restauration effaçait cette pesée sans nouvelle décision.
   date ne changerait pas la somme. L'état gardé survit à
   une déconnexion, sans effet : le choix suivant le remplace.
 - Pour revenir dessus : retirer la comparaison de `restore()` dans `account-restore.ts`, et le
-  traitement d'un choix reproposé dans `app/restore-prompt.ts`.
+  traitement d'un choix reproposé dans `core/sync/service/restore-prompt.ts`.
 
 ## 2026-10-25 — Ligne unique de `sync_state` reposée à l'ouverture de la base, sans migration (#1286)
 

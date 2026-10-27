@@ -159,24 +159,21 @@ describe('La date choisie, déplacée par les vrais services', () => {
     ])
   })
 
-  // I2, R6 : attendu décidé, pas encore lu (#988).
-  it.fails(
-    'Luna, chaque semaine sans heure ; le décalage du 13 avril supprimé : 20 avril, 27 avril, 4 mai',
-    async () => {
-      const luna = await carnet('2026-04-16', WEEK, [], '2026-04-11', '2026-05-10')
-      await luna.modify([], '2026-04-13', '2026-05-10')
-      luna.day('2026-04-17')
-      await luna.give('2026-04-13', null, '2026-04-17', true)
-      luna.day('2026-04-21')
-      await luna.move('2026-04-24', null, '2026-05-01', true)
-      await luna.removeShiftOf('2026-04-13')
-      expect(await luna.slots('2026-04-14', '2026-05-10')).toEqual([
-        '2026-04-20 - pending',
-        '2026-04-27 - pending',
-        '2026-05-04 - pending',
-      ])
-    },
-  )
+  // R6, R7 : le décalage du 13 supprimé, le report du 24 au 1er mai refixe la suite depuis son arrivée.
+  it('Luna, chaque semaine sans heure ; le décalage du 13 avril supprimé : 20 avril, 1er mai, 8 mai', async () => {
+    const luna = await carnet('2026-04-16', WEEK, [], '2026-04-11', '2026-05-10')
+    await luna.modify([], '2026-04-13', '2026-05-10')
+    luna.day('2026-04-17')
+    await luna.give('2026-04-13', null, '2026-04-17', true)
+    luna.day('2026-04-21')
+    await luna.move('2026-04-24', null, '2026-05-01', true)
+    await luna.removeShiftOf('2026-04-13')
+    expect(await luna.slots('2026-04-14', '2026-05-10')).toEqual([
+      '2026-04-20 - pending',
+      '2026-05-01 - pending',
+      '2026-05-08 - pending',
+    ])
+  })
 
   // Q-a, R7 : la dose touchée part avec les heures suivantes de sa journée ; la case ne gouverne que
   // les journées suivantes.

@@ -184,7 +184,7 @@ describe('R4, R9 : rythme changé, journée à venir entamée en avance (G24)', 
   })
 
   it.fails(
-    'tous les 3 jours à 9 h, dose du 4 donnée le 2 avec décalage, tous les 2 jours le 3 : le 4 (question du pas 4 : R4, la prise couvre le 4 ; le 6, puis le 8)',
+    'tous les 3 jours à 9 h, dose du 4 donnée le 2 avec décalage, tous les 2 jours le 3 : le 4 (#1373 : R4, la prise couvre le 4 ; le 6, puis le 8)',
     () => {
       let c = carnet('2026-10-01', jours(3), ['09:00'])
       c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '09:00'))
@@ -195,7 +195,7 @@ describe('R4, R9 : rythme changé, journée à venir entamée en avance (G24)', 
   )
 
   it.fails(
-    'tous les 3 jours, les deux doses du 4 données le 2, 20 h avec décalage, tous les 2 jours le 3 : le 4 (question du pas 4 : R4, les prises couvrent le 4 ; le 6)',
+    'tous les 3 jours, les deux doses du 4 données le 2, 20 h avec décalage, tous les 2 jours le 3 : le 4 (#1373 : R4, les prises couvrent le 4 ; le 6)',
     () => {
       let c = carnet('2026-10-01', jours(3), H)
       c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '08:00'))
