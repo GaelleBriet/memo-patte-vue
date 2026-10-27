@@ -5,6 +5,28 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.127](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.126...memo-patte-v0.1.127) (2026-10-27)
+
+
+### ✨ Fonctionnalités
+
+* **import:** les dates se jugent contre la date de l'export, motif dédié pour une date future ([a4710bb](https://github.com/GaelleBriet/memo-patte-vue/commit/a4710bb7ab0e34c5a53955e69eaaaf515e332a45))
+
+
+### 🐛 Corrections
+
+* **i18n:** la longueur du code de réinitialisation passe en variable en anglais ([b36ce9e](https://github.com/GaelleBriet/memo-patte-vue/commit/b36ce9e1329f583479b6cd6f894706ef2f90c74e))
+* **import:** les dates d'un export se jugent d'après sa date d'export ; règle unique, textes et journaux ([8eadd56](https://github.com/GaelleBriet/memo-patte-vue/commit/8eadd561487e785f3f08a162cab5304bfe709b76))
+* **import:** plus de plafond sur la date d'export, le fichier seul fait foi ([819b0c3](https://github.com/GaelleBriet/memo-patte-vue/commit/819b0c32b07f6d746f833c206c4e14e17ecd5cfa))
+* **import:** rejeu des anciens exports gardé par la date de l'export, aucune exception ne sort ([1066075](https://github.com/GaelleBriet/memo-patte-vue/commit/10660753adc349f064ce8b4dedf5b54da06cc34d))
+* les erreurs d'enregistrement laissent une trace dans la console ([28a30fa](https://github.com/GaelleBriet/memo-patte-vue/commit/28a30fab36d9ed34239a7b6b953ed5d046373925))
+* **plus:** relit le statut plus au retour au premier plan et son échéance à chaque vérification ([5994168](https://github.com/GaelleBriet/memo-patte-vue/commit/5994168844dc5f9fb57b2c386b780f2be8980bb6))
+* règle « jamais futur » écrite une fois, l'import suit le jour fourni ([a1a9624](https://github.com/GaelleBriet/memo-patte-vue/commit/a1a9624234cf5f83b31871eee5825256f80cae77))
+* **sync:** n'efface plus de photo dans le cloud du compte quitté pendant le pull ([d853a64](https://github.com/GaelleBriet/memo-patte-vue/commit/d853a64ea91fd7836c31b125b325994b37617809))
+* **sync:** reconstruit les rappels d'une page tirée même si le compte change ensuite ([3e535f8](https://github.com/GaelleBriet/memo-patte-vue/commit/3e535f8bc09de7f1c6de8b8daf739f105a2868f2))
+* **sync:** un pull n'écrit plus pour un compte quitté, statut Plus relu au retour au premier plan ([eb132be](https://github.com/GaelleBriet/memo-patte-vue/commit/eb132bea4414a6fd05c106c6f40b87b10691b2c9))
+* **sync:** un pull n'écrit plus rien pour un compte quitté en cours de cycle ([8bb94c7](https://github.com/GaelleBriet/memo-patte-vue/commit/8bb94c791dd7c5a9c80a17c7324d1b1a5aa7db71))
+
 ## [0.1.126](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.125...memo-patte-v0.1.126) (2026-10-27)
 
 
