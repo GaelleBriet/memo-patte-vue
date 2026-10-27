@@ -11,6 +11,7 @@ import {
 import { treatmentTimesSchema } from '@/features/treatments/schema/treatment-period.schema'
 import { CLOCK_TIME_PATTERN, MAX_TIMES_PER_DAY } from '@/shared/domain/clock-time'
 import type { GridBefore } from '@/shared/domain/dose-calendar'
+import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
 const MIGRATIONS = resolve(__dirname, '../../supabase/migrations')
 
@@ -72,6 +73,15 @@ describe('limites des colonnes texte des miroirs, face à ce que l’app écrit'
     expect(allDay).toHaveLength(MAX_TIMES_PER_DAY)
     expect(server.test(timesColumn([...allDay, '12:30'])!)).toBe(false)
     expect(timesColumn([])).toBeNull()
+  })
+
+  it.each([
+    ['animal_name_length', 'name'],
+    ['animal_breed_length', 'breed'],
+    ['vaccination_name_length', 'name'],
+    ['treatment_name_length', 'name'],
+  ])('%s : le serveur pose la même longueur que l’app', (constraint, column) => {
+    expect(serverMaxLength(constraint, column)).toBe(MAX_NAME_LENGTH)
   })
 
   it('nom de photo : un nom de l’app ou d’un import tient dans la colonne', () => {
