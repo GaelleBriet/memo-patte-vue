@@ -1,4 +1,8 @@
+import type { DbClient } from '@/core/db/db-client'
+import { createSyncStateRepository } from '../repository/sync-state.repository'
 import type { SyncCycleOutbox } from '../service/sync-cycle'
+
+const { unqueuedStatements } = createSyncStateRepository({} as DbClient)
 
 export interface FakeOutboxEntry {
   entity: string
@@ -75,6 +79,7 @@ export function createFakeOutbox(
     async isEnabled() {
       return enabled
     },
+    unqueuedStatements,
     async setLastSyncedAt(value) {
       lastSyncedAt = value
     },

@@ -1,4 +1,4 @@
-import type { DbClient } from '@/core/db/db-client'
+import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import type { SyncOutboxEntry } from '../repository/sync-outbox.repository'
 import { createPhotoPush, type PhotoPushDependencies } from './photo-push'
 import { createPhotoRemoval, type PhotoRemovalDependencies } from './photo-removal'
@@ -30,6 +30,7 @@ export interface SyncCycleOutbox {
   getLastPulledAt(entity: string): Promise<string | null>
   setLastPulledAt(entity: string, lastPulledAt: string): Promise<void>
   isEnabled(): Promise<boolean>
+  unqueuedStatements(statements: SqlStatement[], enabledAfter: boolean): SqlStatement[]
   setLastSyncedAt(lastSyncedAt: string): Promise<void>
   recordFailedPush(entry: Pick<SyncOutboxEntry, 'entity' | 'entityId'>): Promise<void>
 }

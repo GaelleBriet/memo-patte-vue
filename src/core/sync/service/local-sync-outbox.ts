@@ -20,6 +20,7 @@ export function createLocalSyncOutbox(db: DbClient) {
     restoreMode: syncState.restoreMode,
     startRestore: syncState.startRestore,
     cancelRestore: syncState.cancelRestore,
+    unqueuedStatements: syncState.unqueuedStatements,
     carnetFingerprint: fingerprint.read,
     countWholeCarnet: outbox.countWholeCarnet,
     countPending: outbox.countPending,

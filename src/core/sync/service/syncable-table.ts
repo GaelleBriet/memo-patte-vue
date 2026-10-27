@@ -29,10 +29,7 @@ export interface RemoteBackupReads {
   latestRemoteStamp(userId: string): Promise<string | null>
 }
 
-/**
- * Port implémenté par le repository propriétaire de chaque table synchronisable : lui seul écrit le
- * SQL, local ou Supabase, `core/sync` ne fait qu'orchestrer ces méthodes (cf. CLAUDE.md).
- */
+/** Port implémenté par le repository propriétaire de chaque table synchronisable. */
 export interface SyncableTable {
   readonly entity: string
   /** Ligne courante, tombstones compris : pas de filtre `deleted_at IS NULL`. */

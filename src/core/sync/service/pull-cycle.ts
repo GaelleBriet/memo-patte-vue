@@ -33,11 +33,7 @@ export function createPullCycle(
   /** Les écritures de la synchro ne repartent pas dans la file d'envoi. */
   async function runUnqueued(statements: SqlStatement[]): Promise<void> {
     const wasEnabled = await deps.outbox.isEnabled()
-    await deps.db.runMany([
-      { sql: 'UPDATE sync_state SET enabled = 0 WHERE id = 1' },
-      ...statements,
-      { sql: 'UPDATE sync_state SET enabled = ? WHERE id = 1', params: [wasEnabled ? 1 : 0] },
-    ])
+    await deps.db.runMany(deps.outbox.unqueuedStatements(statements, wasEnabled))
   }
 
   /**
