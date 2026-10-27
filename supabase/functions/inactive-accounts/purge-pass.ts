@@ -4,7 +4,7 @@ import {
   type AccountErasurePorts,
   type ProviderErasure,
 } from '../_shared/account-erasure.ts'
-import { plusAccessFrom, type RevenuecatSubscriber } from '../_shared/plus-access.ts'
+import type { RevenuecatSubscriber } from '../_shared/plus-access.ts'
 import type { EmailChannel } from './email-channel.ts'
 import { warningEmail, type InactivityCause } from './messages.ts'
 import {
@@ -15,6 +15,7 @@ import {
   type PurgeNotice,
   type PurgeSteps,
 } from './purge-calendar.ts'
+import { readAtRevenuecat } from './revenuecat-reading.ts'
 
 export const MAX_DELETIONS_PER_PASS = 10
 
@@ -62,7 +63,7 @@ export type PurgeReport = {
     revenuecatErasures: number
     unconfirmedDeletions: number
   }
-  skipped: { reactivated: number; batchFull: number }
+  skipped: { reactivated: number; batchFull: number; laterEnd: number }
   failures: { database: number; revenuecat: number; email: number; deletion: number }
 }
 
@@ -89,7 +90,7 @@ function emptyReport(mode: PurgeMode, ports: PurgePassPorts): PurgeReport {
     revenuecat: ports.revenuecat ? 'connected' : 'absent',
     due: { warnings: 0, deletions: 0, revenuecatErasures: 0, unconfirmedDeletions: 0 },
     done: { warnings: 0, deletions: 0, revenuecatErasures: 0, unconfirmedDeletions: 0 },
-    skipped: { reactivated: 0, batchFull: 0 },
+    skipped: { reactivated: 0, batchFull: 0, laterEnd: 0 },
     failures: { database: 0, revenuecat: 0, email: 0, deletion: 0 },
   }
 }
@@ -116,29 +117,6 @@ function passOrder(steps: PurgeSteps): number {
   return 1
 }
 
-/** Google Play rend l'accès à la date de reprise : une pause en cours vaut un abonnement. */
-function pausedUntilLater(subscriber: RevenuecatSubscriber, now: number): boolean {
-  return Object.values(subscriber.subscriptions ?? {}).some((purchase) => {
-    const resumesAt = purchase?.auto_resume_date
-    return typeof resumesAt === 'string' && Date.parse(resumesAt) > now
-  })
-}
-
-/** Une reprise ou un achat que le webhook n'a pas écrit : RevenueCat en sait plus que la base. */
-function resumedAtRevenuecat(
-  subscriber: RevenuecatSubscriber,
-  dates: AccountDates,
-  now: number,
-): boolean {
-  if (pausedUntilLater(subscriber, now)) return true
-  const access = plusAccessFrom(subscriber, now)
-  if (!access) return false
-  if (access.active || access.expiresAt === null) return true
-  const known = dates.plus?.expiresAt
-  if (typeof known !== 'string') return true
-  return Date.parse(access.expiresAt) > Date.parse(known)
-}
-
 function causeOf(dates: AccountDates, since: string): InactivityCause {
   if (!dates.emailConfirmed) return { kind: 'unconfirmed' }
   return dates.plus
@@ -146,7 +124,7 @@ function causeOf(dates: AccountDates, since: string): InactivityCause {
     : { kind: 'never-bought', createdAt: since }
 }
 
-type AccountOutcome = 'none' | 'reactivated' | 'batch-full'
+type AccountOutcome = 'none' | 'reactivated' | 'batch-full' | 'later-end'
 
 type PassState = { now: number; deletionAttempts: number }
 
@@ -164,17 +142,21 @@ async function processAccount(
   const at = new Date(now).toISOString()
   const fresh = await attempt('database', () => ports.readCandidate(userId, at))
   if (!fresh) return 'none'
-  const steps = purgeStepsOf(fresh.dates, now)
-  const since = inactiveSinceOf(fresh.dates, now)
-  if (!needsAction(steps) || since === null) return 'none'
-
-  const deletes = deletesAccount(steps)
-  if (deletes && batchFull()) return 'batch-full'
+  const listedSteps = purgeStepsOf(fresh.dates, now)
+  const noticeSince = inactiveSinceOf(fresh.dates, now)
+  if (!needsAction(listedSteps) || noticeSince === null) return 'none'
+  if (deletesAccount(listedSteps) && batchFull()) return 'batch-full'
 
   const subscriber = await attempt('revenuecat', () => revenuecat.read(userId))
-  if (resumedAtRevenuecat(subscriber, fresh.dates, now)) return 'reactivated'
+  const reading = readAtRevenuecat(subscriber, fresh.dates, now)
+  if (reading.subscribed) return 'reactivated'
+  const { dates, laterEnd } = reading
+  const steps = purgeStepsOf(dates, now)
+  const since = inactiveSinceOf(dates, now)
+  if (since === null) return 'none'
+  if (laterEnd && steps.account === null) return 'later-end'
 
-  if (deletes) {
+  if (deletesAccount(steps)) {
     state.deletionAttempts++
     await attempt('deletion', () => eraseAccount(userId, 'inactivity', ports.erasure))
     if (steps.account === 'delete') report.done.deletions++
@@ -182,26 +164,30 @@ async function processAccount(
     return 'none'
   }
 
-  // Lire chez RevenueCat recrée le client qui n'y était plus : il repart aussitôt.
-  await attempt('revenuecat', () => revenuecat.erase(userId))
-  let notice: SavedNotice = { inactiveSince: since, ...fresh.dates.notice }
-  if (steps.eraseRevenuecat) {
-    notice = { ...notice, revenuecatErasedAt: at }
-    await attempt('database', () => ports.saveNotice(userId, notice))
-    report.done.revenuecatErasures++
+  let notice: SavedNotice = { inactiveSince: noticeSince, ...dates.notice }
+  if (!laterEnd) {
+    // Lire chez RevenueCat recrée le client qui n'y était plus : il repart aussitôt.
+    await attempt('revenuecat', () => revenuecat.erase(userId))
+    if (steps.eraseRevenuecat) {
+      notice = { ...notice, revenuecatErasedAt: at }
+      await attempt('database', () => ports.saveNotice(userId, notice))
+      report.done.revenuecatErasures++
+    }
   }
 
   if (steps.account !== 'warn' || fresh.email === null) return 'none'
   const purgeOn = purgeDateOf(since, now)
   const email = warningEmail(
     { email: fresh.email, locale: fresh.locale },
-    causeOf(fresh.dates, since),
+    causeOf(dates, since),
     purgeOn,
   )
   if (!email) return 'none'
   await attempt('email', () => ports.channel.send(email))
   await attempt('database', () => ports.saveNotice(userId, { ...notice, purgeOn, warnedAt: at }))
   report.done.warnings++
+  // RevenueCat garde seul cette fin d'accès : il n'est effacé qu'une fois l'avis enregistré.
+  if (laterEnd) await attempt('revenuecat', () => revenuecat.erase(userId))
   return 'none'
 }
 
@@ -235,6 +221,7 @@ export async function runPurgePass(ports: PurgePassPorts, mode: PurgeMode): Prom
       const outcome = await processAccount(userId, steps, state, ports, revenuecat, report)
       if (outcome === 'reactivated') report.skipped.reactivated++
       if (outcome === 'batch-full') report.skipped.batchFull++
+      if (outcome === 'later-end') report.skipped.laterEnd++
     } catch (cause) {
       report.failures[cause instanceof StepFailure ? cause.failure : 'database']++
     }

@@ -34,7 +34,7 @@ const ALL = [WARN, DELETE, UNCONFIRMED, REVENUECAT, NEVER_BOUGHT]
 
 const ZERO_DONE = { warnings: 0, deletions: 0, revenuecatErasures: 0, unconfirmedDeletions: 0 }
 const ZERO_DUE = { warnings: 0, deletions: 0, revenuecatErasures: 0, unconfirmedDeletions: 0 }
-const ZERO_SKIPPED = { reactivated: 0, batchFull: 0 }
+const ZERO_SKIPPED = { reactivated: 0, batchFull: 0, laterEnd: 0 }
 const ZERO_FAILURES = { database: 0, revenuecat: 0, email: 0, deletion: 0 }
 const ALL_DUE = { warnings: 2, deletions: 1, revenuecatErasures: 1, unconfirmedDeletions: 1 }
 const ACTIVE_UNTIL_2028 = {
@@ -574,7 +574,7 @@ describe('runPurgePass : relecture avant d’agir', () => {
     expect(fake.sent).toEqual([])
   })
 
-  it('n’agit pas quand RevenueCat connaît une fin d’accès plus récente que la base', async () => {
+  it('fin d’accès plus récente chez RevenueCat que dans la base : compte depuis elle, sans effacer RevenueCat', async () => {
     const later = {
       entitlements: {
         plus: { expires_date: '2027-06-01T00:00:00Z', product_identifier: 'plus:annual' },
@@ -584,8 +584,9 @@ describe('runPurgePass : relecture avant d’agir', () => {
 
     const report = await runPurgePass(fake.ports, 'apply')
 
-    expect(report.skipped.reactivated).toBe(1)
+    expect(report.skipped).toEqual({ ...ZERO_SKIPPED, laterEnd: 1 })
     expect(fake.sent).toEqual([])
+    expect(fake.calls.map((c) => c.kind)).toEqual(['list', 'read', 'revenuecat-read'])
   })
 
   it('sans lecteur RevenueCat, reste à blanc et le dit', async () => {
@@ -640,7 +641,7 @@ describe('runPurgePass : relecture avant d’agir', () => {
     expect(fake.calls.map((c) => c.kind)).not.toContain('revenuecat-erase')
   })
 
-  it('n’agit pas sur un compte sans ligne en base que RevenueCat connaît comme ancien abonné', async () => {
+  it('compte sans ligne en base que RevenueCat connaît comme ancien abonné : attend 11 mois après sa fin', async () => {
     const ended = {
       entitlements: {
         plus: { expires_date: '2027-01-01T00:00:00Z', product_identifier: 'plus:annual' },
@@ -653,8 +654,9 @@ describe('runPurgePass : relecture avant d’agir', () => {
 
     const report = await runPurgePass(fake.ports, 'apply')
 
-    expect(report.skipped.reactivated).toBe(1)
+    expect(report.skipped).toEqual({ ...ZERO_SKIPPED, laterEnd: 1 })
     expect(fake.sent).toEqual([])
+    expect(fake.calls.map((c) => c.kind)).not.toContain('revenuecat-erase')
   })
 
   it('pause Google Play : le client RevenueCat n’est pas effacé tant que la reprise est à venir', async () => {
@@ -678,6 +680,221 @@ describe('runPurgePass : relecture avant d’agir', () => {
     expect(report.due.revenuecatErasures).toBe(1)
     expect(report.skipped.reactivated).toBe(1)
     expect(fake.calls.map((c) => c.kind)).not.toContain('revenuecat-erase')
+  })
+})
+
+describe('runPurgePass : webhook d’achat perdu, fin d’accès connue de RevenueCat seul', () => {
+  const LEO_ID = 'aaaaaaaa-0000-4000-8000-000000000030'
+  const LEO_CREATED = '2026-12-01T10:00:00.000Z'
+  const LEO = candidate(LEO_ID, { createdAt: LEO_CREATED })
+  const LEO_ENDED = {
+    entitlements: {
+      plus: {
+        expires_date: '2027-01-02T00:00:00Z',
+        product_identifier: 'plus:monthly',
+        purchase_date: '2026-12-02T00:00:00Z',
+      },
+    },
+  }
+  const WARNING_DAY = '2027-12-02T03:00:00.000Z'
+
+  function warnedLeo(notice: { purgeOn: string | null; warnedAt: string | null }) {
+    return candidate(LEO_ID, {
+      createdAt: LEO_CREATED,
+      notice: { ...notice, revenuecatErasedAt: null },
+    })
+  }
+
+  async function warnLeo() {
+    useClock(WARNING_DAY)
+    const fake = fakePurgePorts({ candidates: [LEO], subscribers: { [LEO_ID]: LEO_ENDED } })
+    const report = await runPurgePass(fake.ports, 'apply')
+    return { fake, report, notice: fake.notices[LEO_ID]! }
+  }
+
+  it('Léo, 11 mois après sa création mais pas après la fin de son accès : sauté, rien d’effacé', async () => {
+    useClock('2027-11-02T03:00:00.000Z')
+    const fake = fakePurgePorts({ candidates: [LEO], subscribers: { [LEO_ID]: LEO_ENDED } })
+
+    const report = await runPurgePass(fake.ports, 'apply')
+
+    expect(report.due.warnings).toBe(1)
+    expect(report.done).toEqual(ZERO_DONE)
+    expect(report.skipped).toEqual({ ...ZERO_SKIPPED, laterEnd: 1 })
+    expect(fake.calls.map((c) => c.kind)).toEqual(['list', 'read', 'revenuecat-read'])
+    expect(fake.notices).toEqual({})
+  })
+
+  it('Léo, la veille des 11 mois après la fin de son accès : toujours sauté', async () => {
+    useClock('2027-12-01T23:59:59.999Z')
+    const fake = fakePurgePorts({ candidates: [LEO], subscribers: { [LEO_ID]: LEO_ENDED } })
+
+    const report = await runPurgePass(fake.ports, 'apply')
+
+    expect(report.skipped.laterEnd).toBe(1)
+    expect(fake.sent).toEqual([])
+  })
+
+  it('Léo, 11 mois après la fin connue de RevenueCat : averti avec la vraie fin, puis RevenueCat effacé', async () => {
+    const { fake, report, notice } = await warnLeo()
+
+    expect(report.done).toEqual({ ...ZERO_DONE, warnings: 1 })
+    expect(fake.sent[0]?.text).toContain('a pris fin le 2 janvier 2027.')
+    expect(fake.sent[0]?.subject).toBe('Votre compte MémoPatte sera supprimé le 2 janvier 2028')
+    expect(notice).toEqual({
+      inactiveSince: LEO_CREATED,
+      purgeOn: '2028-01-02',
+      warnedAt: WARNING_DAY,
+      revenuecatErasedAt: null,
+    })
+    expect(fake.calls.map((c) => c.kind)).toEqual([
+      'list',
+      'read',
+      'revenuecat-read',
+      'send',
+      'save',
+      'revenuecat-erase',
+    ])
+  })
+
+  it.each([
+    ['RevenueCat effacé', {}],
+    ['RevenueCat pas encore effacé', LEO_ENDED],
+  ])('deuxième passe le jour de l’avertissement (%s) : aucun second e-mail', async (_, rc) => {
+    const { notice } = await warnLeo()
+    const fake = fakePurgePorts({ candidates: [warnedLeo(notice)], subscribers: { [LEO_ID]: rc } })
+
+    const report = await runPurgePass(fake.ports, 'apply')
+
+    expect(fake.sent).toEqual([])
+    expect(report.done).toEqual(ZERO_DONE)
+    expect(fake.calls.map((c) => c.kind)).not.toContain('deleteUser')
+  })
+
+  it.each([
+    ['RevenueCat effacé', {}],
+    ['RevenueCat pas encore effacé', LEO_ENDED],
+  ])('Léo averti : supprimé le lendemain de J, jamais le jour J (%s)', async (_, rc) => {
+    const { notice } = await warnLeo()
+    const warned = warnedLeo(notice)
+
+    useClock('2028-01-02T23:59:59.999Z')
+    const early = fakePurgePorts({ candidates: [warned], subscribers: { [LEO_ID]: rc } })
+    await runPurgePass(early.ports, 'apply')
+    expect(early.calls.map((c) => c.kind)).not.toContain('deleteUser')
+
+    useClock('2028-01-03T03:00:00.000Z')
+    const due = fakePurgePorts({ candidates: [warned], subscribers: { [LEO_ID]: rc } })
+    const report = await runPurgePass(due.ports, 'apply')
+    expect(report.done.deletions).toBe(1)
+    expect(due.calls.find((c) => c.kind === 'deleteUser')?.userId).toBe(LEO_ID)
+    expect(due.sent).toEqual([])
+  })
+
+  it('averti avant un achat dont le webhook s’est perdu : l’ancien avis ne fait rien supprimer', async () => {
+    const before = warnedLeo({ purgeOn: '2027-11-19', warnedAt: '2027-10-19T03:00:00.000Z' })
+    const boughtAfter = {
+      entitlements: {
+        plus: { expires_date: '2027-11-15T00:00:00Z', product_identifier: 'plus:monthly' },
+      },
+    }
+    const fake = fakePurgePorts({ candidates: [before], subscribers: { [LEO_ID]: boughtAfter } })
+
+    const report = await runPurgePass(fake.ports, 'apply')
+
+    expect(report.due.deletions).toBe(1)
+    expect(report.skipped.laterEnd).toBe(1)
+    expect(fake.calls.map((c) => c.kind)).not.toContain('deleteUser')
+    expect(fake.calls.map((c) => c.kind)).not.toContain('revenuecat-erase')
+    expect(fake.sent).toEqual([])
+  })
+
+  it.each([
+    [
+      'accès en cours',
+      {
+        entitlements: {
+          plus: { expires_date: '2028-02-01T00:00:00Z', product_identifier: 'plus:annual' },
+        },
+      },
+    ],
+    [
+      'achat à vie',
+      { entitlements: { plus: { expires_date: null, product_identifier: 'plus_lifetime' } } },
+    ],
+    [
+      'pause à venir',
+      {
+        entitlements: {
+          plus: { expires_date: '2027-01-02T00:00:00Z', product_identifier: 'plus:monthly' },
+        },
+        subscriptions: { 'plus:monthly': { auto_resume_date: '2028-02-01T00:00:00Z' } },
+      },
+    ],
+    [
+      'fin illisible',
+      {
+        entitlements: {
+          plus: { expires_date: 'pas une date', product_identifier: 'plus:monthly' },
+        },
+      },
+    ],
+  ])('sans ligne en base, RevenueCat montre %s : ni averti ni supprimé', async (_, rc) => {
+    useClock(WARNING_DAY)
+    const warned = warnedLeo({ purgeOn: '2027-11-19', warnedAt: '2027-10-19T03:00:00.000Z' })
+    const fake = fakePurgePorts({ candidates: [LEO], subscribers: { [LEO_ID]: rc } })
+    const due = fakePurgePorts({ candidates: [warned], subscribers: { [LEO_ID]: rc } })
+
+    const reports = [
+      await runPurgePass(fake.ports, 'apply'),
+      await runPurgePass(due.ports, 'apply'),
+    ]
+
+    for (const report of reports) {
+      expect(report.skipped).toEqual({ ...ZERO_SKIPPED, reactivated: 1 })
+      expect(report.done).toEqual(ZERO_DONE)
+    }
+    for (const { calls, sent } of [fake, due]) {
+      expect(sent).toEqual([])
+      expect(calls.map((c) => c.kind)).not.toContain('deleteUser')
+      expect(calls.map((c) => c.kind)).not.toContain('revenuecat-erase')
+    }
+  })
+
+  it('lecture RevenueCat en échec : ni averti ni supprimé, repris à la passe suivante', async () => {
+    useClock(WARNING_DAY)
+    const warned = warnedLeo({ purgeOn: '2027-11-19', warnedAt: '2027-10-19T03:00:00.000Z' })
+    const failing = fakePurgePorts({
+      candidates: [LEO, warned],
+      subscribers: { [LEO_ID]: LEO_ENDED },
+      failOn: { kind: 'revenuecat-read' },
+    })
+
+    const report = await runPurgePass(failing.ports, 'apply')
+
+    expect(report.failures).toEqual({ ...ZERO_FAILURES, revenuecat: 2 })
+    expect(report.done).toEqual(ZERO_DONE)
+    expect(failing.sent).toEqual([])
+    expect(failing.notices).toEqual({})
+    expect(failing.calls.map((c) => c.kind)).not.toContain('deleteUser')
+
+    const nextDay = fakePurgePorts({ candidates: [LEO], subscribers: { [LEO_ID]: LEO_ENDED } })
+    expect((await runPurgePass(nextDay.ports, 'apply')).done.warnings).toBe(1)
+  })
+
+  it('effacement RevenueCat en échec après l’avertissement : l’avis reste, aucun second e-mail', async () => {
+    useClock(WARNING_DAY)
+    const fake = fakePurgePorts({
+      candidates: [LEO],
+      subscribers: { [LEO_ID]: LEO_ENDED },
+      failOn: { kind: 'revenuecat-erase' },
+    })
+
+    const report = await runPurgePass(fake.ports, 'apply')
+
+    expect(report.failures.revenuecat).toBe(1)
+    expect(fake.sent).toHaveLength(1)
+    expect(fake.notices[LEO_ID]?.purgeOn).toBe('2028-01-02')
   })
 })
 

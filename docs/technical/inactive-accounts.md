@@ -30,10 +30,20 @@ Gaelle n'a pas fait les étapes ci-dessous, elle ne fait que compter.
   confirmée entre-temps annule tout (le compte suit alors la règle des 12 mois).
 - **Relecture avant d'agir** : avant chaque avertissement, suppression ou effacement RevenueCat, la
   fonction relit les dates du compte puis **RevenueCat pour tout compte** (qu'il ait ou non une ligne
-  `plus_entitlements` : un webhook perdu laisse un abonné sans ligne). Un accès actif, une fin plus
-  tardive que la base, un droit que la base ne connaît pas ou une pause avec reprise à venir annulent
-  tout. La lecture recrée le client chez RevenueCat : il est effacé aussitôt, sauf pour un compte
-  qu'on supprime (`eraseAccount` l'efface).
+  `plus_entitlements` : un webhook perdu laisse un abonné sans ligne). Un accès actif, un achat à vie,
+  une fin illisible ou une pause avec reprise à venir annulent tout (`skipped.reactivated`). La lecture
+  recrée le client chez RevenueCat : il est effacé aussitôt, sauf pour un compte qu'on supprime
+  (`eraseAccount` l'efface).
+- **Webhook perdu** (#1208) : une fin d'accès passée que RevenueCat connaît et pas la base (achat ou
+  renouvellement jamais écrit) devient la fin retenue, sans rien écrire dans `plus_entitlements`. Léo,
+  inscrit le 1er décembre 2026, abonné jusqu'au 2 janvier 2027 sans ligne en base : la liste le
+  propose dès le 2 novembre 2027, la passe le saute (`skipped.laterEnd`) sans effacer RevenueCat,
+  qui garde seul cette date ; averti le 2 décembre 2027 (« a pris fin le 2 janvier 2027 », J = 2
+  janvier 2028), l'avis enregistré sous la fin connue de la base, puis RevenueCat effacé ; supprimé le
+  3 janvier 2028. Un avis écrit avant cette fin (averti, puis abonné) ne sert plus. Limites : pour ces
+  comptes, RevenueCat n'est effacé qu'à l'avertissement, pas 60 jours après la fin ; un webhook arrivé
+  après l'avertissement change la fin retenue en base et fait partir un second avertissement, avec
+  une date J plus tardive.
 - **Fenêtre résiduelle** : de la relecture en base à `deleteUser` passent la lecture RevenueCat,
   l'effacement PostHog, l'effacement RevenueCat et les pages de photos. Chaque appel attend au plus
   15 s : en pratique 1 à 3 s, au pire environ 45 s plus les photos. Un achat fait pendant cette
@@ -49,7 +59,8 @@ Gaelle n'a pas fait les étapes ci-dessous, elle ne fait que compter.
   inscriptions abandonnées par jour, leur arriéré grossit. Question laissée à Gaelle : la limite de 10
   doit-elle compter ces comptes ?
 - Journal (`Edge Functions › inactive-accounts › Logs`) : une ligne « Purge des comptes inactifs : »
-  suivie des nombres (`channel`, `revenuecat`, `due`, `done`, `skipped`, `failures`), jamais
+  suivie des nombres (`channel`, `revenuecat`, `due`, `done`, `skipped` : `reactivated`, `batchFull`,
+  `laterEnd`, `failures`), jamais
   d'identifiant ni d'adresse.
 - Durées et calendrier : `purge-calendar.ts` ; la liste SQL `public.inactive_account_steps` reprend
   les mêmes durées et donne la même étape aux mêmes instants (tests).
