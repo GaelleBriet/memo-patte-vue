@@ -5,6 +5,21 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.126](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.125...memo-patte-v0.1.126) (2026-10-27)
+
+
+### ✨ Fonctionnalités
+
+* **feuilles:** chaque feuille du bas se déclare ouverte dans un état partagé ([f52b5cd](https://github.com/GaelleBriet/memo-patte-vue/commit/f52b5cdab105717b301f17af6c83171ed92e3e53))
+
+
+### 🐛 Corrections
+
+* **restauration:** une feuille affichée ou demandée sur l'accueil retient « Restaurer mon carnet » ([112f999](https://github.com/GaelleBriet/memo-patte-vue/commit/112f9992318051aab264331fa030da21960e4edf))
+* **restauration:** une feuille affichée sur l'accueil retient « Restaurer mon carnet » ([2ef566e](https://github.com/GaelleBriet/memo-patte-vue/commit/2ef566e5cfd689659f2516960213f1f150b1e6d9))
+* **restauration:** une feuille de l'écran quitté ne retient plus l'arrivée sur l'accueil ([4f0e024](https://github.com/GaelleBriet/memo-patte-vue/commit/4f0e024d482fd4c68398ca3d850fce61fdc40239))
+* **restauration:** une feuille demandée par une notification retient l'écran jusqu'à son affichage ([46a0f8a](https://github.com/GaelleBriet/memo-patte-vue/commit/46a0f8a6e3951b0235c79295ef810b741962ed91))
+
 ## [0.1.125](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.124...memo-patte-v0.1.125) (2026-10-27)
 
 
