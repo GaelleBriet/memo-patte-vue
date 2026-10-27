@@ -27,6 +27,7 @@ import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatmen
 import { provideTreatmentsRepository } from '@/features/treatments/store/treatments.store'
 import { fakeTreatmentsRepository } from '@/features/treatments/__tests__/fake-treatments-repository'
 import {
+  dose,
   period,
   treatment as treatmentWith,
 } from '@/features/treatments/__tests__/treatment-fixtures'
@@ -129,6 +130,33 @@ function treatment(animalId: string, firstDueOn: string): TreatmentWithPeriods {
     animalId,
     name: 'Bravecto',
     type: 'antiparasitic',
+  }
+}
+
+function stoppedTreatment(animalId: string): TreatmentWithPeriods {
+  const id = crypto.randomUUID()
+  return {
+    ...treatmentWith(
+      [
+        period({
+          id: 'p-1',
+          treatmentId: id,
+          animalId,
+          startsOn: '2025-12-01',
+          firstDueOn: '2025-12-01',
+          stoppedOn: '2026-05-26',
+          frequency: { value: 3, unit: 'month' },
+        }),
+      ],
+      [dose('2025-12-01', '2026-03-01'), dose('2026-03-01', '2026-06-01')].map((line) => ({
+        ...line,
+        treatmentId: id,
+        animalId,
+      })),
+    ),
+    id,
+    animalId,
+    name: 'Milbemax',
   }
 }
 
@@ -260,6 +288,22 @@ describe('CarnetView — animal consulté', () => {
     expect(wrapper.getComponent(VaccinationsSection).props('animalId')).toBe(LUNA.id)
     expect(wrapper.getComponent(TreatmentsSection).props('animalId')).toBe(LUNA.id)
     expect(wrapper.getComponent(WeightSection).props('animalId')).toBe(LUNA.id)
+  })
+
+  it('range les traitements en cours, les vaccins, le poids, puis les traitements terminés', async () => {
+    treatments = [treatment(MILO.id, '2026-09-24'), stoppedTreatment(MILO.id)]
+    const wrapper = await monter()
+
+    const order = wrapper
+      .findAll('.carnet__sections > .section-card, .carnet__sections > .finished-treatments')
+      .map((section) => section.classes().find((name) => /-section$|^finished-/.test(name)))
+
+    expect(order).toEqual([
+      'treatments-section',
+      'vaccinations-section',
+      'weight-section',
+      'finished-treatments',
+    ])
   })
 
   it('mène au formulaire de création en un tap sur la chip « + »', async () => {
