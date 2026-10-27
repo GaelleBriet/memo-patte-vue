@@ -1,6 +1,7 @@
 import { differenceInDays, parseISO } from 'date-fns'
 import { z } from 'zod'
 
+import { errorSummary } from '@/shared/utils/error-summary'
 import { NO_PLUS, subscriptionOf, type PlusStatus, type SubscriptionPlan } from './plus-status'
 
 export const PLUS_STATUS_STORAGE_KEY = 'memopatte.plus.status'
@@ -67,7 +68,7 @@ export function writeStoredPlusStatus(status: WritablePlusStatus): void {
   try {
     localStorage.setItem(PLUS_STATUS_STORAGE_KEY, JSON.stringify(complete(status)))
   } catch (cause) {
-    console.warn('Statut Plus non enregistré :', cause)
+    console.warn('Statut Plus non enregistré :', errorSummary(cause))
   }
 }
 
@@ -75,6 +76,6 @@ export function clearStoredPlusStatus(): void {
   try {
     localStorage.removeItem(PLUS_STATUS_STORAGE_KEY)
   } catch (cause) {
-    console.warn('Statut Plus non effacé :', cause)
+    console.warn('Statut Plus non effacé :', errorSummary(cause))
   }
 }

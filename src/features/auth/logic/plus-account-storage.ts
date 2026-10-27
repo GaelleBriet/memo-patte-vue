@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { errorSummary } from '@/shared/utils/error-summary'
+
 export const PLUS_ACCOUNT_STORAGE_KEY = 'memopatte.auth.plus-account'
 
 const plusAccountSchema = z.object({
@@ -23,7 +25,7 @@ export function writePlusAccount(account: PlusAccount): void {
   try {
     localStorage.setItem(PLUS_ACCOUNT_STORAGE_KEY, JSON.stringify(account))
   } catch (cause) {
-    console.warn('Compte Plus non enregistré :', cause)
+    console.warn('Compte Plus non enregistré :', errorSummary(cause))
   }
 }
 
@@ -31,6 +33,6 @@ export function clearPlusAccount(): void {
   try {
     localStorage.removeItem(PLUS_ACCOUNT_STORAGE_KEY)
   } catch (cause) {
-    console.warn('Compte Plus non effacé :', cause)
+    console.warn('Compte Plus non effacé :', errorSummary(cause))
   }
 }
