@@ -1,8 +1,10 @@
-import { flushPromises } from '@vue/test-utils'
+import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createMemoryHistory, createRouter, type Router } from 'vue-router'
+import { defineComponent, h, ref, type Ref } from 'vue'
+import { createMemoryHistory, createRouter, RouterView, type Router } from 'vue-router'
 
 import { createRestoreFlow, type RestoreFlow } from '@/core/sync/service/restore-flow'
+import { useOpenSheet, useSheetRequest } from '@/shared/composables/use-open-sheet'
 import { installRestorePrompt } from '../restore-prompt'
 
 const Vide = { render: () => null }
@@ -31,9 +33,22 @@ function parcours(): RestoreFlow {
 }
 
 let uninstall = () => {}
+const feuilles: VueWrapper[] = []
+
+function feuille(open: Ref<boolean>): VueWrapper {
+  const wrapper = mount(
+    defineComponent(() => {
+      useOpenSheet(open)
+      return () => h('div')
+    }),
+  )
+  feuilles.push(wrapper)
+  return wrapper
+}
 
 afterEach(() => {
   uninstall()
+  for (const wrapper of feuilles.splice(0)) wrapper.unmount()
   vi.restoreAllMocks()
 })
 
@@ -109,6 +124,212 @@ describe('installRestorePrompt', () => {
     await router.push('/')
     await flushPromises()
     expect(router.currentRoute.value.name).toBe('account-restore')
+  })
+
+  describe('feuille ouverte sur l’accueil sans adresse', () => {
+    it('sauvegarde trouvée pendant qu’une feuille ouverte d’un tap est affichée : rien ne s’ouvre', async () => {
+      const router = routeur()
+      const flow = parcours()
+      await router.push('/')
+      uninstall = installRestorePrompt(router, () => flow)
+      const open = ref(true)
+      feuille(open)
+
+      flow.offer(SUMMARY)
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('home')
+
+      open.value = false
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('home')
+
+      await router.push('/weight')
+      await router.push('/')
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('account-restore')
+    })
+
+    it('feuille venue d’une notification, adresse effacée par l’accueil : rien ne s’ouvre', async () => {
+      const router = routeur()
+      const flow = parcours()
+      await router.push({
+        name: 'home',
+        query: { reminder: 'treatment:vermifuge-milo', step: 'actions' },
+      })
+      uninstall = installRestorePrompt(router, () => flow)
+      const open = ref(false)
+      feuille(open)
+      await router.replace('/')
+      open.value = true
+      await flushPromises()
+
+      flow.offer(SUMMARY)
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('home')
+
+      open.value = false
+      await router.push('/weight')
+      await router.push('/')
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('account-restore')
+    })
+
+    it('sauvegarde trouvée avant l’affichage de la feuille demandée par une notification : rien ne s’ouvre', async () => {
+      const router = routeur()
+      const flow = parcours()
+      await router.push({
+        name: 'home',
+        query: { reminder: 'treatment:vermifuge-milo', step: 'actions' },
+      })
+      uninstall = installRestorePrompt(router, () => flow)
+      let demande!: ReturnType<typeof useSheetRequest>
+      feuilles.push(
+        mount(
+          defineComponent(() => {
+            demande = useSheetRequest()
+            return () => h('div')
+          }),
+        ),
+      )
+      demande.hold()
+      await router.replace('/')
+
+      flow.offer(SUMMARY)
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('home')
+
+      const open = ref(false)
+      feuille(open)
+      open.value = true
+      await flushPromises()
+      open.value = false
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('home')
+
+      await router.push('/weight')
+      await router.push('/')
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('account-restore')
+    })
+
+    it('une feuille de l’écran quitté ne retient pas l’arrivée sur l’accueil', async () => {
+      const CarnetAvecPesee = defineComponent(() => {
+        useOpenSheet(ref(true))
+        return () => h('div')
+      })
+      const router = createRouter({
+        history: createMemoryHistory(),
+        routes: [
+          { path: '/', name: 'home', component: Vide },
+          { path: '/animals', name: 'carnet', component: CarnetAvecPesee },
+          { path: '/restore', name: 'account-restore', component: Vide },
+        ],
+      })
+      const flow = parcours()
+      await router.push('/animals')
+      feuilles.push(
+        mount(
+          defineComponent(() => () => h(RouterView)),
+          { global: { plugins: [router] } },
+        ),
+      )
+      await flushPromises()
+      uninstall = installRestorePrompt(router, () => flow)
+      flow.offer(SUMMARY)
+      await flushPromises()
+
+      await router.push('/')
+      await flushPromises()
+
+      expect(router.currentRoute.value.name).toBe('account-restore')
+    })
+
+    it('désinstallée pendant l’arrivée sur l’accueil, ne l’ouvre plus', async () => {
+      const router = routeur()
+      const flow = parcours()
+      await router.push('/animals')
+      uninstall = installRestorePrompt(router, () => flow)
+      flow.offer(SUMMARY)
+      await flushPromises()
+      const stop = router.afterEach((to) => {
+        if (to.name === 'home') uninstall()
+      })
+
+      await router.push('/')
+      await flushPromises()
+      stop()
+
+      expect(router.currentRoute.value.name).toBe('home')
+    })
+
+    it('une feuille ouverte par l’accueil à son arrivée retient toujours l’écran', async () => {
+      const AccueilAvecFeuille = defineComponent(() => {
+        useOpenSheet(ref(true))
+        return () => h('div')
+      })
+      const router = createRouter({
+        history: createMemoryHistory(),
+        routes: [
+          { path: '/', name: 'home', component: AccueilAvecFeuille },
+          { path: '/animals', name: 'carnet', component: Vide },
+          { path: '/restore', name: 'account-restore', component: Vide },
+        ],
+      })
+      const flow = parcours()
+      await router.push('/animals')
+      feuilles.push(
+        mount(
+          defineComponent(() => () => h(RouterView)),
+          { global: { plugins: [router] } },
+        ),
+      )
+      await flushPromises()
+      uninstall = installRestorePrompt(router, () => flow)
+      flow.offer(SUMMARY)
+      await flushPromises()
+
+      await router.push('/')
+      await flushPromises()
+
+      expect(router.currentRoute.value.name).toBe('home')
+    })
+
+    it('attend que toutes les feuilles ouvertes soient fermées', async () => {
+      const router = routeur()
+      const flow = parcours()
+      await router.push('/')
+      uninstall = installRestorePrompt(router, () => flow)
+      const rappel = ref(true)
+      const choix = ref(true)
+      feuille(rappel)
+      feuille(choix)
+
+      rappel.value = false
+      await flushPromises()
+      flow.offer(SUMMARY)
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('home')
+
+      choix.value = false
+      await router.push('/weight')
+      await router.push('/')
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('account-restore')
+    })
+
+    it('une feuille démontée ouverte ne retient plus l’écran', async () => {
+      const router = routeur()
+      const flow = parcours()
+      await router.push('/')
+      uninstall = installRestorePrompt(router, () => flow)
+      feuille(ref(true)).unmount()
+      feuilles.length = 0
+
+      flow.offer(SUMMARY)
+      await flushPromises()
+
+      expect(router.currentRoute.value.name).toBe('account-restore')
+    })
   })
 
   it('ne revient qu’une fois par lancement tant qu’aucun choix n’est fait', async () => {

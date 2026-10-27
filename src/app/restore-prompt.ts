@@ -1,16 +1,17 @@
-import { watch } from 'vue'
+import { nextTick, watch } from 'vue'
 import type { RouteLocationNormalized, Router } from 'vue-router'
 
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import { currentRestoreFlow, type RestoreFlow } from '@/core/sync/service/restore-flow'
+import { isAnySheetOpen } from '@/shared/composables/use-open-sheet'
 import { REMINDER_QUERY_PARAM, REMINDER_STEP_QUERY_PARAM } from '@/shared/domain/reminder-route'
 import { RESTORE_ROUTE, restoreRoute } from '@/shared/utils/restore-route'
 
 /**
  * « Restaurer mon carnet » s'ouvre de lui-même une fois par jour local tant que la sauvegarde
  * attend « Fusionner » ou « Remplacer », et de nouveau quand un choix est reproposé. La première
- * proposition s'ouvre dès que la sauvegarde est trouvée sur l'accueil sans feuille dans l'adresse ;
- * ensuite, seule une arrivée sur l'accueil sans feuille l'ouvre.
+ * proposition s'ouvre dès que la sauvegarde est trouvée sur l'accueil sans feuille, ni affichée ni
+ * dans l'adresse ; ensuite, seule une arrivée sur l'accueil sans feuille l'ouvre.
  */
 export function installRestorePrompt(
   router: Router,
@@ -18,6 +19,7 @@ export function installRestorePrompt(
 ): () => void {
   let shownOn: string | null = null
   let choiceRan = false
+  let installed = true
 
   function promptIfOffered(navigation: { arrived: boolean; leftRestore: boolean } | null): void {
     const step = flow()?.state.value.step
@@ -36,7 +38,7 @@ export function installRestorePrompt(
     const onRestore = current.name === RESTORE_ROUTE || navigation?.leftRestore === true
     if (onRestore && (!choiceRan || step === 'choice')) shownOn = today
     if (shownOn === today || step !== 'choice' || current.name !== 'home') return
-    if (carriesSheet(current)) return
+    if (isAnySheetOpen.value || carriesSheet(current)) return
     if ((navigation !== null || choiceRan || shownOn !== null) && !navigation?.arrived) return
     shownOn = today
     void router.push(restoreRoute('home'))
@@ -46,13 +48,19 @@ export function installRestorePrompt(
     () => flow()?.state.value.step,
     () => promptIfOffered(null),
   )
-  const stopAfterEach = router.afterEach((to, from, failure) =>
-    promptIfOffered({
+  const stopAfterEach = router.afterEach((to, from, failure) => {
+    const navigation = {
       arrived: !failure && isArrivalOnHome(to, from),
       leftRestore: !failure && from.name === RESTORE_ROUTE,
-    }),
-  )
+    }
+    if (!navigation.arrived) return promptIfOffered(navigation)
+    // L'écran quitté n'est démonté qu'au rendu suivant : ses feuilles compteraient encore ici.
+    void nextTick(() => {
+      if (installed) promptIfOffered(navigation)
+    })
+  })
   return () => {
+    installed = false
     stopWatch()
     stopAfterEach()
   }
