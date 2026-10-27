@@ -1340,7 +1340,7 @@
         "export": "Exporter une copie",
         "exportHint": "Vers Google Drive, un e-mail ou un ordinateur"
       },
-      "plus": "MémoPatte Plus ajoutera une sauvegarde cloud garantie, photos comprises, et la restaurera sur un nouveau téléphone.",
+      "plus": "MémoPatte Plus ajoute une sauvegarde cloud garantie, photos comprises, et la restaure sur un nouveau téléphone.",
       "discoverPlus": "Découvrir MémoPatte Plus",
       "cloud": {
         "saved": {
@@ -1873,7 +1873,7 @@
     },
     "success": {
       "title": "Bienvenue dans Plus",
-      "body": "La sauvegarde de ton carnet arrive très vite.",
+      "body": "La sauvegarde de ton carnet commence maintenant, photos comprises.",
       "back": "Retour"
     },
     "cancelled": {
