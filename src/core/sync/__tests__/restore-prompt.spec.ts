@@ -39,7 +39,16 @@ describe('createRestorePrompt', () => {
   it('n’ouvre que tant que la sauvegarde attend un choix', () => {
     const prompt = createRestorePrompt()
 
-    for (const step of [undefined, 'idle', 'checking', 'no-answer', 'restoring', 'done'] as const) {
+    const steps = [
+      undefined,
+      'idle',
+      'checking',
+      'no-answer',
+      'restoring',
+      'waiting-network',
+      'done',
+    ] as const
+    for (const step of steps) {
       expect(prompt.shouldOpen(step, () => home, arrival)).toBe(false)
     }
   })
@@ -71,6 +80,47 @@ describe('createRestorePrompt', () => {
     prompt.shouldOpen('idle', () => home, null)
 
     expect(prompt.shouldOpen('choice', () => home, null)).toBe(true)
+  })
+
+  it('un retour à rien d’attendu oublie aussi la restauration lancée', () => {
+    const prompt = createRestorePrompt()
+    prompt.shouldOpen('restoring', () => home, null)
+    prompt.shouldOpen('idle', () => home, null)
+
+    expect(prompt.shouldOpen('choice', () => home, null)).toBe(true)
+  })
+
+  it('un choix reproposé le jour même rouvre à la prochaine arrivée sur l’accueil', () => {
+    const prompt = createRestorePrompt()
+    expect(prompt.shouldOpen('choice', () => home, null)).toBe(true)
+    prompt.shouldOpen('restoring', () => home, null)
+
+    expect(prompt.shouldOpen('choice', () => home, null)).toBe(false)
+    expect(prompt.shouldOpen('choice', () => home, arrival)).toBe(true)
+  })
+
+  it('un choix reproposé vu sur l’écran de restauration compte pour la journée', () => {
+    const prompt = createRestorePrompt()
+    prompt.shouldOpen('restoring', () => restoreScreen, null)
+    prompt.shouldOpen('choice', () => restoreScreen, null)
+
+    expect(prompt.shouldOpen('choice', () => home, arrival)).toBe(false)
+  })
+
+  it('revenir de l’écran de restauration sur l’accueil ne le rouvre pas', () => {
+    const prompt = createRestorePrompt()
+
+    expect(prompt.shouldOpen('choice', () => home, { arrived: true, leftRestore: true })).toBe(
+      false,
+    )
+  })
+
+  it('une navigation qui n’est pas une arrivée sur l’accueil n’ouvre rien', () => {
+    const prompt = createRestorePrompt()
+
+    expect(prompt.shouldOpen('choice', () => home, { arrived: false, leftRestore: false })).toBe(
+      false,
+    )
   })
 
   it('un choix reproposé après une restauration lancée attend une arrivée sur l’accueil', () => {
