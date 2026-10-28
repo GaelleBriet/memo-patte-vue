@@ -683,7 +683,7 @@
         "undoMoveChange": "Annuler le changement de date du report",
         "shiftRemoved": "Décalage supprimé",
         "shiftRemovedWeekday": "Décalage supprimé. Les doses suivantes reviennent au {weekday}.",
-        "shiftRemovedOn": "Décalage supprimé. Prochaine dose le {date}.",
+        "shiftRemovedOn": "Décalage supprimé. Les doses suivantes reprennent le {date}.",
         "undoShiftRemoved": "Annuler la suppression du décalage",
         "notDueRemoved": "Réponse du {date} supprimée",
         "undoNotDueRemoved": "Annuler la suppression de la réponse du {date}"
