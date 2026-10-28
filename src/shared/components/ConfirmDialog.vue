@@ -17,6 +17,8 @@ const props = withDefaults(
     tone?: 'danger' | 'primary'
     /** La confirmation au-dessus de « Annuler » : un double toucher ne confirme pas un second dialogue. */
     stacked?: boolean
+    /** Confirmation en bouton plein, pour l'action principale d'un dialogue qui n'est pas destructif. */
+    solidConfirm?: boolean
   }>(),
   {
     note: null,
@@ -24,6 +26,7 @@ const props = withDefaults(
     confirmAriaLabel: undefined,
     tone: 'danger',
     stacked: false,
+    solidConfirm: false,
   },
 )
 
@@ -43,9 +46,7 @@ let opener: HTMLElement | null = null
 let confirmed = false
 
 const isStacked = computed(() => props.stacked || slots.choices !== undefined)
-const stackedConfirmColor = computed(() =>
-  props.tone === 'danger' && slots.choices === undefined ? 'error' : 'primary',
-)
+const stackedConfirmColor = computed(() => (props.tone === 'danger' ? 'error' : 'primary'))
 
 watch(
   open,
@@ -114,7 +115,7 @@ onScopeDispose(releaseBack)
         <v-btn
           v-if="isStacked"
           class="confirm-dialog__confirm"
-          variant="text"
+          :variant="props.solidConfirm ? 'flat' : 'text'"
           :color="stackedConfirmColor"
           :aria-label="props.confirmAriaLabel"
           @click="confirm"

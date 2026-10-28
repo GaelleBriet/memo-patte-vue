@@ -5,13 +5,19 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { useCodeStepBack } from '../composables/use-code-step-back'
 import { useEmailCode } from '../composables/use-email-code'
+import { useExistingDataWarning } from '../composables/use-existing-data-warning'
 import { useGoogleSignIn } from '../composables/use-google-sign-in'
 import { usePasswordConfirmation } from '../composables/use-password-confirmation'
 import { useSignedInExit } from '../composables/use-signed-in-exit'
 import { AccountError } from '../logic/account-error'
 import { signInErrorKey } from '../logic/account-error-message'
 import { useAuthStore } from '../store/auth.store'
-import { emptySignInFormValues, validateSignInForm, type SignInMode } from '../logic/sign-in-form'
+import {
+  emptySignInFormValues,
+  validateSignInForm,
+  type SignInCredentials,
+  type SignInMode,
+} from '../logic/sign-in-form'
 import { initialSignInMode, offersSignUp } from '../logic/sign-up-access'
 import { focusFirstInvalid } from '@/shared/form/focus-first-invalid'
 import FormField from '@/shared/form/FormField.vue'
@@ -23,6 +29,7 @@ import { passwordResetRoute } from '@/shared/utils/sign-in-route'
 
 import AccountLegalNotice from './AccountLegalNotice.vue'
 import EmailCodeStep from './EmailCodeStep.vue'
+import ExistingDataDialog from './ExistingDataDialog.vue'
 import GoogleSignInButton from './GoogleSignInButton.vue'
 
 const { t } = useI18n()
@@ -31,6 +38,7 @@ const auth = useAuthStore()
 const route = useRoute()
 const { continueWithGoogle, announce } = useGoogleSignIn()
 const emailCode = useEmailCode()
+const existingData = useExistingDataWarning()
 
 const mode = ref<SignInMode>(initialSignInMode(route.query))
 const values = ref(emptySignInFormValues())
@@ -151,7 +159,12 @@ async function submit(): Promise<void> {
     return
   }
 
-  const { email, password } = result.data
+  await existingData.guard(() => signInWithEmail(result.data))
+}
+
+async function signInWithEmail({ email, password }: SignInCredentials): Promise<void> {
+  if (isSubmitting.value) return
+
   isSubmitting.value = true
   failureKey.value = null
 
@@ -179,6 +192,12 @@ async function submit(): Promise<void> {
 }
 
 async function signInWithGoogle(): Promise<void> {
+  if (isSubmitting.value) return
+
+  await existingData.guard(continueWithGoogleAccount)
+}
+
+async function continueWithGoogleAccount(): Promise<void> {
   if (isSubmitting.value) return
 
   isGoogleSignIn.value = true
@@ -357,6 +376,12 @@ onUnmounted(() => {
       </div>
     </template>
   </PushedScreen>
+
+  <ExistingDataDialog
+    v-model="existingData.isOpen.value"
+    @confirm="existingData.continueSignIn"
+    @cancel="existingData.cancel"
+  />
 </template>
 
 <style scoped lang="scss">

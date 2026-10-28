@@ -7,6 +7,7 @@ import RestoreProgressCard from './RestoreProgressCard.vue'
 import { useAccountRestore } from '../composables/use-account-restore'
 import { useMergeReplaceChoices } from '../composables/use-merge-replace-choices'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
+import ExportCopyChoice from '@/shared/components/ExportCopyChoice.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 
 const { t } = useI18n()
@@ -134,7 +135,11 @@ const groupLabelId = useId()
     :cancel-label="t('settings.import.confirm.cancel')"
     :confirm-label="t('settings.import.confirm.submit')"
     @confirm="confirmReplace"
-  />
+  >
+    <template #choices>
+      <ExportCopyChoice />
+    </template>
+  </ConfirmDialog>
 </template>
 
 <style scoped lang="scss">
