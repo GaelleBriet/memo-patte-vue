@@ -37,11 +37,11 @@ function csvLocalTime(instant: string): string {
 
 export type CsvTables = {
   'animaux.csv': string
-  'vaccins.csv': string
-  'injections.csv': string
   'traitements.csv': string
   'periodes.csv': string
   'prises.csv': string
+  'vaccins.csv': string
+  'injections.csv': string
   'poids.csv': string
   'rappels.csv': string
 }

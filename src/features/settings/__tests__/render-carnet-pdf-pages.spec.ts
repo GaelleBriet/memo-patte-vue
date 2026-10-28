@@ -152,7 +152,10 @@ function carnetAuxNomsLongs(count: number): CarnetPdfContent {
 
 const COURT = carnet(2, 1, 6)
 const LONG = carnet(25, 20, 40)
-const DEBORDEMENTS = Array.from({ length: 46 }, (_, count) => carnet(count, 3, 8))
+const DEBORDEMENTS = [
+  ...Array.from({ length: 46 }, (_, count) => carnet(count, 3, 8)),
+  ...Array.from({ length: 46 }, (_, count) => carnet(3, count, 8)),
+]
 const NOMS_LONGS = Array.from({ length: 40 }, (_, count) => carnetAuxNomsLongs(count))
 const MOT_SANS_ESPACE = avec({
   animal: { ...LONG.animal, name: MOT_80 },
