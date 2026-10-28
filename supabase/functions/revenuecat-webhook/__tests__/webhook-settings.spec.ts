@@ -12,6 +12,7 @@ const AUTHORIZATION_31 = 'Bearer ' + 'b'.repeat(24)
 const SIGNING_SECRET = 'whsec_secret-de-signature'
 const LEAKED_SECRET = 'whsec_' + 'c'.repeat(30)
 const LEAKED_AUTHORIZATION = 'Bearer ' + 'd'.repeat(30)
+const HEX = '0123456789abcdef'.repeat(4)
 const BOTH_NAMES = ['REVENUECAT_WEBHOOK_AUTHORIZATION', 'REVENUECAT_WEBHOOK_SIGNING_SECRET']
 
 function settingsOf(env: Record<string, string>) {
@@ -133,24 +134,42 @@ describe('webhookSettingsFrom', () => {
     expect(error).not.toHaveBeenCalled()
   })
 
-  it('compare en respectant la casse, dans les deux sens', () => {
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+  it.each([
+    [
+      'secret en majuscules qui contient l’en-tête',
+      LEAKED_AUTHORIZATION,
+      `${LEAKED_AUTHORIZATION.toUpperCase()}x`,
+    ],
+    [
+      'en-tête en majuscules qui contient le secret',
+      `Bearer ${LEAKED_SECRET.toUpperCase()}`,
+      LEAKED_SECRET,
+    ],
+    ['hexadécimal : secret en majuscules qui contient l’en-tête', HEX, `${HEX.toUpperCase()}0`],
+    [
+      'hexadécimal : en-tête en majuscules qui contient le secret',
+      `Bearer ${HEX.toUpperCase()}`,
+      HEX,
+    ],
+  ])(
+    'compare sans tenir compte de la casse (%s), et le dit une fois sans les valeurs',
+    (_, authorization, signingSecret) => {
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    expect(
-      settingsOf({
-        REVENUECAT_WEBHOOK_AUTHORIZATION: LEAKED_AUTHORIZATION,
-        REVENUECAT_WEBHOOK_SIGNING_SECRET: `${LEAKED_AUTHORIZATION.toUpperCase()}x`,
-      }).signingSecret,
-    ).toBe(`${LEAKED_AUTHORIZATION.toUpperCase()}x`)
-    expect(
-      settingsOf({
-        REVENUECAT_WEBHOOK_AUTHORIZATION: `Bearer ${LEAKED_SECRET.toUpperCase()}`,
-        REVENUECAT_WEBHOOK_SIGNING_SECRET: LEAKED_SECRET,
-      }).signingSecret,
-    ).toBe(LEAKED_SECRET)
+      const settings = settingsOf({
+        REVENUECAT_WEBHOOK_AUTHORIZATION: authorization,
+        REVENUECAT_WEBHOOK_SIGNING_SECRET: signingSecret,
+      })
 
-    expect(error).not.toHaveBeenCalled()
-  })
+      expect(settings).toEqual({ expectedAuthorization: authorization, signingSecret: undefined })
+      expect(error).toHaveBeenCalledOnce()
+      const written = JSON.stringify(error.mock.calls)
+      expect(written).toContain('ne doit pas contenir')
+      for (const value of [authorization, signingSecret]) {
+        expect(written.toLowerCase()).not.toContain(value.toLowerCase())
+      }
+    },
+  )
 
   it('cherche le secret dans l’en-tête après le retrait des espaces', () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {})

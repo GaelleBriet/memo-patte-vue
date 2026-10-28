@@ -11,7 +11,9 @@ function signingSecretApartFrom(
 ): string | undefined {
   if (!signingSecret) return undefined
   if (!authorization) return signingSecret
-  if (!authorization.includes(signingSecret) && !signingSecret.includes(authorization)) {
+  const header = authorization.toLowerCase()
+  const secret = signingSecret.toLowerCase()
+  if (!header.includes(secret) && !secret.includes(header)) {
     return signingSecret
   }
   console.error(
