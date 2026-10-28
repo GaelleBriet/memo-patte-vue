@@ -316,3 +316,19 @@ describe('handleRevenuecatWebhook, signature de RevenueCat', () => {
     expect(response.status).toBe(401)
   })
 })
+
+describe('handleRevenuecatWebhook, achat de test d’un testeur de licence', () => {
+  it('traite un événement SANDBOX comme un événement PRODUCTION', async () => {
+    const sandbox = renewalOfSophie()
+    Object.assign(sandbox.event as Record<string, unknown>, { environment: 'SANDBOX' })
+    const fake = fakePorts()
+
+    const response = await handleRevenuecatWebhook(
+      request({ body: JSON.stringify(sandbox) }),
+      fake.ports,
+    )
+
+    expect(response.status).toBe(200)
+    expect(fake.processed).toEqual([sandbox.event])
+  })
+})
