@@ -21,6 +21,10 @@ describe('isTreatmentFinished', () => {
     expect(isTreatmentFinished({ phase: 'stopped', finished: false } as never, true)).toBe(false)
   })
 
+  it('un traitement arrivé à sa date de fin avec des doses à renseigner reste en cours', () => {
+    expect(isTreatmentFinished({ phase: 'ended', finished: false } as never, true)).toBe(false)
+  })
+
   it('pour un animal qu’on ne suit plus, un traitement arrêté est terminé', () => {
     expect(isTreatmentFinished({ phase: 'stopped', finished: false } as never, false)).toBe(true)
   })
