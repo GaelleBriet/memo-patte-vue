@@ -5,6 +5,15 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.139](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.138...memo-patte-v0.1.139) (2026-10-28)
+
+
+### 🐛 Corrections
+
+* **android:** garder les ressources Google Play Billing face à shrinkResources ([ab209da](https://github.com/GaelleBriet/memo-patte-vue/commit/ab209da5822f04ccb92deffe64c0d5c97520245e))
+* **android:** garder les ressources Google Play Billing face à shrinkResources ([3125615](https://github.com/GaelleBriet/memo-patte-vue/commit/3125615d4b011ce711c98b0807d2a5d60cc7b41a))
+* **android:** nom unique pour le fichier keep des ressources Billing ([7d2e128](https://github.com/GaelleBriet/memo-patte-vue/commit/7d2e1284860ec246aea38e92e10e30285b1ebba1))
+
 ## [0.1.138](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.137...memo-patte-v0.1.138) (2026-10-28)
 
 
