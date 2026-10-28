@@ -24,6 +24,12 @@ import {
 import { track } from '@/core/analytics'
 import { errorSummary } from '@/shared/utils/error-summary'
 
+function endOf({ expiresAt }: StoredPlusStatus): string {
+  return expiresAt !== null && Date.parse(expiresAt) <= Date.now()
+    ? expiresAt
+    : new Date().toISOString()
+}
+
 function remember(next: PlusStatus, previous: StoredPlusStatus): StoredPlusStatus {
   if (next.plan !== 'none')
     return { ...next, lastSubscription: subscriptionOf(next), subscriptionEndedAt: null }
@@ -32,7 +38,7 @@ function remember(next: PlusStatus, previous: StoredPlusStatus): StoredPlusStatu
     ...next,
     lastSubscription,
     subscriptionEndedAt:
-      lastSubscription === null ? null : (subscriptionEndedAt ?? new Date().toISOString()),
+      lastSubscription === null ? null : (subscriptionEndedAt ?? endOf(previous)),
   }
 }
 
