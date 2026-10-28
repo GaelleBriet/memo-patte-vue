@@ -20,6 +20,7 @@ import {
   clearSignedOutAccountState,
 } from '../service/device-account-state.service'
 import { signInWithGoogle, type GoogleSignInOutcome } from '../service/google-sign-in.service'
+import { clearSessionReset, readSessionReset, writeSessionReset } from '../logic/session-reset-flag'
 import {
   clearPlusAccount,
   readPlusAccount,
@@ -45,7 +46,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const account = ref<PlusAccount | null>(readPlusAccount())
   const sessionState = ref<SessionState>(account.value ? 'restoring' : 'none')
-  const sessionUnreadable = ref(false)
+  const sessionUnreadable = ref(readSessionReset())
   const hasPlusAccount = computed(() => account.value !== null)
   const userId = computed(() => account.value?.userId ?? null)
 
@@ -65,6 +66,8 @@ export const useAuthStore = defineStore('auth', () => {
       identify(session.userId)
     }
     sessionState.value = 'active'
+    sessionUnreadable.value = false
+    clearSessionReset()
   }
 
   async function check(request: () => Promise<SessionCheck>): Promise<boolean> {
@@ -111,6 +114,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   repository.onSessionUnreadable(() => {
     sessionUnreadable.value = true
+    writeSessionReset()
     if (account.value) sessionState.value = 'needs-sign-in'
   })
 

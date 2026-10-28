@@ -4,6 +4,8 @@ export interface BackupFacts {
   /** Compte Plus et abonnement en cours : la synchro peut tourner. */
   eligible: boolean
   signInNeeded: boolean
+  /** La session enregistrée n'a pas pu être lue : la personne a été déconnectée. */
+  sessionReset: boolean
   online: boolean
   syncEnabled: boolean
   /** Fin du dernier cycle réussi, `null` avant la première sauvegarde du compte. */
@@ -31,12 +33,14 @@ export interface BackupFactsDependencies {
   >
   isEligible: () => boolean
   signInNeeded: () => boolean
+  sessionReset: () => boolean
   isOnline: () => Promise<boolean>
 }
 
 const NOT_ELIGIBLE: BackupFacts = {
   eligible: false,
   signInNeeded: false,
+  sessionReset: false,
   online: true,
   syncEnabled: false,
   lastSyncedAt: null,
@@ -50,6 +54,7 @@ export function createBackupFactsReader({
   outbox,
   isEligible,
   signInNeeded,
+  sessionReset,
   isOnline,
 }: BackupFactsDependencies): BackupFactsReader {
   return async () => {
@@ -67,6 +72,7 @@ export function createBackupFactsReader({
     return {
       eligible: isEligible(),
       signInNeeded: signInNeeded(),
+      sessionReset: sessionReset(),
       online,
       syncEnabled,
       lastSyncedAt,

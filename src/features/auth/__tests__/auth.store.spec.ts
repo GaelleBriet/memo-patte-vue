@@ -24,6 +24,7 @@ import { googleCredentials } from '@/core/google-sign-in/google-credentials'
 import { signInWithGoogle } from '../service/google-sign-in.service'
 import { provideAuthRepository, useAuthStore } from '../store/auth.store'
 import { readPlusAccount, writePlusAccount } from '../logic/plus-account-storage'
+import { readSessionReset, writeSessionReset } from '../logic/session-reset-flag'
 import { memoryStorage, OTHER_USER_ID, USER_ID } from './auth-fixture'
 
 const ACCOUNT_KEYS = [PLUS_STATUS_STORAGE_KEY, PLUS_NUDGE_STORAGE_KEY, USAGE_SIGNALS_STORAGE_KEY]
@@ -181,6 +182,20 @@ describe('useAuthStore', () => {
       expect(store.sessionUnreadable).toBe(true)
       expect(store.sessionState).toBe('needs-sign-in')
       expect(readPlusAccount()).toEqual({ userId: USER_ID })
+      expect(readSessionReset()).toBe(true)
+    })
+
+    it('garde le signal après un redémarrage, jusqu’à la prochaine connexion réussie', async () => {
+      writeSessionReset()
+      repository.restoreSession.mockResolvedValueOnce({ kind: 'needs-sign-in' })
+      const store = useAuthStore()
+      await store.restore()
+      expect(store.sessionUnreadable).toBe(true)
+
+      supabaseEndsOrRefreshesSession({ userId: USER_ID })
+
+      expect(store.sessionUnreadable).toBe(false)
+      expect(readSessionReset()).toBe(false)
     })
 
     it('ne laisse pas l’adresse de l’erreur Supabase dans les traces', async () => {
