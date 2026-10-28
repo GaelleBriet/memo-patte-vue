@@ -98,7 +98,7 @@ export function createCloudPhotoSweep(deps: CloudPhotoSweepDependencies): CloudP
         ({ name, writtenAt }) =>
           isPhotoFileName(name) && !kept.has(name) && serverNow - writtenAt >= PHOTO_CLOUD_GRACE_MS,
       )
-      .toSorted((a, b) => a.writtenAt - b.writtenAt)
+      .sort((a, b) => a.writtenAt - b.writtenAt)
       .map(({ name }) => name)
   }
 

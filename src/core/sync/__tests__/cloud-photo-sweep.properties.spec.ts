@@ -106,6 +106,47 @@ async function play(seed: number) {
   return { played, deleted: storage.deleted }
 }
 
+function violationsOf(played: Scenario, deleted: string[]): string[] {
+  const violations: string[] = []
+  const referenced = new Set([
+    ...played.cloud.flatMap(({ photo_path }) => (photo_path === null ? [] : [photo_path])),
+    ...played.local,
+    ...played.outbox
+      .filter(({ entity }) => entity === ANIMAL_PHOTO_ENTITY)
+      .map(({ entityId }) => entityId),
+  ])
+  const writtenAt = new Map(played.objects.map(({ name, writtenAt: at }) => [name, at]))
+  const animalPending = played.outbox.some(({ entity }) => entity === 'animal')
+
+  for (const name of deleted) {
+    if (referenced.has(name)) violations.push(`${name} effacée alors qu’une fiche la porte`)
+    const age = played.serverNow - (writtenAt.get(name) ?? Number.POSITIVE_INFINITY)
+    if (!(age >= PHOTO_CLOUD_GRACE_MS)) violations.push(`${name} effacée avant 7 jours`)
+  }
+  if (deleted.length > MAX_SWEEP_DELETIONS) violations.push(`${deleted.length} effacements`)
+  if (animalPending && deleted.length > 0) {
+    violations.push('effacement alors qu’une fiche attend d’être envoyée')
+  }
+
+  const serverNowKnown = played.cloud.some(({ stamp }) => Date.parse(stamp) === played.serverNow)
+  const unhindered =
+    serverNowKnown && !played.listFails && played.failingDelete === null && !animalPending
+  if (unhindered) {
+    const expected = played.objects
+      .filter(
+        ({ name, writtenAt: at }) =>
+          !referenced.has(name) && played.serverNow - at >= PHOTO_CLOUD_GRACE_MS,
+      )
+      .map(({ name }) => name)
+      .sort()
+    const got = [...deleted].sort()
+    if (JSON.stringify(got) !== JSON.stringify(expected)) {
+      violations.push(`orphelins attendus ${expected.join(', ')}, effacés ${got.join(', ')}`)
+    }
+  }
+  return violations
+}
+
 describe(`ménage des photos du cloud : ${SCENARIOS} carnets tirés au hasard`, () => {
   beforeAll(() => {
     vi.spyOn(console, 'warn').mockImplementation(() => {})
@@ -116,50 +157,15 @@ describe(`ménage des photos du cloud : ${SCENARIOS} carnets tirés au hasard`, 
   })
 
   it(`graines ${FIRST_SEED} à ${FIRST_SEED + SCENARIOS - 1}`, async () => {
+    const violations: string[] = []
     let sweptSomething = 0
     for (let seed = FIRST_SEED; seed < FIRST_SEED + SCENARIOS; seed++) {
       const { played, deleted } = await play(seed)
-      const context = `graine ${seed}`
-      const referenced = new Set([
-        ...played.cloud.flatMap(({ photo_path }) => (photo_path === null ? [] : [photo_path])),
-        ...played.local,
-        ...played.outbox
-          .filter(({ entity }) => entity === ANIMAL_PHOTO_ENTITY)
-          .map((e) => e.entityId),
-      ])
-      const writtenAt = new Map(played.objects.map(({ name, writtenAt }) => [name, writtenAt]))
-
-      for (const name of deleted) {
-        expect(referenced.has(name), `${context} : ${name} est portée par une fiche`).toBe(false)
-        expect(
-          played.serverNow - (writtenAt.get(name) ?? Number.POSITIVE_INFINITY),
-          `${context} : ${name} a moins de 7 jours`,
-        ).toBeGreaterThanOrEqual(PHOTO_CLOUD_GRACE_MS)
-      }
-      expect(deleted.length, context).toBeLessThanOrEqual(MAX_SWEEP_DELETIONS)
-      if (played.outbox.some(({ entity }) => entity === 'animal')) {
-        expect(deleted, `${context} : une fiche attend d’être envoyée`).toEqual([])
-      }
-
-      const serverNowKnown = played.cloud.some(
-        ({ stamp }) => Date.parse(stamp) === played.serverNow,
-      )
-      const unhindered =
-        serverNowKnown &&
-        !played.listFails &&
-        played.failingDelete === null &&
-        !played.outbox.some(({ entity }) => entity === 'animal')
-      if (unhindered) {
-        const expected = played.objects.filter(
-          ({ name, writtenAt: at }) =>
-            !referenced.has(name) && played.serverNow - at >= PHOTO_CLOUD_GRACE_MS,
-        )
-        expect(deleted.toSorted(), `${context} : orphelins restés`).toEqual(
-          expected.map(({ name }) => name).toSorted(),
-        )
-      }
+      violations.push(...violationsOf(played, deleted).map((what) => `graine ${seed} : ${what}`))
       if (deleted.length > 0) sweptSomething++
     }
+
+    expect(violations).toEqual([])
     expect(sweptSomething).toBeGreaterThan(SCENARIOS / 10)
   })
 })

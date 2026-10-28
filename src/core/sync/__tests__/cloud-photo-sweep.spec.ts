@@ -52,7 +52,7 @@ function setup(
   const storage = fakePhotoStorage(options.objects ?? [])
   const cloudAnimals = fakeCloudAnimals(options.cloud ?? [cloudAnimal('repere', null)])
   const outbox = createFakeOutbox(options.outbox ?? [], {}, options.enabled ?? true)
-  const localKeptPhotos = vi.fn(async () => options.local ?? [])
+  const localKeptPhotos = vi.fn<() => Promise<string[]>>(async () => options.local ?? [])
   let lastSweep = options.lastSweep ?? null
   const state = { eligible: true, accountCurrent: true }
   const deps: CloudPhotoSweepDependencies = {

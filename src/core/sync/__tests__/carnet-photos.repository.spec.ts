@@ -104,7 +104,7 @@ describe('carnetPhotosRepository', () => {
 
       const kept = await repository.listKeptPhotos()
 
-      expect(kept.toSorted()).toEqual([PHOTO_MILO, PHOTO_PIRATE].toSorted())
+      expect([...kept].sort()).toEqual([PHOTO_MILO, PHOTO_PIRATE].sort())
     })
 
     it('ne rend plus une photo remplacée ou retirée', async () => {

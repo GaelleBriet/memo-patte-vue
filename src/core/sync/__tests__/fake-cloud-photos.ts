@@ -14,7 +14,9 @@ export interface CloudAnimal {
 
 /** Table `animal` du cloud, lue comme le fait `pullPage` : ordre `(server_updated_at, id)`. */
 export function fakeCloudAnimals(rows: CloudAnimal[]) {
-  const sorted = rows.toSorted((a, b) => a.stamp.localeCompare(b.stamp) || a.id.localeCompare(b.id))
+  const sorted = [...rows].sort(
+    (a, b) => a.stamp.localeCompare(b.stamp) || a.id.localeCompare(b.id),
+  )
   return {
     pullPage: vi.fn<SyncableTable['pullPage']>(async (_userId, since, limit, afterId) => {
       const page = sorted

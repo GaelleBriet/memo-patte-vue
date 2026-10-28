@@ -116,11 +116,15 @@ describe('createAnimalPhotoList', () => {
     const list = vi.fn<List>(() => new Promise(() => {}))
     const client = { storage: { from: () => ({ list }) } } as unknown as SupabaseClient
 
-    const listing = createAnimalPhotoList(async () => client).list('user-1')
-    const rejected = expect(listing).rejects.toBeInstanceOf(StorageTimeoutError)
+    const failure = createAnimalPhotoList(async () => client)
+      .list('user-1')
+      .then(
+        () => null,
+        (cause: unknown) => cause,
+      )
     await vi.advanceTimersByTimeAsync(PHOTO_LIST_TIMEOUT_MS)
 
-    await rejected
+    expect(await failure).toBeInstanceOf(StorageTimeoutError)
   })
 
   it('rejette un dossier sans fin plutôt que de boucler', async () => {
@@ -131,7 +135,9 @@ describe('createAnimalPhotoList', () => {
       error: null,
     }))
 
-    await expect(createAnimalPhotoList(async () => client).list('user-1')).rejects.toThrow()
+    await expect(createAnimalPhotoList(async () => client).list('user-1')).rejects.toThrow(
+      /trop long/,
+    )
     expect(list.mock.calls.length).toBeLessThanOrEqual(100)
   })
 })
