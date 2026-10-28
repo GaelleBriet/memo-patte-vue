@@ -165,6 +165,7 @@ describe('amorçage : le carnet local part en entier vers un compte vide', () =>
       outbox,
       isEligible: () => true,
       signInNeeded: () => false,
+      sessionReset: () => false,
       isOnline: async () => true,
     })
   }

@@ -74,14 +74,30 @@ describe('texte de la sauvegarde cloud', () => {
   })
 
   it('reconnecte-toi, interrompue depuis hier à 18 h 20, rien n’est perdu', () => {
-    expect(text({ kind: 'interrupted', since: local(22, 18, 20) })).toEqual({
+    expect(text({ kind: 'interrupted', since: local(22, 18, 20), sessionReset: false })).toEqual({
       title: 'Reconnecte-toi pour reprendre la sauvegarde',
       hint: 'Interrompue depuis hier à 18 h 20. Rien n’est perdu.',
     })
   })
 
+  it('session illisible : l’explication remplace la date d’interruption, en français puis en anglais', () => {
+    const status: CloudBackupStatus = {
+      kind: 'interrupted',
+      since: local(22, 18, 20),
+      sessionReset: true,
+    }
+
+    expect(text(status).hint).toBe(
+      'La session enregistrée n’a pas pu être lue. Reconnecte-toi ; si ça se reproduit, redémarre ton téléphone. Rien n’est perdu.',
+    )
+    i18n.global.locale.value = 'en'
+    expect(text(status).hint).toBe(
+      'The saved session could not be read. Sign in again; if it happens again, restart your phone. Nothing is lost.',
+    )
+  })
+
   it('sans sauvegarde réussie, pas de date d’interruption', () => {
-    expect(text({ kind: 'interrupted', since: null }).hint).toBeNull()
+    expect(text({ kind: 'interrupted', since: null, sessionReset: false }).hint).toBeNull()
   })
 
   it('en anglais', () => {
@@ -99,7 +115,7 @@ describe('texte de la sauvegarde cloud', () => {
       title: 'Waiting for network',
       hint: 'Backup resumes as soon as this phone is online.',
     })
-    expect(text({ kind: 'interrupted', since: local(22, 18, 20) })).toEqual({
+    expect(text({ kind: 'interrupted', since: local(22, 18, 20), sessionReset: false })).toEqual({
       title: 'Sign back in to resume backup',
       hint: 'Interrupted since yesterday at 6:20 pm. Nothing is lost.',
     })
@@ -137,7 +153,7 @@ describe('sous-titre de la rubrique Sauvegarde', () => {
   it('reprend la première ligne de la carte, sans le compte « sur M »', () => {
     expect(sub({ kind: 'first-backup', done: 3, total: 9 })).toBe('Première sauvegarde en cours')
     expect(sub({ kind: 'waiting-network', firstBackup: false })).toBe('En attente de réseau')
-    expect(sub({ kind: 'interrupted', since: local(22, 18, 20) })).toBe(
+    expect(sub({ kind: 'interrupted', since: local(22, 18, 20), sessionReset: false })).toBe(
       'Reconnecte-toi pour reprendre la sauvegarde',
     )
     expect(sub({ kind: 'saved', at: local(23, 8, 25) })).toBe('Dernière sauvegarde : il y a 5 min')
@@ -155,7 +171,7 @@ describe('sous-titre de la rubrique Sauvegarde', () => {
   it('les éléments refusés ne priment pas sur les trois autres états', () => {
     expect(sub({ kind: 'first-backup', done: 3, total: 9 }, 2)).toBe('Première sauvegarde en cours')
     expect(sub({ kind: 'waiting-network', firstBackup: false }, 2)).toBe('En attente de réseau')
-    expect(sub({ kind: 'interrupted', since: null }, 2)).toBe(
+    expect(sub({ kind: 'interrupted', since: null, sessionReset: false }, 2)).toBe(
       'Reconnecte-toi pour reprendre la sauvegarde',
     )
   })
@@ -171,7 +187,9 @@ describe('sous-titre de la rubrique Sauvegarde', () => {
 
     expect(sub({ kind: 'first-backup', done: 3, total: 9 })).toBe('First backup in progress')
     expect(sub({ kind: 'waiting-network', firstBackup: false })).toBe('Waiting for network')
-    expect(sub({ kind: 'interrupted', since: null })).toBe('Sign back in to resume backup')
+    expect(sub({ kind: 'interrupted', since: null, sessionReset: false })).toBe(
+      'Sign back in to resume backup',
+    )
     expect(sub({ kind: 'saved', at: local(23, 8, 25) })).toBe('Last backup: 5 min ago')
     expect(sub({ kind: 'saved', at: local(23, 8, 25) }, 1)).toBe('One item couldn’t be backed up')
     expect(sub({ kind: 'saved', at: local(23, 8, 25) }, 3)).toBe('3 items couldn’t be backed up')

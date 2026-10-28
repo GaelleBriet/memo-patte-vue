@@ -2,7 +2,7 @@ import { errorSummary } from './error-summary'
 
 const APP_KEY_PREFIX = 'memopatte.'
 
-/** Préférences, signaux, consentement, session : tout ce que l'app range dans le `localStorage`. */
+/** Préférences, signaux, consentement : tout ce que l'app range dans le `localStorage`. */
 export function clearAppStorage(): void {
   try {
     const keys = Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index))

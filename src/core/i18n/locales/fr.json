@@ -1361,6 +1361,7 @@
         "interrupted": {
           "title": "Reconnecte-toi pour reprendre la sauvegarde",
           "hint": "Interrompue depuis {when}. Rien n’est perdu.",
+          "hintSessionReset": "La session enregistrée n’a pas pu être lue. Reconnecte-toi ; si ça se reproduit, redémarre ton téléphone. Rien n’est perdu.",
           "signIn": "Se reconnecter",
           "exportHint": "Conseillé tant que la sauvegarde est interrompue"
         },
@@ -1728,6 +1729,9 @@
     }
   },
   "auth": {
+    "session": {
+      "reset": "Connexion fermée : la session n’a pas pu être lue. Ton carnet reste sur ce téléphone."
+    },
     "intro": "Un compte MémoPatte sert à garder tes carnets en sécurité dans le cloud et à les retrouver sur tous tes appareils.",
     "signIn": {
       "title": "Connexion",

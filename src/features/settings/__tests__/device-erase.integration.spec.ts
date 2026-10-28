@@ -39,6 +39,7 @@ describe('effacement des données dans une vraie base', () => {
       ],
       syncOutbox: () => createLocalSyncOutbox(db),
       account: { isSignedIn: () => true, signOut: async () => {} },
+      session: { forget: async () => {} },
       notifications: { cancelAll: async () => {}, rebuild: async () => {} },
       photos: { deleteAll: async () => {} },
       analytics: { optOut: async () => {} },

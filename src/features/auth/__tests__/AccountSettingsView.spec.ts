@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 
 import { writePlusAccount } from '../logic/plus-account-storage'
 import { authRepository } from '../repository/auth.repository'
-import { provideAuthRepository } from '../store/auth.store'
+import { provideAuthRepository, useAuthStore } from '../store/auth.store'
 import AccountSettingsView from '../views/AccountSettingsView.vue'
 import { memoryStorage, USER_ID } from './auth-fixture'
 import i18n from '@/core/i18n'
@@ -40,6 +40,19 @@ async function monter() {
 }
 
 describe('AccountSettingsView', () => {
+  it('retire l’adresse et le changement de mot de passe quand la session est fermée', async () => {
+    accountIdentity.mockResolvedValue({ kind: 'password', email: 'sophie@exemple.fr' })
+    const wrapper = await monter()
+    expect(wrapper.find('.settings-row--change-password').exists()).toBe(true)
+
+    vi.spyOn(authRepository, 'refreshSession').mockResolvedValue({ kind: 'needs-sign-in' })
+    await useAuthStore().refresh()
+    await flushPromises()
+
+    expect(wrapper.find('.settings-row--change-password').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('sophie@exemple.fr')
+  })
+
   it('s’intitule « Compte », propose la déconnexion et revient à la liste des Paramètres', async () => {
     const wrapper = await monter()
 

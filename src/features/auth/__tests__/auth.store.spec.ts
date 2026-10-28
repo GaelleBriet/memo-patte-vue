@@ -24,6 +24,7 @@ import { googleCredentials } from '@/core/google-sign-in/google-credentials'
 import { signInWithGoogle } from '../service/google-sign-in.service'
 import { provideAuthRepository, useAuthStore } from '../store/auth.store'
 import { readPlusAccount, writePlusAccount } from '../logic/plus-account-storage'
+import { readSessionReset, writeSessionReset } from '../logic/session-reset-flag'
 import { memoryStorage, OTHER_USER_ID, USER_ID } from './auth-fixture'
 
 const ACCOUNT_KEYS = [PLUS_STATUS_STORAGE_KEY, PLUS_NUDGE_STORAGE_KEY, USAGE_SIGNALS_STORAGE_KEY]
@@ -62,6 +63,7 @@ vi.mock('../repository/auth.repository', () => ({
     refreshSession: vi.fn<AuthRepository['refreshSession']>(),
     accountIdentity: vi.fn<AuthRepository['accountIdentity']>(),
     onSessionChange: vi.fn<AuthRepository['onSessionChange']>(),
+    onSessionUnreadable: vi.fn<AuthRepository['onSessionUnreadable']>(),
   },
 }))
 
@@ -164,6 +166,36 @@ describe('useAuthStore', () => {
 
       expect(store.sessionState).toBe('needs-sign-in')
       expect(readPlusAccount()).toEqual({ userId: USER_ID })
+    })
+
+    it('signale une session illisible et demande de se reconnecter', async () => {
+      repository.restoreSession.mockResolvedValueOnce({
+        kind: 'active',
+        session: { userId: USER_ID },
+      })
+      const store = useAuthStore()
+      await store.restore()
+      expect(store.sessionUnreadable).toBe(false)
+
+      repository.onSessionUnreadable.mock.lastCall?.[0]()
+
+      expect(store.sessionUnreadable).toBe(true)
+      expect(store.sessionState).toBe('needs-sign-in')
+      expect(readPlusAccount()).toEqual({ userId: USER_ID })
+      expect(readSessionReset()).toBe(true)
+    })
+
+    it('garde le signal après un redémarrage, jusqu’à la prochaine connexion réussie', async () => {
+      writeSessionReset()
+      repository.restoreSession.mockResolvedValueOnce({ kind: 'needs-sign-in' })
+      const store = useAuthStore()
+      await store.restore()
+      expect(store.sessionUnreadable).toBe(true)
+
+      supabaseEndsOrRefreshesSession({ userId: USER_ID })
+
+      expect(store.sessionUnreadable).toBe(false)
+      expect(readSessionReset()).toBe(false)
     })
 
     it('ne laisse pas l’adresse de l’erreur Supabase dans les traces', async () => {
