@@ -5,6 +5,43 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.138](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.137...memo-patte-v0.1.138) (2026-10-28)
+
+
+### ✨ Fonctionnalités
+
+* **auth:** adapter la phrase de suppression du compte à l'achat Plus ([19aa351](https://github.com/GaelleBriet/memo-patte-vue/commit/19aa3517fe929cc7c00602c865099e74992f120e))
+* **plus:** afficher un droit Plus offert, sans lien Google Play ([f089e03](https://github.com/GaelleBriet/memo-patte-vue/commit/f089e03e819e4016064c11fe752017a6dd97927b))
+* **plus:** dire « Plus offert — terminé » et taire Google Play après un droit offert ([a2b0d4e](https://github.com/GaelleBriet/memo-patte-vue/commit/a2b0d4e10e15d4825b2edb22080eed3edbd3b86b))
+* **purchase:** afficher un droit Plus offert sans lien Google Play ([dc98e49](https://github.com/GaelleBriet/memo-patte-vue/commit/dc98e49f69414034518df3fc2fa19fc9e492b54a))
+* **sync:** lancer le ménage des photos du cloud à la connexion d'un carnet lié ([2dadfd7](https://github.com/GaelleBriet/memo-patte-vue/commit/2dadfd78f7cd98502451e3e1c34e17b47d6bd497))
+* **sync:** lister le dossier cloud des photos du compte, page par page ([eb2c335](https://github.com/GaelleBriet/memo-patte-vue/commit/eb2c3357b9b35bb1826da0da3bcc18aba7b47d5a))
+* **sync:** lister les photos que garde une ligne d'animal, supprimé compris ([2b842ca](https://github.com/GaelleBriet/memo-patte-vue/commit/2b842cadb81bbccc429dc1748fd7713e50154ab1))
+* **sync:** ménage des photos du cloud qu'aucune fiche ne porte depuis 7 jours ([1989ac6](https://github.com/GaelleBriet/memo-patte-vue/commit/1989ac6fc6c9f49b2495f9e58b6b67c9c591a7ea))
+
+
+### 🐛 Corrections
+
+* **pdf:** décalage « · sans effet » et fin de période lus comme la fiche ([1918b4d](https://github.com/GaelleBriet/memo-patte-vue/commit/1918b4ddfc4e36f33e86719e83409eb6a683ee32))
+* **pdf:** décalage « · sans effet » et fin de période lus comme la fiche ([48bbfc3](https://github.com/GaelleBriet/memo-patte-vue/commit/48bbfc3e8c3570c56e4876dc87d59ad1882326fc))
+* **plus:** plus de lien « Gérer mon abonnement » pour un achat à vie ([7f2555c](https://github.com/GaelleBriet/memo-patte-vue/commit/7f2555c3e627eae9a6d77665a9ebb10321060c5f))
+* **purchase:** la fin de Plus constatée app ouverte reprend l'échéance passée ([c7c6ed7](https://github.com/GaelleBriet/memo-patte-vue/commit/c7c6ed7941a3d9cd940ab6d8cce77b452beebd4c))
+* **purchase:** la fin de Plus constatée app ouverte reprend l'échéance passée ([0084b8d](https://github.com/GaelleBriet/memo-patte-vue/commit/0084b8d5dca8e38631d4edeaf39fe35977080c16))
+* **purchase:** relire le statut Plus au retour du réseau, app restée ouverte ([f6b54f5](https://github.com/GaelleBriet/memo-patte-vue/commit/f6b54f56e57607d3a2a71dd5db1ae25fff3f4697))
+* **purchase:** un abonnement Google Play en cours l'emporte sur un droit offert ([6417f60](https://github.com/GaelleBriet/memo-patte-vue/commit/6417f6078e25c197d04b793407f50374ad5d87c8))
+* **sync:** aucun ménage des photos quand le cloud ne rend aucune fiche ([55c94a7](https://github.com/GaelleBriet/memo-patte-vue/commit/55c94a714aa0bd53dbc87390d3d87868bde9bd97))
+* **sync:** aucune reprise de restauration tant qu'une reconnexion est demandée ([5ca7101](https://github.com/GaelleBriet/memo-patte-vue/commit/5ca7101dd4d3876bf5325c19196fa6c121e70613))
+* **sync:** aucune reprise de restauration tant que la session est expirée ([f55de88](https://github.com/GaelleBriet/memo-patte-vue/commit/f55de88d815fb4955b0393d1d28cd154309cbfc7))
+* **sync:** lancer un cycle de synchro dès que Plus passe à actif ([af6e1f4](https://github.com/GaelleBriet/memo-patte-vue/commit/af6e1f48894e1f29d232477fb9d8a3506d30039b))
+* **sync:** ménage des photos du cloud orphelines à la connexion ([e365a57](https://github.com/GaelleBriet/memo-patte-vue/commit/e365a5747fc2c88a6290e6941a1ec1444bedcb28))
+* **sync:** seule une session expirée retient la reprise de la restauration ([300e50f](https://github.com/GaelleBriet/memo-patte-vue/commit/300e50f204137a88ba4f912fd5588ee3b5d60e1e))
+* **sync:** synchro dès que Plus devient actif, statut relu au retour du réseau ([4c69eef](https://github.com/GaelleBriet/memo-patte-vue/commit/4c69eefe5041a66a48ffcc28e71f04090f2119f0))
+* **traitements:** la suppression d'un traitement et son « Annuler » passent par la file ([aadf67c](https://github.com/GaelleBriet/memo-patte-vue/commit/aadf67cce0e3778a6a526c272b5dcdc7008d66b1))
+* **traitements:** la suppression d'un traitement et son « Annuler » passent par la file ([c9e866f](https://github.com/GaelleBriet/memo-patte-vue/commit/c9e866f64670e0020347b35cf615c3f2bc19ae3e))
+* **traitements:** le toast d'un décalage supprimé dit la reprise des doses suivantes ([4b3b511](https://github.com/GaelleBriet/memo-patte-vue/commit/4b3b51177d4cce308d1bbb12fa752f455132399a))
+* **traitements:** texte du toast après suppression d'un décalage ([1eb7627](https://github.com/GaelleBriet/memo-patte-vue/commit/1eb7627a49c38754d078a0dfde844e592e2fe58b))
+* **treatments:** la fin affichée d'une période ne dépasse ni son arrêt ni sa fin ([144520e](https://github.com/GaelleBriet/memo-patte-vue/commit/144520e82283e2a22f7637088e6b890ac54e042d))
+
 ## [0.1.137](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.136...memo-patte-v0.1.137) (2026-10-28)
 
 
