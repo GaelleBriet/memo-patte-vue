@@ -154,7 +154,21 @@ const COURT = carnet(2, 1, 6)
 const LONG = carnet(25, 20, 40)
 const DEBORDEMENTS = [
   ...Array.from({ length: 46 }, (_, count) => carnet(count, 3, 8)),
-  ...Array.from({ length: 46 }, (_, count) => carnet(3, count, 8)),
+  ...Array.from({ length: 14 }, (_, count) => count).flatMap((count) =>
+    Array.from({ length: 6 }, (_, arretes) =>
+      Array.from({ length: 4 }, (_, longs) => {
+        const base = carnet(3, count, 8)
+        return {
+          ...base,
+          treatments: [
+            ...base.treatments,
+            ...Array.from({ length: arretes }, () => ARRETE),
+            ...Array.from({ length: longs }, () => TRAITEMENT_LONG),
+          ],
+        }
+      }),
+    ).flat(),
+  ),
 ]
 const NOMS_LONGS = Array.from({ length: 40 }, (_, count) => carnetAuxNomsLongs(count))
 const MOT_SANS_ESPACE = avec({
@@ -303,7 +317,7 @@ describe('renderCarnetPdf — pages', () => {
       const defauts: string[] = []
       for (const content of contents) {
         pages(content).forEach((page, index) => {
-          const lieu = `${content.vaccinations.length} vaccins, page ${index + 1}`
+          const lieu = `${content.vaccinations.length} vaccins, ${content.treatments.length} traitements, page ${index + 1}`
           const pied = hautDuPied(page)
           const enTete = index > 0 ? enTeteDeSuite(page) : []
           if (index > 0 && enTete.length === 0) defauts.push(`pas d’en-tête, ${lieu}`)
@@ -400,7 +414,7 @@ describe('renderCarnetPdf — pages', () => {
             page.paths.some((path) => visible(pathBounds(path)))
           if (!suite) {
             defauts.push(
-              `${titre.text} seul, ${content.vaccinations.length} vaccins, p. ${index + 1}`,
+              `${titre.text} seul, ${content.vaccinations.length} vaccins, ${content.treatments.length} traitements, p. ${index + 1}`,
             )
           }
         }
