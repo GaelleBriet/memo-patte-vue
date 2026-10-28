@@ -1731,7 +1731,13 @@
       "submit": "Se connecter",
       "loading": "Connexion en cours…",
       "toggle": "Pas encore de compte ?",
-      "toggleAction": "Créer un compte"
+      "toggleAction": "Créer un compte",
+      "existingData": {
+        "title": "Ce téléphone a déjà un carnet",
+        "body": "En te connectant, le carnet de ce téléphone et celui du compte seront réunis : animaux, soins et rappels des deux. Se déconnecter ensuite ne les séparera pas. Ne te connecte que sur ton propre téléphone.",
+        "cancel": "Annuler",
+        "continue": "Continuer"
+      }
     },
     "signUp": {
       "title": "Créer un compte",
