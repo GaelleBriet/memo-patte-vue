@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 
 import type { PaidPlan, PlusOffer } from '../service/billing.service'
 import { plusCheckout } from '../service/checkout.service'
+import { usePlusMemberText } from '../composables/use-plus-status-text'
 import { usePurchaseRestore } from '../composables/use-purchase-restore'
 import type { PlusStatus } from '../logic/plus-status'
 import { authAvailable } from '@/shared/utils/auth-available'
@@ -37,6 +38,7 @@ const resumed = plusCheckout.resume()
 const { t } = useI18n()
 const router = useRouter()
 const purchase = usePurchaseStore()
+const memberStatus = usePlusMemberText()
 const { isRestoring, restore, resumeRestore } = usePurchaseRestore('plus', afterRestore)
 
 const phase = ref<Phase>('offers')
@@ -168,9 +170,10 @@ onMounted(() => {
         <v-icon icon="ms:workspace_premium" size="40" />
       </span>
       <h2 class="plus-member__title">{{ t('plus.member.title') }}</h2>
-      <p class="plus-member__status">{{ t(`plus.member.${purchase.status.plan}`) }}</p>
+      <p class="plus-member__status">{{ memberStatus }}</p>
 
       <a
+        v-if="!purchase.status.offered"
         class="plus-member__manage"
         :href="MANAGE_SUBSCRIPTIONS_URL"
         target="_blank"

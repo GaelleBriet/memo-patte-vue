@@ -173,3 +173,18 @@ describe('statut Plus en préférence locale', () => {
     expect(readPlusEndedAt()).toBe(newer)
   })
 })
+
+describe('statut Plus en préférence locale, droit offert', () => {
+  it('se souvient qu’un droit est offert', () => {
+    const fin = new Date(2027, 10, 29, 9).toISOString()
+    writeStoredPlusStatus({ plan: 'monthly', expiresAt: fin, offered: true })
+
+    expect(readStoredPlusStatus()).toMatchObject({ plan: 'monthly', expiresAt: fin, offered: true })
+  })
+
+  it('n’écrit rien de plus pour un abonnement payé', () => {
+    writeStoredPlusStatus({ plan: 'annual', expiresAt: new Date(2027, 8, 14, 10).toISOString() })
+
+    expect(readStoredPlusStatus()).not.toHaveProperty('offered')
+  })
+})

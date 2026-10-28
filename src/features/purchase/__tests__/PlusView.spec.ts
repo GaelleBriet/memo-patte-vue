@@ -472,6 +472,34 @@ describe('PlusView — déjà abonné', () => {
   })
 })
 
+describe('PlusView — droit offert', () => {
+  it('dit le droit offert et sa fin, sans lien vers Google Play', async () => {
+    writeStoredPlusStatus({
+      plan: 'monthly',
+      expiresAt: new Date(2026, 10, 29, 9).toISOString(),
+      offered: true,
+    })
+    const wrapper = await monter()
+
+    expect(wrapper.get('.plus-member__status').text()).toBe('Plus offert jusqu’au 29/11/2026')
+    expect(wrapper.find('.plus-member__manage').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Gérer mon abonnement')
+    expect(service.listOffers).not.toHaveBeenCalled()
+  })
+
+  it('dit un droit offert « à vie » sans date de fin', async () => {
+    writeStoredPlusStatus({
+      plan: 'annual',
+      expiresAt: new Date(2226, 9, 29, 9).toISOString(),
+      offered: true,
+    })
+    const wrapper = await monter()
+
+    expect(wrapper.get('.plus-member__status').text()).toBe('Plus offert, sans date de fin')
+    expect(wrapper.find('.plus-member__manage').exists()).toBe(false)
+  })
+})
+
 describe('PlusView — achat', () => {
   beforeEach(() => {
     provideCheckoutAccount(compte(USER_ID))

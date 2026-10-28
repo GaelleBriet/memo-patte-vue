@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { plusStatusLabel } from '../logic/plus-status-label'
+import { plusMemberLabel, plusStatusLabel } from '../logic/plus-status-label'
 import { NO_PLUS } from '../logic/plus-status'
 
 describe('plusStatusLabel', () => {
@@ -38,5 +38,59 @@ describe('plusStatusLabel', () => {
     ['annual', 'plus.member.annual'],
   ] as const)('nomme un abonnement %s dont l’échéance est inconnue', (plan, key) => {
     expect(plusStatusLabel({ plan, expiresAt: null }, null)).toEqual({ key, expiresAt: null })
+  })
+})
+
+const NOW = new Date(2026, 9, 29, 9)
+
+describe('plusStatusLabel, droit offert', () => {
+  it('donne la fin d’un mois offert', () => {
+    const fin = new Date(2026, 10, 29, 9).toISOString()
+
+    expect(plusStatusLabel({ plan: 'monthly', expiresAt: fin, offered: true }, null, NOW)).toEqual({
+      key: 'plus.settings.status.offered',
+      expiresAt: fin,
+    })
+  })
+
+  it('tait une fin à plus de 50 ans', () => {
+    const fin = new Date(2226, 9, 29, 9).toISOString()
+
+    expect(plusStatusLabel({ plan: 'annual', expiresAt: fin, offered: true }, null, NOW)).toEqual({
+      key: 'plus.settings.status.offeredNoEnd',
+      expiresAt: null,
+    })
+  })
+
+  it('donne encore la fin à 50 ans tout juste', () => {
+    const fin = new Date(2076, 9, 29, 9).toISOString()
+
+    expect(plusStatusLabel({ plan: 'annual', expiresAt: fin, offered: true }, null, NOW)?.key).toBe(
+      'plus.settings.status.offered',
+    )
+  })
+
+  it('dit sans date de fin un droit offert que RevenueCat ne date pas', () => {
+    expect(
+      plusStatusLabel({ plan: 'lifetime', expiresAt: null, offered: true }, null, NOW),
+    ).toEqual({ key: 'plus.settings.status.offeredNoEnd', expiresAt: null })
+  })
+})
+
+describe('plusMemberLabel', () => {
+  it('nomme l’abonnement payé', () => {
+    expect(plusMemberLabel({ plan: 'annual', expiresAt: '2027-09-14T10:00:00Z' }, NOW)).toEqual({
+      key: 'plus.member.annual',
+      expiresAt: null,
+    })
+  })
+
+  it('dit offert un droit offert, avec sa fin', () => {
+    const fin = new Date(2026, 10, 29, 9).toISOString()
+
+    expect(plusMemberLabel({ plan: 'monthly', expiresAt: fin, offered: true }, NOW)).toEqual({
+      key: 'plus.settings.status.offered',
+      expiresAt: fin,
+    })
   })
 })

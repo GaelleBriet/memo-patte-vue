@@ -28,6 +28,7 @@ export const NO_STORED_PLUS: StoredPlusStatus = {
 const storedPlusStatusSchema = z.object({
   plan: z.enum(['none', 'monthly', 'annual', 'lifetime']),
   expiresAt: z.iso.datetime({ offset: true }).nullable(),
+  offered: z.boolean().optional(),
   lastSubscription: z.enum(['monthly', 'annual']).nullable().optional(),
   subscriptionEndedAt: z.iso.datetime({ offset: true }).nullable().optional(),
 })
@@ -38,6 +39,7 @@ function complete(status: WritablePlusStatus): StoredPlusStatus {
   return {
     plan: status.plan,
     expiresAt: status.expiresAt,
+    ...(status.offered ? { offered: true } : {}),
     lastSubscription,
     subscriptionEndedAt:
       lastSubscription === null

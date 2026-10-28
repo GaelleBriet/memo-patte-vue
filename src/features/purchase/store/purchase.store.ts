@@ -42,8 +42,9 @@ export const usePurchaseStore = defineStore('purchase', () => {
   const now = ref(Date.now())
   /** Une échéance passée se lit « aucun » ; le stocké reste, pour retrouver un renouvellement. */
   const status = computed<PlusStatus>(() => {
-    const { plan, expiresAt } = stored.value
-    return expiresAt !== null && Date.parse(expiresAt) <= now.value ? NO_PLUS : { plan, expiresAt }
+    const { plan, expiresAt, offered } = stored.value
+    if (expiresAt !== null && Date.parse(expiresAt) <= now.value) return NO_PLUS
+    return offered ? { plan, expiresAt, offered } : { plan, expiresAt }
   })
   /** Abonnement échu, que `status` lit déjà « aucun » : de quoi écrire « expiré ». */
   const expiredPlan = computed<SubscriptionPlan | null>(() =>

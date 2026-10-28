@@ -3,6 +3,8 @@ import { differenceInDays, parseISO } from 'date-fns'
 
 const PLUS_ENTITLEMENT = 'plus'
 
+const OFFERED_STORE = 'PROMOTIONAL'
+
 export type PlusPlan = 'none' | 'monthly' | 'annual' | 'lifetime'
 
 export type SubscriptionPlan = 'monthly' | 'annual'
@@ -11,6 +13,8 @@ export type PlusStatus = {
   plan: PlusPlan
   /** ISO 8601, `null` pour « aucun » et « à vie ». */
   expiresAt: string | null
+  /** Droit offert depuis RevenueCat : rien à gérer dans Google Play. */
+  offered?: boolean
 }
 
 export const NO_PLUS: PlusStatus = { plan: 'none', expiresAt: null }
@@ -33,6 +37,9 @@ function subscriptionPlan(plus: PurchasesEntitlementInfo, expiresAt: string): Su
 export function plusStatusFrom(customerInfo: CustomerInfo): PlusStatus {
   const plus = customerInfo.entitlements.active[PLUS_ENTITLEMENT]
   if (!plus) return NO_PLUS
-  if (plus.expirationDate === null) return { plan: 'lifetime', expiresAt: null }
-  return { plan: subscriptionPlan(plus, plus.expirationDate), expiresAt: plus.expirationDate }
+  const status: PlusStatus =
+    plus.expirationDate === null
+      ? { plan: 'lifetime', expiresAt: null }
+      : { plan: subscriptionPlan(plus, plus.expirationDate), expiresAt: plus.expirationDate }
+  return plus.store === OFFERED_STORE ? { ...status, offered: true } : status
 }

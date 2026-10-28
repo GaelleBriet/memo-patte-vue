@@ -58,3 +58,17 @@ describe('ManageSubscriptionSection', () => {
     expect(monter().find('a').exists()).toBe(false)
   })
 })
+
+describe('ManageSubscriptionSection — droit offert', () => {
+  it.each([
+    ['un mois offert', { ...MONTHLY, offered: true }],
+    [
+      'un droit offert « à vie »',
+      { plan: 'annual', expiresAt: '2226-10-29T09:00:00Z', offered: true },
+    ],
+  ] satisfies [string, PlusStatus][])('ne renvoie pas vers Google Play pour %s', (_, status) => {
+    writeStoredPlusStatus(status)
+
+    expect(monter().find('a').exists()).toBe(false)
+  })
+})

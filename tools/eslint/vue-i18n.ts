@@ -58,7 +58,7 @@ const DYNAMIC_I18N_KEYS = [
   '/^plus\\.benefits\\.(backup|devices|photos|pdf)$/',
   '/^plus\\.offers\\.(monthly|annual|lifetime)\\.(label|price|detail|terms|submit)$/',
   '/^plus\\.member\\.(monthly|annual|lifetime)$/',
-  '/^plus\\.settings\\.status\\.(monthly|annual|lifetime|expiredMonthly|expiredAnnual)$/',
+  '/^plus\\.settings\\.status\\.(monthly|annual|lifetime|expiredMonthly|expiredAnnual|offered|offeredNoEnd)$/',
   '/^plus\\.nudge\\.(firstPhoto|carnetValue|firstExport)\\.(title|body)$/',
   '/^plus\\.(success|cancelled|failed)\\.(title|body)$/',
   '/^auth\\.accountFirst\\.offer\\.(monthly|annual|lifetime)$/',

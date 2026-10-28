@@ -3,12 +3,15 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { MANAGE_SUBSCRIPTIONS_URL } from '@/shared/utils/google-play'
+import { subscriptionOf } from '../logic/plus-status'
 import { usePurchaseStore } from '../store/purchase.store'
 
 const { t } = useI18n()
 const purchase = usePurchaseStore()
 
-const isSubscribed = computed(() => ['monthly', 'annual'].includes(purchase.status.plan))
+const isSubscribed = computed(
+  () => subscriptionOf(purchase.status) !== null && !purchase.status.offered,
+)
 </script>
 
 <template>

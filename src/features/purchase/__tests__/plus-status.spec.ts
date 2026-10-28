@@ -72,3 +72,39 @@ describe('plusStatusFrom', () => {
     expect(plusStatusFrom(customerInfo(grace)).plan).toBe('annual')
   })
 })
+
+describe('plusStatusFrom, droit offert dans RevenueCat', () => {
+  const POSE_LE = new Date(2026, 9, 29, 9).toISOString()
+
+  function offered(expirationDate: string | null) {
+    return entitlement({
+      store: 'PROMOTIONAL',
+      productIdentifier: 'rc_promo_plus_monthly',
+      productPlanIdentifier: null,
+      latestPurchaseDate: POSE_LE,
+      expirationDate,
+      willRenew: false,
+    })
+  }
+
+  it('reconnaît un mois offert et garde sa fin', () => {
+    const fin = new Date(2026, 10, 29, 9).toISOString()
+
+    expect(plusStatusFrom(customerInfo(offered(fin)))).toEqual({
+      plan: 'monthly',
+      expiresAt: fin,
+      offered: true,
+    })
+  })
+
+  it('reconnaît un droit offert « à vie », daté de deux siècles par RevenueCat', () => {
+    const status = plusStatusFrom(customerInfo(offered(new Date(2226, 9, 29, 9).toISOString())))
+
+    expect(status.offered).toBe(true)
+    expect(status.plan).not.toBe('none')
+  })
+
+  it('ne dit pas offert un abonnement payé dans Google Play', () => {
+    expect(plusStatusFrom(customerInfo(entitlement())).offered).toBeUndefined()
+  })
+})
