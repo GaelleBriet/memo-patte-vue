@@ -83,13 +83,84 @@ describe('le compte a-t-il une sauvegarde ?', () => {
     tablet.db.close()
   })
 
-  it('compte vide : le carnet du téléphone part vers le cloud', async () => {
+  it('compte vide : rien ne part tant que « Envoyer » n’est pas touché', async () => {
     await phone.animals.create({ name: 'Milo', species: 'dog' })
+
+    await expect(phone.backup.check()).resolves.toEqual({
+      kind: 'confirm-send',
+      animalCount: 1,
+      firstName: 'Milo',
+    })
+    await phone.sync()
+
+    await expect(phone.outbox.isEnabled()).resolves.toBe(false)
+    await expect(phone.outbox.listPending()).resolves.toEqual([])
+    expect(server.rows('animal')).toEqual([])
+  })
+
+  it('compte vide, « Envoyer » touché : le carnet du téléphone part vers le cloud', async () => {
+    await phone.animals.create({ name: 'Milo', species: 'dog' })
+    await phone.backup.check()
+
+    await expect(phone.backup.confirmSend()).resolves.toEqual({ kind: 'seeded' })
+    await phone.sync()
+
+    expect(server.rows('animal').map(({ name }) => name)).toEqual(['Milo'])
+  })
+
+  it('téléphone sans animal sur un compte vide : la synchro s’active sans question', async () => {
+    await expect(phone.backup.check()).resolves.toEqual({ kind: 'seeded' })
+
+    await expect(phone.outbox.isEnabled()).resolves.toBe(true)
+  })
+
+  it('seulement des animaux supprimés sur le téléphone : aucune question, rien du carnet ne part', async () => {
+    const milo = await phone.animals.create({ name: 'Milo', species: 'dog' })
+    await phone.animals.remove(milo.id)
 
     await expect(phone.backup.check()).resolves.toEqual({ kind: 'seeded' })
     await phone.sync()
 
+    await expect(phone.outbox.isEnabled()).resolves.toBe(true)
+    expect(server.rows('animal')).toEqual([])
+  })
+
+  it('un animal visible et un supprimé : « Envoyer » n’envoie pas le supprimé', async () => {
+    await phone.animals.create({ name: 'Milo', species: 'dog' })
+    const luna = await phone.animals.create({ name: 'Luna', species: 'cat' })
+    await phone.animals.remove(luna.id)
+
+    await expect(phone.backup.check()).resolves.toMatchObject({
+      kind: 'confirm-send',
+      animalCount: 1,
+    })
+    await phone.backup.confirmSend()
+    await phone.sync()
+
     expect(server.rows('animal').map(({ name }) => name)).toEqual(['Milo'])
+  })
+
+  it('app relancée pendant la question : la question revient, rien n’est parti', async () => {
+    await phone.animals.create({ name: 'Milo', species: 'dog' })
+    await phone.backup.check()
+
+    await expect(phone.backup.check()).resolves.toMatchObject({ kind: 'confirm-send' })
+    await phone.sync()
+
+    expect(server.rows('animal')).toEqual([])
+  })
+
+  it('une sauvegarde apparue pendant la question : « Envoyer » ne fusionne pas en silence', async () => {
+    await phone.animals.create({ name: 'Milo', species: 'dog' })
+    await tablet.animals.create({ name: 'Luna', species: 'cat' })
+    await phone.backup.check()
+    await tablet.outbox.enableAndQueueWholeCarnet()
+    await tablet.sync()
+
+    await expect(phone.backup.confirmSend()).resolves.toMatchObject({ kind: 'backup-found' })
+
+    await expect(phone.outbox.isEnabled()).resolves.toBe(false)
+    expect(server.rows('animal').map(({ name }) => name)).toEqual(['Luna'])
   })
 
   it('seule la fiche d’un téléphone sur le compte : ce n’est pas une sauvegarde', async () => {

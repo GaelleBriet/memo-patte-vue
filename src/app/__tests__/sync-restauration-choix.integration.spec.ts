@@ -171,6 +171,30 @@ describe('restauration avec un carnet sur le téléphone', () => {
     tablet.db.close()
   })
 
+  describe('sauvegarde disparue entre le choix et la reprise', () => {
+    it.each(['merge', 'replace'] as const)(
+      '« %s » : rien n’est écrit ni mis en file, le contrôle de la sauvegarde est refait',
+      async (mode) => {
+        await tablet.repositories.animals.create({ name: 'Pistache', species: 'cat' })
+        await tablet.restore.start(mode)
+        const relaunched = await createPhone(
+          createFakeSyncServer(),
+          TABLET_ID,
+          tablet.db,
+          tablet.choiceSnapshot,
+        )
+
+        await expect(relaunched.restore.run()).resolves.toBe('backup-gone')
+
+        expect((await tablet.rows('animal')).map(({ name }) => name)).toEqual(['Pistache'])
+        await expect(tablet.outbox.restoreMode()).resolves.toBeNull()
+        await expect(tablet.outbox.isEnabled()).resolves.toBe(false)
+        await expect(tablet.outbox.listPending()).resolves.toEqual([])
+        await expect(relaunched.backup.check()).resolves.toMatchObject({ kind: 'confirm-send' })
+      },
+    )
+  })
+
   describe('« Remplacer »', () => {
     it('le carnet du téléphone devient celui de la sauvegarde, effacé pour de bon, rappels reconstruits', async () => {
       const pistache = await tablet.repositories.animals.create({

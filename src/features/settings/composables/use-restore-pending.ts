@@ -19,6 +19,9 @@ export function useRestorePending(
   const router = useRouter()
 
   const state = computed(() => flow()?.state.value ?? null)
+  const sendQuestion = computed(() =>
+    state.value?.step === 'send-confirmation' ? state.value : null,
+  )
   const isLocal = computed(() => status.value?.kind === 'local')
   const isPending = computed(() => state.value?.step === 'choice')
   const isWaitingNetwork = computed(
@@ -36,6 +39,7 @@ export function useRestorePending(
     () =>
       isLocal.value &&
       !isPending.value &&
+      sendQuestion.value === null &&
       !isWaitingNetwork.value &&
       !isWaitingSignIn.value &&
       restoreProgress.value === null &&
@@ -47,5 +51,13 @@ export function useRestorePending(
     void router.push(restoreRoute('settings-backup'))
   }
 
-  return { isPending, isWaitingNetwork, isWaitingSignIn, restoreProgress, showsLocalBackup, choose }
+  return {
+    isPending,
+    sendQuestion,
+    isWaitingNetwork,
+    isWaitingSignIn,
+    restoreProgress,
+    showsLocalBackup,
+    choose,
+  }
 }

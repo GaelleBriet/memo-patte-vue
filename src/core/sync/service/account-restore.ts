@@ -3,7 +3,12 @@ import type { RestoreMode } from '../repository/sync-state.repository'
 import type { LocalSyncOutbox } from './local-sync-outbox'
 import { normalizeSyncTimestamps } from './normalize-sync-timestamps'
 import type { RestoreChoiceSnapshot } from './restore-choice-snapshot'
-import type { RemoteBackupReads, SyncRow, SyncableTable } from './syncable-table'
+import {
+  syncField,
+  type RemoteBackupReads,
+  type SyncRow,
+  type SyncableTable,
+} from './syncable-table'
 
 const PAGE_SIZE = 500
 const EPOCH = '1970-01-01T00:00:00.000Z'
@@ -12,8 +17,9 @@ const KEPT_ON_REPLACE = 'device'
 export type { RestoreMode }
 
 /** `nothing-to-restore` : rien d'écrit (ni choix, ni compte, ou compte changé entre-temps) ;
- * `carnet-changed` : « Remplacer » abandonné, le carnet du téléphone a changé depuis le choix. */
-export type RestoreRunResult = 'restored' | 'nothing-to-restore' | 'carnet-changed'
+ * `carnet-changed` : « Remplacer » abandonné, le carnet du téléphone a changé depuis le choix ;
+ * `backup-gone` : le compte n'a plus d'animal, le choix est abandonné et la sauvegarde à recontrôler. */
+export type RestoreRunResult = 'restored' | 'nothing-to-restore' | 'carnet-changed' | 'backup-gone'
 
 export interface RestoreProgress {
   done: number
@@ -109,6 +115,13 @@ export function createAccountRestore(deps: AccountRestoreDependencies) {
     return [...before, ...erased, ...applied, ...after]
   }
 
+  function hasLiveAnimal(downloaded: DownloadedTable[]): boolean {
+    const animals = downloaded.find(({ table }) => table.entity === 'animal')
+    return (
+      animals !== undefined && animals.rows.some((row) => syncField(row, 'deleted_at') === null)
+    )
+  }
+
   async function carnetChangedSinceChoice(): Promise<boolean> {
     return deps.choiceSnapshot.read() !== (await deps.outbox.carnetFingerprint())
   }
@@ -119,6 +132,11 @@ export function createAccountRestore(deps: AccountRestoreDependencies) {
     if (mode === null || userId === null) return 'nothing-to-restore'
     const downloaded = await download(userId)
     if (deps.userId() !== userId) return 'nothing-to-restore'
+    if (!hasLiveAnimal(downloaded)) {
+      await deps.outbox.cancelRestore()
+      deps.choiceSnapshot.clear()
+      return 'backup-gone'
+    }
     if (mode === 'replace' && (await carnetChangedSinceChoice())) {
       await deps.outbox.cancelRestore()
       deps.choiceSnapshot.clear()

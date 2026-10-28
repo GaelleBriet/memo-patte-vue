@@ -40,6 +40,13 @@ export function createLocalSyncOutbox(db: DbClient) {
       ])
     },
 
+    async enableAndQueueLiveCarnet(): Promise<void> {
+      await db.runMany([
+        ...syncState.enableFromStartStatements(),
+        ...outbox.queueLiveCarnetStatements(),
+      ])
+    },
+
     /**
      * Autour du carnet tiré : synchro coupée pendant l'écriture. Avant l'écriture, « Fusionner »
      * met en file tout le carnet du téléphone et ses photos, « Remplacer » seulement ses appareils.

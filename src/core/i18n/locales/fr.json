@@ -1361,6 +1361,7 @@
         "interrupted": {
           "title": "Reconnecte-toi pour reprendre la sauvegarde",
           "hint": "Interrompue depuis {when}. Rien n’est perdu.",
+          "hintSessionReset": "La session enregistrée n’a pas pu être lue. Reconnecte-toi ; si ça se reproduit, redémarre ton téléphone. Rien n’est perdu.",
           "signIn": "Se reconnecter",
           "exportHint": "Conseillé tant que la sauvegarde est interrompue"
         },
@@ -1728,6 +1729,9 @@
     }
   },
   "auth": {
+    "session": {
+      "reset": "Connexion fermée : la session n’a pas pu être lue. Ton carnet reste sur ce téléphone."
+    },
     "intro": "Un compte MémoPatte sert à garder tes carnets en sécurité dans le cloud et à les retrouver sur tous tes appareils.",
     "signIn": {
       "title": "Connexion",
@@ -1740,6 +1744,12 @@
         "body": "En te connectant, le carnet de ce téléphone et celui du compte seront réunis : animaux, soins et rappels des deux. Se déconnecter ensuite ne les séparera pas. Ne te connecte que sur ton propre téléphone.",
         "cancel": "Annuler",
         "continue": "Continuer"
+      },
+      "sendLocal": {
+        "title": "Envoyer le carnet de ce téléphone dans ton compte ?",
+        "body": "Le carnet de {name} sera sauvegardé dans le cloud de ce compte. | Les carnets de tes {n} animaux seront sauvegardés dans le cloud de ce compte.",
+        "cancel": "Annuler",
+        "confirm": "Envoyer"
       }
     },
     "signUp": {

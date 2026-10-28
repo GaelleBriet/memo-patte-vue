@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 
-import { AUTH_STORAGE_KEY } from './auth-storage'
+import { AUTH_STORAGE_KEY, authStorage } from './auth-storage'
 
 const url = import.meta.env.VITE_SUPABASE_URL
 const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
@@ -14,5 +14,5 @@ if (!url || !publishableKey) {
 }
 
 export default createClient(url, publishableKey, {
-  auth: { storageKey: AUTH_STORAGE_KEY },
+  auth: { storageKey: AUTH_STORAGE_KEY, storage: authStorage },
 })

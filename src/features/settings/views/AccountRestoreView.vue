@@ -4,8 +4,10 @@ import { useI18n } from 'vue-i18n'
 
 import ChoiceCards from './ChoiceCards.vue'
 import RestoreProgressCard from './RestoreProgressCard.vue'
+import SendCarnetDialog from './SendCarnetDialog.vue'
 import { useAccountRestore } from '../composables/use-account-restore'
 import { useMergeReplaceChoices } from '../composables/use-merge-replace-choices'
+import { useSendCarnetConfirmation } from '../composables/use-send-carnet-confirmation'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import ExportCopyChoice from '@/shared/components/ExportCopyChoice.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
@@ -24,6 +26,8 @@ const {
   signIn,
   later,
 } = useAccountRestore()
+
+const send = useSendCarnetConfirmation()
 
 const groupLabelId = useId()
 </script>
@@ -127,6 +131,13 @@ const groupLabelId = useId()
       </div>
     </template>
   </PushedScreen>
+
+  <SendCarnetDialog
+    v-model="send.isOpen.value"
+    :text="send.text.value"
+    @confirm="send.confirm"
+    @cancel="send.cancel"
+  />
 
   <ConfirmDialog
     v-model="isConfirmOpen"

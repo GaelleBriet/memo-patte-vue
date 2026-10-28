@@ -1361,6 +1361,7 @@
         "interrupted": {
           "title": "Sign back in to resume backup",
           "hint": "Interrupted since {when}. Nothing is lost.",
+          "hintSessionReset": "The saved session could not be read. Sign in again; if it happens again, restart your phone. Nothing is lost.",
           "signIn": "Sign in again",
           "exportHint": "Recommended while backup is interrupted"
         },
@@ -1728,6 +1729,9 @@
     }
   },
   "auth": {
+    "session": {
+      "reset": "Signed out: the session could not be read. Your health record stays on this phone."
+    },
     "intro": "A MémoPatte account keeps your health records safe in the cloud and available on all your devices.",
     "signIn": {
       "title": "Sign in",
@@ -1740,6 +1744,12 @@
         "body": "Signing in brings together this phone’s health record and the account’s: animals, care and reminders from both. Signing out afterwards will not separate them. Only sign in on your own phone.",
         "cancel": "Cancel",
         "continue": "Continue"
+      },
+      "sendLocal": {
+        "title": "Send this phone’s health record to your account?",
+        "body": "{name}’s health record will be backed up in this account’s cloud. | Your {n} animals’ health records will be backed up in this account’s cloud.",
+        "cancel": "Cancel",
+        "confirm": "Send"
       }
     },
     "signUp": {

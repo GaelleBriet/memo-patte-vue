@@ -104,6 +104,21 @@ describe('parcours de restauration', () => {
     expect(restored).not.toHaveBeenCalled()
   })
 
+  it('sauvegarde disparue depuis le choix : redemande le contrôle, rien n’est annoncé prêt', async () => {
+    const runner = fakeRunner({ run: vi.fn<RestoreRunner['run']>(async () => 'backup-gone') })
+    const flow = createRestoreFlow(runner)
+    const restored = vi.fn<() => void>()
+    const retried = vi.fn<() => void>()
+    flow.onRestored(restored)
+    flow.onRetryCheck(retried)
+    await runner.start('merge')
+
+    await expect(flow.resume()).resolves.toBe(false)
+
+    expect(retried).toHaveBeenCalledOnce()
+    expect(restored).not.toHaveBeenCalled()
+  })
+
   it('rien à restaurer : le carnet n’est pas annoncé prêt, le parcours repart de rien', async () => {
     const runner = fakeRunner({
       run: vi.fn<RestoreRunner['run']>(async () => 'nothing-to-restore'),
@@ -436,6 +451,97 @@ describe('parcours de restauration', () => {
       flow.offer(SUMMARY)
 
       expect(flow.state.value).toEqual({ step: 'choice', summary: SUMMARY })
+    })
+  })
+
+  describe('envoi du carnet du téléphone', () => {
+    const SEND = { animalCount: 2, firstName: 'Milo' }
+
+    it('pose la question sans rien envoyer ni signaler', () => {
+      const flow = createRestoreFlow(fakeRunner())
+      const confirmed = vi.fn<() => void>()
+      flow.onSendConfirmed(confirmed)
+
+      flow.askSend(SEND)
+
+      expect(flow.state.value).toEqual({ step: 'send-confirmation', ...SEND })
+      expect(confirmed).not.toHaveBeenCalled()
+    })
+
+    it('« Envoyer » repasse par le contrôle et prévient une seule fois, même touché deux fois', () => {
+      const flow = createRestoreFlow(fakeRunner())
+      const confirmed = vi.fn<() => void>()
+      flow.onSendConfirmed(confirmed)
+      flow.askSend(SEND)
+
+      flow.confirmSend()
+      flow.confirmSend()
+
+      expect(confirmed).toHaveBeenCalledOnce()
+      expect(flow.state.value).toEqual({ step: 'checking', chosen: false })
+    })
+
+    it('« Envoyer » sans question posée ne fait rien', () => {
+      const flow = createRestoreFlow(fakeRunner())
+      const confirmed = vi.fn<() => void>()
+      flow.onSendConfirmed(confirmed)
+
+      flow.confirmSend()
+
+      expect(confirmed).not.toHaveBeenCalled()
+      expect(flow.state.value).toEqual({ step: 'idle' })
+    })
+
+    it('« Annuler » déconnecte une seule fois, même touché deux fois, et ferme la question', async () => {
+      const signOut = vi.fn<() => Promise<void>>(async () => {})
+      const flow = createRestoreFlow(fakeRunner(), () => false, signOut)
+      flow.askSend(SEND)
+
+      await Promise.all([flow.cancelSend(), flow.cancelSend()])
+
+      expect(signOut).toHaveBeenCalledOnce()
+      expect(flow.state.value).toEqual({ step: 'idle' })
+    })
+
+    it('« Annuler » ferme la question avant la fin de la déconnexion', async () => {
+      let finish: () => void = () => {}
+      const signOut = vi.fn<() => Promise<void>>(
+        () => new Promise<void>((resolve) => (finish = resolve)),
+      )
+      const flow = createRestoreFlow(fakeRunner(), () => false, signOut)
+      flow.askSend(SEND)
+
+      const cancelling = flow.cancelSend()
+
+      expect(flow.state.value).toEqual({ step: 'idle' })
+      finish()
+      await cancelling
+    })
+
+    it('une déconnexion qui échoue ne rouvre pas la question et ne lève pas', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+      const flow = createRestoreFlow(
+        fakeRunner(),
+        () => false,
+        async () => {
+          throw new Error('réseau coupé')
+        },
+      )
+      flow.askSend(SEND)
+
+      await expect(flow.cancelSend()).resolves.toBeUndefined()
+      expect(flow.state.value).toEqual({ step: 'idle' })
+      warn.mockRestore()
+    })
+
+    it('la question attend sa réponse : le contrôle ne la considère pas comme terminée', async () => {
+      const flow = createRestoreFlow(fakeRunner())
+      flow.checking()
+      const answer = flow.whenChecked()
+
+      flow.askSend(SEND)
+
+      await expect(answer).resolves.toEqual({ step: 'send-confirmation', ...SEND })
     })
   })
 })

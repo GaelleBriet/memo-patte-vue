@@ -14,7 +14,7 @@ function setup({
   signedIn?: boolean
   pending?: number
   refused?: number
-  failing?: 'notifications' | 'database' | 'photos' | 'analytics' | 'outbox'
+  failing?: 'notifications' | 'database' | 'photos' | 'analytics' | 'outbox' | 'session'
 } = {}) {
   const steps: string[] = []
   const step =
@@ -47,6 +47,7 @@ function setup({
       eraseAllStatements: () => SYNC,
     }),
     account: { isSignedIn: () => signedIn, signOut: step('signOut') },
+    session: { forget: step('forgetSession', failing === 'session') },
     notifications: {
       cancelAll: step('cancelNotifications', failing === 'notifications'),
       rebuild: step('rebuildReminders'),
@@ -109,6 +110,7 @@ describe('effacement', () => {
     await service.erase()
 
     expect(steps).toEqual([
+      'forgetSession',
       'cancelNotifications',
       'database:2',
       'photos',
@@ -128,12 +130,39 @@ describe('effacement', () => {
     expect(steps).toContain('database:2')
   })
 
+  it('oublie la session même sans compte Plus sur l’appareil (mot de passe oublié)', async () => {
+    const { service, steps } = setup({ signedIn: false })
+
+    await service.erase()
+
+    expect(steps[0]).toBe('forgetSession')
+    expect(steps).not.toContain('signOut')
+  })
+
+  it('oublie la session après la déconnexion d’un abonné', async () => {
+    const { service, steps } = setup({ signedIn: true })
+
+    await service.erase()
+
+    expect(steps.slice(0, 2)).toEqual(['signOut', 'forgetSession'])
+  })
+
+  it('continue l’effacement quand la session ne s’oublie pas', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { service, steps } = setup({ failing: 'session' })
+
+    await service.erase()
+
+    expect(steps).toContain('database:2')
+    expect(steps.at(-1)).toBe('restart')
+  })
+
   it('ne touche à rien d’autre quand les notifications ne s’annulent pas', async () => {
     const { service, steps, restart } = setup({ failing: 'notifications' })
 
     await expect(service.erase()).rejects.toThrow('cancelNotifications en échec')
 
-    expect(steps).toEqual(['cancelNotifications'])
+    expect(steps).toEqual(['forgetSession', 'cancelNotifications'])
     expect(restart).not.toHaveBeenCalled()
   })
 
@@ -142,7 +171,12 @@ describe('effacement', () => {
 
     await expect(service.erase()).rejects.toThrow('base en échec')
 
-    expect(steps).toEqual(['cancelNotifications', 'database:2', 'rebuildReminders'])
+    expect(steps).toEqual([
+      'forgetSession',
+      'cancelNotifications',
+      'database:2',
+      'rebuildReminders',
+    ])
     expect(restart).not.toHaveBeenCalled()
   })
 
@@ -153,6 +187,7 @@ describe('effacement', () => {
     await service.erase()
 
     expect(steps).toEqual([
+      'forgetSession',
       'cancelNotifications',
       'database:2',
       'photos',

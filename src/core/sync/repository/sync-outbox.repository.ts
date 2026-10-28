@@ -30,6 +30,24 @@ function queueWholeTable(entity: string): SqlStatement {
   }
 }
 
+const LIVE_ANIMALS = 'SELECT id FROM animal WHERE deleted_at IS NULL'
+
+function queueLiveTable(entity: string): SqlStatement {
+  const source =
+    entity === 'device'
+      ? ''
+      : entity === 'carnet_settings'
+        ? `WHERE EXISTS (${LIVE_ANIMALS})`
+        : entity === 'animal'
+          ? 'WHERE deleted_at IS NULL'
+          : `WHERE deleted_at IS NULL AND animal_id IN (${LIVE_ANIMALS})`
+  return {
+    sql: `INSERT OR IGNORE INTO sync_outbox (entity, entity_id, queued_at)
+          SELECT ?, id, updated_at FROM ${entity} ${source}`,
+    params: [entity],
+  }
+}
+
 /** Heure de mise en file, pas date de l'animal : le délai avant d'effacer une photo du cloud en part. */
 function queueLiveAnimalPhotos(): SqlStatement {
   return {
@@ -68,6 +86,15 @@ export function createSyncOutboxRepository(db: DbClient) {
      */
     queueWholeCarnetStatements(): SqlStatement[] {
       return [RETRY_REFUSED, ...SYNC_ENTITY_ORDER.map(queueWholeTable), queueLiveAnimalPhotos()]
+    },
+
+    /**
+     * Premier envoi vers un compte vide : la fiche de l'appareil, puis seulement ce qui est visible
+     * (animaux non supprimés, leurs lignes non supprimées, leurs photos) ; sans animal visible,
+     * rien d'autre que l'appareil. Les suppressions n'ont rien à effacer sur un compte vide.
+     */
+    queueLiveCarnetStatements(): SqlStatement[] {
+      return [RETRY_REFUSED, ...SYNC_ENTITY_ORDER.map(queueLiveTable), queueLiveAnimalPhotos()]
     },
 
     /** Les photos déjà en file y restent : celles à effacer du cloud ne doivent pas y rester orphelines. */

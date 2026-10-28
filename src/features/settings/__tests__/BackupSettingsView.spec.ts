@@ -284,6 +284,7 @@ describe('BackupSettingsView', () => {
     const SAVED: BackupFacts = {
       eligible: true,
       signInNeeded: false,
+      sessionReset: false,
       online: true,
       syncEnabled: true,
       lastSyncedAt: new Date(2026, 9, 23, 8, 25).toISOString(),
@@ -371,6 +372,7 @@ describe('BackupSettingsView', () => {
       const wrapper = await monterAbonné({
         ...SAVED,
         signInNeeded: true,
+        sessionReset: false,
         lastSyncedAt: new Date(2026, 9, 22, 18, 20).toISOString(),
       })
 
@@ -385,6 +387,15 @@ describe('BackupSettingsView', () => {
       await wrapper.get('.backup-settings__sign-in').trigger('click')
 
       expect(push).toHaveBeenCalledWith({ name: 'sign-in', query: { from: 'settings-backup' } })
+    })
+
+    it('session illisible : la carte interrompue explique pourquoi, avec « Se reconnecter »', async () => {
+      const wrapper = await monterAbonné({ ...SAVED, signInNeeded: true, sessionReset: true })
+
+      expect(carteÉtat(wrapper)).toBe(
+        'Reconnecte-toi pour reprendre la sauvegarde La session enregistrée n’a pas pu être lue. Reconnecte-toi ; si ça se reproduit, redémarre ton téléphone. Rien n’est perdu.',
+      )
+      expect(wrapper.find('.backup-settings__sign-in').exists()).toBe(true)
     })
 
     it('hors ligne pendant la première sauvegarde : pas encore « Photos sauvegardées »', async () => {
@@ -494,6 +505,7 @@ describe('BackupSettingsView', () => {
       const wrapper = await monterAbonné({
         ...SAVED,
         signInNeeded: true,
+        sessionReset: false,
         lastSyncedAt: new Date(2026, 9, 22, 18, 20).toISOString(),
       })
 
@@ -544,6 +556,30 @@ describe('BackupSettingsView', () => {
       expect(bloc(wrapper).classes()).toContain('backup-settings__status--warning')
       expect(wrapper.get('.backup-settings__restore-choose').text()).toBe('Choisir')
       expect(wrapper.find('.backup-settings__restore-choose .v-btn__prepend').exists()).toBe(true)
+    })
+
+    it('pendant la question d’envoi du carnet, la propose avec « Choisir » et masque « Ton carnet est sur ce téléphone »', async () => {
+      parcours().askSend({ animalCount: 2, firstName: 'Milo' })
+      const wrapper = await monter()
+
+      expect(
+        wrapper
+          .get('.backup-settings__send-pending')
+          .findAll('.settings-row__label, .settings-row__hint')
+          .map((line) => line.text().replace(/\s+/g, ' '))
+          .join(' '),
+      ).toBe(
+        'Envoyer le carnet de ce téléphone dans ton compte ? Les carnets de tes 2 animaux seront sauvegardés dans le cloud de ce compte.',
+      )
+      expect(wrapper.find('.backup-settings__restore-pending').exists()).toBe(false)
+      expect(wrapper.text()).not.toContain('Ton carnet est sur ce téléphone')
+
+      await wrapper.get('.backup-settings__send-choose').trigger('click')
+
+      expect(push).toHaveBeenCalledWith({
+        name: 'account-restore',
+        query: { from: 'settings-backup' },
+      })
     })
 
     it('« Choisir » ouvre « Restaurer mon carnet », qui ramène à la Sauvegarde', async () => {
@@ -599,6 +635,7 @@ describe('BackupSettingsView', () => {
       const PLUS_EN_ATTENTE: BackupFacts = {
         eligible: true,
         signInNeeded: false,
+        sessionReset: false,
         online: true,
         syncEnabled: false,
         lastSyncedAt: null,
@@ -665,6 +702,7 @@ describe('BackupSettingsView', () => {
     const PLUS_SANS_SAUVEGARDE: BackupFacts = {
       eligible: true,
       signInNeeded: false,
+      sessionReset: false,
       online: false,
       syncEnabled: false,
       lastSyncedAt: null,
@@ -841,6 +879,7 @@ describe('BackupSettingsView', () => {
     const PLUS_SANS_SAUVEGARDE: BackupFacts = {
       eligible: true,
       signInNeeded: false,
+      sessionReset: false,
       online: true,
       syncEnabled: false,
       lastSyncedAt: null,

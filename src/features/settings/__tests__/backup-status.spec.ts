@@ -13,6 +13,7 @@ const YESTERDAY_6_20_PM = '2026-10-22T16:20:00.000Z'
 const SAVED: BackupFacts = {
   eligible: true,
   signInNeeded: false,
+  sessionReset: false,
   online: true,
   syncEnabled: true,
   lastSyncedAt: YESTERDAY_6_20_PM,
@@ -72,14 +73,23 @@ describe('backupStatusOf', () => {
     })
   })
 
+  it('garde la session illisible dans l’état interrompu', () => {
+    expect(backupStatusOf({ ...SAVED, signInNeeded: true, sessionReset: true })).toMatchObject({
+      kind: 'interrupted',
+      sessionReset: true,
+    })
+  })
+
   it('interrompue depuis le dernier cycle réussi quand la session est refusée, même hors ligne', () => {
     expect(backupStatusOf({ ...SAVED, signInNeeded: true, online: false })).toEqual({
       kind: 'interrupted',
       since: YESTERDAY_6_20_PM,
+      sessionReset: false,
     })
     expect(backupStatusOf({ ...FIRST_BACKUP, signInNeeded: true })).toEqual({
       kind: 'interrupted',
       since: null,
+      sessionReset: false,
     })
   })
 })
@@ -96,7 +106,9 @@ describe('showsPhotosBackedUp', () => {
 
   it('pas pendant la première sauvegarde, ni quand elle est interrompue', () => {
     expect(showsPhotosBackedUp({ kind: 'first-backup', done: 120, total: 348 })).toBe(false)
-    expect(showsPhotosBackedUp({ kind: 'interrupted', since: YESTERDAY_6_20_PM })).toBe(false)
+    expect(
+      showsPhotosBackedUp({ kind: 'interrupted', since: YESTERDAY_6_20_PM, sessionReset: false }),
+    ).toBe(false)
   })
 })
 

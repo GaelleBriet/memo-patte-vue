@@ -15,6 +15,7 @@ export type AccountBackupCheck =
   | { kind: 'signed-out' }
   | { kind: 'active' }
   | { kind: 'seeded' }
+  | { kind: 'confirm-send'; animalCount: number; firstName: string }
   | { kind: 'unreachable' }
   | { kind: 'restore-pending'; mode: RestoreMode }
   | { kind: 'backup-found'; summary: BackupSummary }
@@ -27,6 +28,7 @@ export interface SyncDependencies {
   userId: () => string | null
   sessionActive: () => boolean
   checkAccountBackup: () => Promise<AccountBackupCheck>
+  confirmCarnetSend: () => Promise<AccountBackupCheck>
   restoreFlow: Pick<
     RestoreFlow,
     | 'state'
@@ -34,6 +36,8 @@ export interface SyncDependencies {
     | 'noAnswer'
     | 'onRetryCheck'
     | 'offer'
+    | 'askSend'
+    | 'onSendConfirmed'
     | 'unreachable'
     | 'reset'
     | 'resume'
@@ -52,6 +56,7 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
   const scheduler = createSyncScheduler({ runCycle: deps.runCycle })
   let accountWork: Promise<void> = Promise.resolve()
   let checkedFor: string | null = null
+  let sendConfirmedFor: string | null = null
 
   const enqueue = (task: () => Promise<void>) => {
     accountWork = accountWork.then(task)
@@ -68,13 +73,15 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
     await deps.restoreFlow.resume()
   }
 
-  async function checkBackup(): Promise<void> {
+  async function checkBackup(check: () => Promise<AccountBackupCheck>): Promise<void> {
     const checkedUserId = deps.userId()
     try {
-      const outcome = await answeredInTime(deps.checkAccountBackup())
+      const outcome = await answeredInTime(check())
       if (deps.userId() !== checkedUserId) return
+      if (outcome !== null && outcome.kind !== 'unreachable') sendConfirmedFor = null
       if (outcome === null) deps.restoreFlow.noAnswer()
       else if (outcome.kind === 'backup-found') deps.restoreFlow.offer(outcome.summary)
+      else if (outcome.kind === 'confirm-send') deps.restoreFlow.askSend(outcome)
       else if (outcome.kind === 'restore-pending') await runRestore()
       else if (outcome.kind === 'active') restorePhotos()
       else if (outcome.kind === 'unreachable') {
@@ -101,7 +108,9 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
     if (!deps.sessionActive() || userId === null || checkedFor === userId) return
     checkedFor = userId
     deps.restoreFlow.checking()
-    enqueue(checkBackup)
+    enqueue(() =>
+      checkBackup(sendConfirmedFor === userId ? deps.confirmCarnetSend : deps.checkAccountBackup),
+    )
   }
 
   function onComeback(): void {
@@ -113,6 +122,10 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
   const stopRestored = deps.restoreFlow.onRestored(() => {
     scheduler.notifyChange()
     restorePhotos({ visible: true })
+  })
+  const stopSendConfirmed = deps.restoreFlow.onSendConfirmed(() => {
+    sendConfirmedFor = deps.userId()
+    enqueue(() => checkBackup(deps.confirmCarnetSend))
   })
   const stopRetry = deps.restoreFlow.onRetryCheck(() => {
     checkedFor = null
@@ -133,6 +146,7 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
       const previous = before ? before.userId : userId
       if (userId !== previous) {
         checkedFor = null
+        sendConfirmedFor = null
         deps.restoreFlow.reset()
         if (previous !== null) {
           const forgotten = forgetPreviousAccount(deps.outbox)
@@ -149,6 +163,7 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
 
   return () => {
     stopRestored()
+    stopSendConfirmed()
     stopRetry()
     stopRestoreRetry()
     stopResume()

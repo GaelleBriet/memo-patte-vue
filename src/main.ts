@@ -11,6 +11,7 @@ import { installReminderActions, reminderActions } from '@/app/reminder-actions'
 import { installLaunchPriming, installRemindersPriming } from '@/app/reminders-priming'
 import { installRestorePrompt } from '@/app/restore-prompt'
 import { installRemindersSync } from '@/app/reminders-sync'
+import { installSessionResetNotice } from '@/app/session-reset-notice'
 import { createDefaultSyncDependencies } from '@/app/sync'
 import { initAnalytics } from '@/core/analytics'
 import { installBackButton } from '@/core/app-lifecycle/back-button'
@@ -50,6 +51,7 @@ provideWeightRepository(getWeightRepository)
 provideTreatmentsRepository(getTreatmentsRepository)
 provideCarnetSettingsRepository(getCarnetSettingsRepository)
 installRemindersPriming()
+installSessionResetNotice()
 
 const app = createApp(App)
 
