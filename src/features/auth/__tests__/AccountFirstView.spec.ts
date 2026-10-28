@@ -6,6 +6,8 @@ import { createMemoryHistory, createRouter, createWebHistory, type Router } from
 import { authRepository, type AuthRepository } from '../repository/auth.repository'
 import { signInWithGoogle } from '../service/google-sign-in.service'
 import { writePlusAccount } from '../logic/plus-account-storage'
+import type { AnimalsRepository } from '@/features/animals/repository/animals.repository'
+import { provideAnimalsRepository } from '@/features/animals/store/animals.store'
 import { provideAuthRepository } from '../store/auth.store'
 import AccountFirstView from '../views/AccountFirstView.vue'
 import { memoryStorage, USER_ID } from './auth-fixture'
@@ -33,6 +35,7 @@ vi.mock('../service/google-sign-in.service', () => ({
 
 const googleSignIn = vi.mocked(signInWithGoogle)
 provideAuthRepository(() => authRepository)
+provideAnimalsRepository(() => ({ list: async () => [] }) as unknown as AnimalsRepository)
 const Vide = { render: () => null }
 
 // Prix volontairement différents des tarifs français : seul Google Play les fournit.

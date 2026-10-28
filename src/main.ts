@@ -20,6 +20,7 @@ import { restoreWeightUnit } from '@/core/preferences/weight-unit-preference'
 import { errorSummary } from '@/shared/utils/error-summary'
 import vuetify from '@/core/theme/vuetify'
 import i18n, { applyLocale, detectLocale } from '@/core/i18n'
+import { provideExportCopy } from '@/core/export-copy/export-copy-port'
 import { getAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { cleanOrphanPhotosOnLaunch } from '@/features/animals/service/orphan-photos-cleanup.service'
 import { provideAnimalsRepository } from '@/features/animals/store/animals.store'
@@ -29,6 +30,7 @@ import { backfillCareSignalOnLaunch } from '@/features/home/service/care-signal-
 import { provideCheckoutAccount } from '@/features/purchase/service/checkout.service'
 import { installPlusAccountLink } from '@/features/purchase/service/plus-account-link.service'
 import { installPlusStatusRefresh } from '@/features/purchase/service/plus-status-refresh.service'
+import { useExportCopy } from '@/features/settings/composables/use-export-copy'
 import { clearExports } from '@/features/settings/service/export-delivery.service'
 import { getCarnetSettingsRepository } from '@/features/settings/repository/carnet-settings.repository'
 import { provideCarnetSettingsRepository } from '@/features/settings/store/carnet-settings.store'
@@ -41,6 +43,7 @@ import { provideWeightRepository } from '@/features/weight/store/weight.store'
 import '@/styles/main.scss'
 
 provideAnimalsRepository(getAnimalsRepository)
+provideExportCopy(useExportCopy)
 provideAuthRepository(() => authRepository)
 provideVaccinationsRepository(getVaccinationsRepository)
 provideWeightRepository(getWeightRepository)
