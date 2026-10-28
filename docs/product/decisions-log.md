@@ -4499,3 +4499,56 @@ Décision de la session d'analyse du moteur (Q73), pour appliquer la planche V21
 - Un autre téléphone qui n'a jamais vu l'abonnement montre la rubrique d'un gratuit : accepté.
 - Alternatives écartées : lire `plus_entitlements.expires_at` côté serveur (une lecture de plus, rien hors ligne) ; prolonger le souvenir de 30 jours à 12 mois (change la bannière de l'écran Plus, hors sujet).
 - Pour revenir dessus : `plus-pause.ts` (durée et calcul), `plus-pause-storage.ts` (préférence locale) et `BackupSettingsView.vue`.
+
+## 2026-10-28 — Session de connexion dans le Keystore Android, base du carnet non chiffrée (#1402, PR #1404)
+
+- La session de connexion (jeton, clés PKCE, utilisateur avec son e-mail) est rangée dans le Keystore d'Android par `@aparajita/capacitor-secure-storage` 8.0.1 (AES-GCM, clé de 128 bits). La base SQLite du carnet reste **non chiffrée** ; le registre des traitements (#88) le dit tel quel. — Raison (Gaelle) : « si les données de santé des animaux ne sont peut-être pas critiques, on ne chiffre pas, mais il faut a minima protéger les données sensibles (e-mail, mot de passe) ». La base ne contient ni jeton ni e-mail (analyse). — Alternative écartée : chiffrer toute la base (gros chantier, risque de blocage à l'ouverture, gain faible).
+- Pour revenir dessus : le stockage de session de `core/supabase/` et le registre des traitements (#88).
+
+## 2026-10-28 — Coffre illisible : déconnexion forcée, sans copie en clair (#1402, PR #1404, Q80)
+
+- Si le coffre est illisible en lecture : la copie en clair est effacée, l'entrée du coffre retirée, la connexion fermée avec le toast « Connexion fermée : … », et Paramètres › Sauvegarde montre la carte « Reconnecte-toi… ». Exemple : après une restauration Android qui perd les clés du Keystore, le compte de Luna et Milo est déconnecté au lancement, le carnet du téléphone reste intact.
+- Pas de toast sans compte Plus enregistré. Pas de carte pour un compte sans abonnement actif : décision de l'analyse du moteur (Q80), ticket #1410, après la sortie.
+- Décision de Gaelle : option 2 (déconnexion et avertissement). — Raison (analyse) : la copie en clair annulerait le gain du coffre. — Alternative écartée : garder la copie en clair pour survivre à une panne passagère.
+- Pour revenir dessus : le stockage de session de `core/supabase/`, #1402 et #1410.
+
+## 2026-10-28 — Connexion sur un téléphone qui a déjà un carnet : avertir avant, exporter avant de remplacer (PR #1406, #1414, Q79, Q82)
+
+- Un avertissement précède toute connexion quand le téléphone a déjà un carnet (cinq chemins de connexion, PR #1406). « Exporter une copie » est proposée avant « Remplacer » (le bouton reste rouge). Une deuxième confirmation précède l'envoi du carnet du téléphone dans un compte qui n'a pas de sauvegarde, posée même avant que Plus soit actif (Q79, Q82, PR #1414 ; décisions de l'analyse du moteur pour Q82). L'envoi se limite aux lignes vivantes.
+- Reporté après la sortie : carnet mis de côté, ou refus de la connexion (#1408). Le mode sans compte reste. PL-11, PL-15 et PL-16 sont inchangées.
+- Alternative écartée : connexion sans avertissement, qui laisserait remplacer ou envoyer un carnet sans que la personne le sache.
+- Pour revenir dessus : `auth/logic/existing-data-warning.ts`, `account-backup.service` et #1408.
+
+## 2026-10-28 — Copie de la base avant migration (#1115, #1413, #1218) : aucune copie sur GitHub
+
+- Option C, choisie par Gaelle (Q81) : aucune copie de la base dans GitHub. À la mise en vente de Plus : Supabase Pro (#1413, sauvegardes quotidiennes gardées 7 jours, UE), et avant une migration à risque, copie manuelle par Gaelle vers un disque chiffré.
+- Raison (analyse) : sur un dépôt public, un artefact est téléchargeable par tout compte GitHub connecté ; un dépôt privé garde l'historique Git, et une suppression n'y est pas garantie sans le support GitHub ; GitHub deviendrait un sous-traitant hors UE pour un gain nul face à Supabase Pro.
+- Alternatives écartées : un artefact de la CI avant chaque migration ; un dépôt privé.
+- La phrase publiée au lancement (#1218) : « Nos copies de sécurité techniques, chiffrées […], sont renouvelées sous 7 jours ».
+- Pour revenir dessus : #1115 (fermé, non retenu ; branche `chore/dump-avant-migration-1115` non mergée) et #1413.
+
+## 2026-10-28 — Le nouveau rythme compte depuis la dernière prise réelle (#1373, Q76)
+
+- Règle décidée par l'analyse du moteur, par délégation (Q76) : le 4 (le nouveau rythme part de la dernière prise réelle). Gaelle : à livrer en priorité dès la sortie. La première version garde le 6.
+- Pour revenir dessus : #1373.
+
+## 2026-10-28 — Données envoyées à RevenueCat et avec Plus : déclarées à la politique (#1218)
+
+- L'identifiant RevenueCat part dès l'ouverture de l'écran Plus : déclaré tel quel. Gaelle : ok. — Raison (analyse) : pratique courante. Le nom, l'identifiant et la date d'installation de l'appareil sont synchronisés avec Plus : à ajouter à la politique de confidentialité (#1218).
+- Pour revenir dessus : #1218 et la politique de confidentialité du site.
+
+## 2026-10-28 — Ménage des photos du cloud à la connexion (#1355, option C), à livrer
+
+- À livrer (#1355) : à la connexion, avec Plus actif, un fichier de plus de 7 jours est effacé du cloud si aucune fiche ne l'utilise, du cloud comme du téléphone, supprimée comprise, et si aucune fiche n'attend d'être envoyée. L'effacement est irréversible. Remplace la décision du 23 octobre (« Photos cloud : ménage par la file, délai de grâce de 7 jours ») et revient sur l'alternative écartée ce jour-là (lister le dossier cloud), l'âge de 7 jours écartant la course. Exemple : une photo de Milo remplacée il y a 10 jours est effacée à la prochaine connexion.
+- Alternatives écartées : B (garder les demandes après la déconnexion), A (effacer à la déconnexion), ne rien changer.
+- Pour revenir dessus : #1355 et l'entrée du 23 octobre.
+
+## 2026-10-28 — Webhook RevenueCat : recouvrement partiel entre secret et en-tête (#1412)
+
+- Le recouvrement partiel (caractères communs) entre le secret de signature et l'en-tête est traité après la sortie, #1412, avec un seuil de 16 caractères. Il s'ajoute à la comparaison sans casse, en-tête sans `Bearer `, dans la même fonction `signingSecretApartFrom` ; relecteur moteur obligatoire. Complète les entrées du 2026-10-26 (#1330, #1335).
+- Pour revenir dessus : `signingSecretApartFrom` dans `supabase/functions/revenuecat-webhook/` et #1412.
+
+## 2026-10-28 — Test fermé Play : compte organisation, testeurs saisis à la main
+
+- Le test fermé se fait avec le compte organisation. Les adresses des testeurs sont saisies à la main dans une liste d'e-mails de la Play Console ; pas de Google Group.
+- Pour revenir dessus : la piste de test fermé de la Play Console.
