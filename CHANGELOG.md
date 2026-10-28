@@ -5,6 +5,41 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.137](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.136...memo-patte-v0.1.137) (2026-10-28)
+
+
+### ✨ Fonctionnalités
+
+* **auth:** avertir avant la connexion quand le téléphone a déjà un carnet ([f81e4b2](https://github.com/GaelleBriet/memo-patte-vue/commit/f81e4b2621ab7dfe831ae824240f61754155f629))
+* **auth:** avertir avant la connexion quand le téléphone a déjà un carnet ([b109e36](https://github.com/GaelleBriet/memo-patte-vue/commit/b109e360390ff7b44aa9f6ac5889a2a7b76db797))
+* **auth:** avertir quand la session est illisible, toast et carte de sauvegarde ([bc4e7e4](https://github.com/GaelleBriet/memo-patte-vue/commit/bc4e7e45a9d23e08b215a55c88771490e8df0a68))
+* **auth:** demander l'envoi du carnet du téléphone dans un compte sans sauvegarde ([c764465](https://github.com/GaelleBriet/memo-patte-vue/commit/c764465aecf54c581d674750bbfa97c671bcdbe3))
+* **auth:** demander l'envoi du carnet du téléphone dans un compte sans sauvegarde ([da23b37](https://github.com/GaelleBriet/memo-patte-vue/commit/da23b37940695678cdc0094dc94f8824473d5fd5))
+* **auth:** session de connexion dans le Keystore Android ([07fecdc](https://github.com/GaelleBriet/memo-patte-vue/commit/07fecdc8c3531d11a8b724cf80b7ca0da221fb7c))
+* **auth:** session Supabase dans le Keystore Android, migration depuis le clair ([ec496ad](https://github.com/GaelleBriet/memo-patte-vue/commit/ec496add6d5acdafb4ac36ba3a181c6fd2104b38))
+* **export:** PDF et CSV dans l'ordre du Carnet ([584faf3](https://github.com/GaelleBriet/memo-patte-vue/commit/584faf399c20740209523f9b93e5a2f5e7cf2afa))
+* **export:** ranger le PDF et le CSV dans l'ordre du Carnet ([cc096bb](https://github.com/GaelleBriet/memo-patte-vue/commit/cc096bb90c2b83936a1f9e2860b1c8bcc24b975f))
+* **pdf:** section « Traitements terminés » en fin de carnet ([5fbb92f](https://github.com/GaelleBriet/memo-patte-vue/commit/5fbb92fd1725f7e902c0253c48c4ce5372f6cecf))
+* **pdf:** section « Traitements terminés » en fin de carnet ([b4aab35](https://github.com/GaelleBriet/memo-patte-vue/commit/b4aab35393813e8ad20e71f3a95e9102149edb90))
+* **sync:** ne mettre le carnet en file qu'après confirmation sur un compte vide ([1cee2c1](https://github.com/GaelleBriet/memo-patte-vue/commit/1cee2c113b13ac187991156457a62b6933426212))
+
+
+### 🐛 Corrections
+
+* **auth:** avertir aussi avant Google sur l'écran Plus et oublier l'action au retour ([8e1c86a](https://github.com/GaelleBriet/memo-patte-vue/commit/8e1c86add924e44a2754f2432baba966a9275dc1))
+* **auth:** effacer la copie en clair quand le coffre a déjà la session ([b450b5f](https://github.com/GaelleBriet/memo-patte-vue/commit/b450b5fc3394b07ef22523f5881bb4118352e718))
+* **auth:** garder le rouge de Remplacer et avertir si les animaux ne se lisent pas ([9f7c255](https://github.com/GaelleBriet/memo-patte-vue/commit/9f7c25583acb92c6436da677091127d0624f2a42))
+* **auth:** retirer l'entrée illisible du coffre, un seul signal, silence sans compte ([6608adb](https://github.com/GaelleBriet/memo-patte-vue/commit/6608adb06ebd184b0446b0884b3ff55df397d695))
+* **auth:** session illisible, copie en clair effacée et signal de déconnexion forcée ([63d36ad](https://github.com/GaelleBriet/memo-patte-vue/commit/63d36ad25d407e5eb12f4c2ec2ed0fbb00eb6f2e))
+* **plus:** comparer l'en-tête et le secret de signature sans tenir compte de la casse ([640de21](https://github.com/GaelleBriet/memo-patte-vue/commit/640de2184b571211d36c4c67a24abe8722cc24f3))
+* **plus:** dire dans le journal du webhook que le secret peut contenir l'en-tête ([16b567c](https://github.com/GaelleBriet/memo-patte-vue/commit/16b567ccdfebfb9464dacb528f9bee30a0c6d227))
+* **plus:** le webhook refuse aussi un secret de signature qui contient tout l'en-tête ([2adfeb6](https://github.com/GaelleBriet/memo-patte-vue/commit/2adfeb61d4e54a42c4d767260ce9b7844f9935fe))
+* **plus:** refuser aussi un secret de signature qui contient tout l'en-tête ([000b515](https://github.com/GaelleBriet/memo-patte-vue/commit/000b515ff19a1320ecafd51805a0f860df447b09))
+* **settings:** montrer la question d'envoi du carnet dans Sauvegarde ([75889e7](https://github.com/GaelleBriet/memo-patte-vue/commit/75889e796d40c85626f887abaa536148f3bc8b74))
+* **settings:** oublier la session en effaçant les données du téléphone ([4b86106](https://github.com/GaelleBriet/memo-patte-vue/commit/4b86106df56db551ae3f1205ec8a07b783a22210))
+* **sync:** n'envoyer que le carnet visible dans un compte vide ([340ad46](https://github.com/GaelleBriet/memo-patte-vue/commit/340ad4615cb4f73a0aca1343992d92499a88a3ae))
+* **sync:** rejouer l'envoi confirmé au retour du réseau ([58612b3](https://github.com/GaelleBriet/memo-patte-vue/commit/58612b35c66050351d87a7df317892360dee27a3))
+
 ## [0.1.136](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.135...memo-patte-v0.1.136) (2026-10-28)
 
 
