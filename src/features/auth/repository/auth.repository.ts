@@ -1,6 +1,7 @@
 import type { AuthError, Session, SupabaseClient } from '@supabase/supabase-js'
 
 import type { AppLocale } from '@/core/i18n'
+import { onSessionUnreadable } from '@/core/supabase/auth-storage'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 
 import { AccountError } from '../logic/account-error'
@@ -229,7 +230,7 @@ export function createAuthRepository({
 
     discardSession: revocation.discardSession,
     forgetSession: revocation.forgetSession,
-    onSessionUnreadable: revocation.onSessionUnreadable,
+    onSessionUnreadable,
 
     async restoreSession() {
       const { data, error } = await (await client()).auth.getSession()

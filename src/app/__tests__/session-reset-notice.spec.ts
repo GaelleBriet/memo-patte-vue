@@ -13,7 +13,11 @@ afterEach(() => {
 describe('avertissement de session illisible', () => {
   it('affiche le toast quand le signal est levé, pas avant', () => {
     let raise: () => void = () => {}
-    installSessionResetNotice((listener) => (raise = listener))
+    installSessionResetNotice(
+      (listener) => (raise = listener),
+      undefined,
+      () => true,
+    )
     expect(toastMessage.value).toBeNull()
 
     raise()
@@ -24,10 +28,27 @@ describe('avertissement de session illisible', () => {
     expect(toastTone.value).toBe('info')
   })
 
+  it('reste silencieux sans compte Plus sur l’appareil', () => {
+    let raise: () => void = () => {}
+    installSessionResetNotice(
+      (listener) => (raise = listener),
+      undefined,
+      () => false,
+    )
+
+    raise()
+
+    expect(toastMessage.value).toBeNull()
+  })
+
   it('parle anglais quand l’app est en anglais', () => {
     i18n.global.locale.value = 'en'
     let raise: () => void = () => {}
-    installSessionResetNotice((listener) => (raise = listener))
+    installSessionResetNotice(
+      (listener) => (raise = listener),
+      undefined,
+      () => true,
+    )
 
     raise()
 

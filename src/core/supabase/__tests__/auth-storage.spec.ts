@@ -129,6 +129,57 @@ describe('stockage de la session', () => {
       expect(unreadable).toHaveBeenCalledOnce()
     })
 
+    it('coffre toujours illisible : l’entrée est retirée et un seul signal part sur deux lectures', async () => {
+      const unreadable = vi.fn<() => void>()
+      onSessionUnreadable(unreadable)
+      vault.items.set(AUTH_STORAGE_KEY, 'chiffré')
+      legacy.setItem(AUTH_STORAGE_KEY, SESSION)
+      vault.get = async () => {
+        throw new Error('keystore indisponible')
+      }
+      const storage = createAuthStorage(vault, legacy)
+
+      await storage.getItem(AUTH_STORAGE_KEY)
+      await storage.getItem(AUTH_STORAGE_KEY)
+
+      expect(vault.items.has(AUTH_STORAGE_KEY)).toBe(false)
+      expect(legacy.getItem(AUTH_STORAGE_KEY)).toBeNull()
+      expect(unreadable).toHaveBeenCalledTimes(1)
+    })
+
+    it('signale de nouveau après une nouvelle session enregistrée', async () => {
+      const unreadable = vi.fn<() => void>()
+      onSessionUnreadable(unreadable)
+      const get = vault.get
+      vault.get = async () => {
+        throw new Error('keystore indisponible')
+      }
+      const storage = createAuthStorage(vault, legacy)
+      await storage.getItem(AUTH_STORAGE_KEY)
+      await storage.setItem(AUTH_STORAGE_KEY, SESSION)
+
+      await storage.getItem(AUTH_STORAGE_KEY)
+
+      expect(unreadable).toHaveBeenCalledTimes(2)
+      vault.get = get
+    })
+
+    it('vérifieur PKCE illisible : entrée retirée, rendu null, aucun signal', async () => {
+      const unreadable = vi.fn<() => void>()
+      onSessionUnreadable(unreadable)
+      const key = `${AUTH_STORAGE_KEY}-flow-a-code-verifier`
+      vault.items.set(key, 'chiffré')
+      vault.get = async () => {
+        throw new Error('keystore indisponible')
+      }
+      const storage = createAuthStorage(vault, legacy)
+
+      expect(await storage.getItem(key)).toBeNull()
+
+      expect(vault.items.has(key)).toBe(false)
+      expect(unreadable).not.toHaveBeenCalled()
+    })
+
     it('écriture impossible : rien n’est écrit en clair et l’appel ne lève pas', async () => {
       vault.set = async () => {
         throw new Error('keystore indisponible')

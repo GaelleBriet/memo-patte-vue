@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-import { forgetStoredSession, onSessionUnreadable } from '@/core/supabase/auth-storage'
+import { forgetStoredSession } from '@/core/supabase/auth-storage'
 import { errorSummary } from '@/shared/utils/error-summary'
 
 /** Hors ligne, Supabase retente le rafraîchissement pendant 30 s avant d'abandonner. */
@@ -35,7 +35,6 @@ export function createSessionRevocation(client: () => Promise<SupabaseClient>) {
 
   return {
     forgetSession: forgetStoredSession,
-    onSessionUnreadable,
 
     async signOut(): Promise<void> {
       const timeout = revocationTimeout()

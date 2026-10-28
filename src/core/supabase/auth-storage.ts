@@ -52,6 +52,20 @@ function signalUnreadableSession(): void {
 }
 
 export function createAuthStorage(vault: SessionVault, legacy?: Storage): SupportedStorage {
+  let signalled = false
+
+  async function dropUnreadable(key: string): Promise<void> {
+    try {
+      await vault.remove(key)
+    } catch (cause) {
+      console.warn('Session illisible non retirée du stockage sécurisé :', errorSummary(cause))
+    }
+    removeLegacy(legacy, key)
+    if (key !== AUTH_STORAGE_KEY || signalled) return
+    signalled = true
+    signalUnreadableSession()
+  }
+
   return {
     async getItem(key) {
       try {
@@ -63,8 +77,7 @@ export function createAuthStorage(vault: SessionVault, legacy?: Storage): Suppor
         if (!legacy) return null
       } catch (cause) {
         console.warn('Session illisible dans le stockage sécurisé :', errorSummary(cause))
-        removeLegacy(legacy, key)
-        signalUnreadableSession()
+        await dropUnreadable(key)
         return null
       }
       return migrateLegacy(vault, legacy, key)
@@ -72,6 +85,7 @@ export function createAuthStorage(vault: SessionVault, legacy?: Storage): Suppor
     async setItem(key, value) {
       try {
         await vault.set(key, value)
+        if (key === AUTH_STORAGE_KEY) signalled = false
       } catch (cause) {
         console.warn('Session non enregistrée dans le stockage sécurisé :', errorSummary(cause))
       }
@@ -86,19 +100,20 @@ export function createAuthStorage(vault: SessionVault, legacy?: Storage): Suppor
   }
 }
 
+let defaultStorage: SupportedStorage | null = null
+
+function currentStorage(): SupportedStorage {
+  if (defaultStorage === null) {
+    const { vault, legacy } = currentSessionVault()
+    defaultStorage = createAuthStorage(vault, legacy)
+  }
+  return defaultStorage
+}
+
 export const authStorage: SupportedStorage = {
-  getItem: (key) => {
-    const { vault, legacy } = currentSessionVault()
-    return createAuthStorage(vault, legacy).getItem(key)
-  },
-  setItem: (key, value) => {
-    const { vault, legacy } = currentSessionVault()
-    return createAuthStorage(vault, legacy).setItem(key, value)
-  },
-  removeItem: (key) => {
-    const { vault, legacy } = currentSessionVault()
-    return createAuthStorage(vault, legacy).removeItem(key)
-  },
+  getItem: (key) => currentStorage().getItem(key),
+  setItem: (key, value) => currentStorage().setItem(key, value),
+  removeItem: (key) => currentStorage().removeItem(key),
 }
 
 async function pendingPkceFlowIds(vault: SessionVault, legacy?: Storage): Promise<string[]> {
