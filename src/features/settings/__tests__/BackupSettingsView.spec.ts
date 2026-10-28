@@ -11,6 +11,7 @@ import router from '@/router'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { memoryStorage } from '@/features/purchase/__tests__/billing-fixture'
+import { writeStoredPlusStatus } from '@/features/purchase/logic/plus-status-storage'
 import { readUsageSignals } from '@/core/usage/usage-signals'
 import { showToast } from '@/shared/utils/toast'
 import { provideBackupFacts, type BackupFacts } from '@/core/sync/service/backup-facts'
@@ -54,18 +55,22 @@ let push: MockInstance
 let replace: MockInstance
 let wrapper: VueWrapper | null = null
 
-beforeEach(async () => {
-  exportData.mockReset()
-  vi.mocked(showToast).mockClear()
-  vi.stubGlobal('localStorage', memoryStorage())
+function withFreshPinia() {
   setActivePinia(createPinia())
   animalsStore = useAnimalsStore()
-  animals = [MILO]
   loadAnimals = vi.spyOn(animalsStore, 'load').mockImplementation(async () => {
     animalsStore.animals = animals
     animalsStore.hasLoaded = true
     return true
   })
+}
+
+beforeEach(async () => {
+  exportData.mockReset()
+  vi.mocked(showToast).mockClear()
+  vi.stubGlobal('localStorage', memoryStorage())
+  animals = [MILO]
+  withFreshPinia()
   await router.push({ name: 'settings-backup' })
   push = vi.spyOn(router, 'push').mockResolvedValue()
   replace = vi.spyOn(router, 'replace').mockResolvedValue()
@@ -1022,6 +1027,93 @@ describe('BackupSettingsView', () => {
 
       expect(wrapper.find('.backup-settings__restore-progress').exists()).toBe(false)
       expect(wrapper.find('.backup-settings__status').exists()).toBe(true)
+    })
+  })
+
+  describe('Plus arrêté', () => {
+    function arrêterPlus(expiresAt = new Date(2026, 8, 14, 10).toISOString()) {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 28, 9, 0) })
+      writeStoredPlusStatus({ plan: 'monthly', expiresAt })
+      withFreshPinia()
+    }
+
+    function texte(wrapper: VueWrapper) {
+      return wrapper.text().replace(/\s+/g, ' ').replaceAll(' ', ' ')
+    }
+
+    it('dit la pause, le risque, la date de conservation, puis Android, la copie et l’effacement', async () => {
+      arrêterPlus()
+      const wrapper = await monter()
+
+      expect(texte(wrapper)).toContain(
+        'Ta sauvegarde cloud est en pauseTes carnets restent sur ton téléphone.',
+      )
+      expect(texte(wrapper)).toContain('Depuis la pause, tes changements ne sont plus sauvegardés')
+      expect(texte(wrapper)).toContain(
+        'Ta dernière sauvegarde est conservée jusqu’au 14 sept. 2027. Réactive Plus pour reprendre là où elle s’était arrêtée.',
+      )
+      expect(texte(wrapper)).toContain('Sauvegarde d’Android')
+      expect(wrapper.find('.backup-settings__export').exists()).toBe(true)
+      expect(wrapper.get('.backup-settings__erase').text()).toContain(
+        'Ta sauvegarde cloud n’est pas touchée',
+      )
+      expect(wrapper.find('.backup-settings__local').exists()).toBe(false)
+      expect(wrapper.find('.backup-settings__discover').exists()).toBe(false)
+    })
+
+    it('« Réactiver Plus » ouvre l’écran Plus', async () => {
+      arrêterPlus()
+      const wrapper = await monter()
+      const bouton = wrapper.get('.backup-settings__reactivate')
+
+      expect(bouton.attributes('aria-label')).toBe('Réactiver MémoPatte Plus')
+      await bouton.trigger('click')
+
+      expect(push).toHaveBeenCalledWith({ name: 'plus' })
+    })
+
+    it('se lit en anglais', async () => {
+      i18n.global.locale.value = 'en'
+      arrêterPlus()
+      const wrapper = await monter()
+
+      expect(texte(wrapper)).toContain(
+        'Your cloud backup is pausedYour health records stay on your phone.',
+      )
+      expect(texte(wrapper)).toContain('Your last backup is kept until Sep 14, 2027.')
+      expect(wrapper.get('.backup-settings__reactivate').text()).toBe('Reactivate Plus')
+    })
+
+    it('redevient l’écran d’un gratuit une fois la date de conservation passée', async () => {
+      arrêterPlus(new Date(2025, 8, 1, 10).toISOString())
+      const wrapper = await monter()
+
+      expect(wrapper.find('.backup-settings__paused').exists()).toBe(false)
+      expect(wrapper.find('.backup-settings__local').exists()).toBe(true)
+    })
+
+    it('n’apparaît jamais pour qui n’a jamais eu Plus', async () => {
+      const wrapper = await monter()
+
+      expect(wrapper.find('.backup-settings__paused').exists()).toBe(false)
+      expect(wrapper.find('.backup-settings__local').exists()).toBe(true)
+    })
+
+    it('cède la place à « Restauration en attente », comme l’écran d’un gratuit', async () => {
+      arrêterPlus()
+      const flow = createRestoreFlow({
+        pendingMode: async () => null,
+        start: async () => {},
+        run: () => new Promise(() => {}),
+        progress: { done: 0, total: 0 },
+        onProgress: () => () => {},
+      })
+      provideRestoreFlow(flow)
+      flow.offer({ animalCount: 2, lastBackupAt: '2026-10-20T19:04:00.000Z' })
+      const wrapper = await monter()
+
+      expect(wrapper.find('.backup-settings__restore-pending').exists()).toBe(true)
+      expect(wrapper.find('.backup-settings__paused').exists()).toBe(false)
     })
   })
 })

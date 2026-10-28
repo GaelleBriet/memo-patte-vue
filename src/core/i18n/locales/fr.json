@@ -1373,7 +1373,15 @@
           "label": "Photos sauvegardées",
           "value": "Oui"
         },
-        "eraseHint": "Ta sauvegarde cloud n’est pas touchée"
+        "eraseHint": "Ta sauvegarde cloud n’est pas touchée",
+        "paused": {
+          "title": "Ta sauvegarde cloud est en pause",
+          "hint": "Tes carnets restent sur ton téléphone.",
+          "action": "Réactiver Plus",
+          "actionLabel": "Réactiver MémoPatte Plus",
+          "risk": "Depuis la pause, tes changements ne sont plus sauvegardés : si ce téléphone est perdu, ils peuvent l’être aussi.",
+          "kept": "Ta dernière sauvegarde est conservée jusqu’au {date}. Réactive Plus pour reprendre là où elle s’était arrêtée."
+        }
       }
     },
     "erase": {

@@ -4451,3 +4451,13 @@ Premier retour d'une utilisatrice, décision de Gaelle : les traitements sont pl
 - À l'accueil, « À faire » reste trié par urgence : en retard (le plus ancien d'abord), puis aujourd'hui, puis à venir dans les 30 jours ; à égalité, l'heure, puis le nom.
 - Ne change pas : le PDF et l'export CSV (vaccins avant traitements), à demander à Gaelle ; les captures du site et de la FAQ, qui montrent peut-être l'ancien ordre.
 - Pour revenir dessus : l'ordre des sections est dans `CarnetView.vue` ; le bloc terminé est `FinishedTreatmentsSection.vue`, alimenté par l'événement `finished` de `TreatmentsSection`.
+
+## 2026-10-28 — Paramètres › Sauvegarde : « En pause » dure 12 mois après la fin de Plus (#1201)
+
+Décision de la session d'analyse du moteur (Q73), pour appliquer la planche V21 quinquies telle que la spec Données la décrit (DO-12, PL-20).
+
+- Après la fin de Plus, Paramètres › Sauvegarde montre « Ta sauvegarde cloud est en pause » et « Ta dernière sauvegarde est conservée jusqu'au … » pendant 12 mois, puis redevient la rubrique d'un gratuit. Exemple : Plus mensuel fini le 14 septembre 2026, la phrase dit « 14 sept. 2027 » ; le 15 septembre 2027, l'écran est celui d'un gratuit. La date est le même jour 12 mois plus tard (le 29 février 2028 donne le 28 février 2029) ; si la fin de Plus est inconnue, seule cette phrase disparaît.
+- Le souvenir de 30 jours de l'écran Plus ne change pas : la fin de Plus est gardée à part, dans une préférence locale, pendant 12 mois. Aucune colonne, aucune migration, aucune lecture du serveur.
+- Un autre téléphone qui n'a jamais vu l'abonnement montre la rubrique d'un gratuit : accepté.
+- Alternatives écartées : lire `plus_entitlements.expires_at` côté serveur (une lecture de plus, rien hors ligne) ; prolonger le souvenir de 30 jours à 12 mois (change la bannière de l'écran Plus, hors sujet).
+- Pour revenir dessus : `plus-pause.ts` (durée et calcul), `plus-pause-storage.ts` (préférence locale) et `BackupSettingsView.vue`.
