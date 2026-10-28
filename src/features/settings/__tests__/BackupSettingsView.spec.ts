@@ -546,6 +546,30 @@ describe('BackupSettingsView', () => {
       expect(wrapper.find('.backup-settings__restore-choose .v-btn__prepend').exists()).toBe(true)
     })
 
+    it('pendant la question d’envoi du carnet, la propose avec « Choisir » et masque « Ton carnet est sur ce téléphone »', async () => {
+      parcours().askSend({ animalCount: 2, firstName: 'Milo' })
+      const wrapper = await monter()
+
+      expect(
+        wrapper
+          .get('.backup-settings__send-pending')
+          .findAll('.settings-row__label, .settings-row__hint')
+          .map((line) => line.text().replace(/\s+/g, ' '))
+          .join(' '),
+      ).toBe(
+        'Envoyer le carnet de ce téléphone dans ton compte ? Les carnets de tes 2 animaux seront sauvegardés dans le cloud de ce compte.',
+      )
+      expect(wrapper.find('.backup-settings__restore-pending').exists()).toBe(false)
+      expect(wrapper.text()).not.toContain('Ton carnet est sur ce téléphone')
+
+      await wrapper.get('.backup-settings__send-choose').trigger('click')
+
+      expect(push).toHaveBeenCalledWith({
+        name: 'account-restore',
+        query: { from: 'settings-backup' },
+      })
+    })
+
     it('« Choisir » ouvre « Restaurer mon carnet », qui ramène à la Sauvegarde', async () => {
       parcours().offer(SUMMARY)
       const wrapper = await monter()
