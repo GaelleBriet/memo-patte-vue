@@ -91,6 +91,16 @@ describe('stockage de la session', () => {
       expect(await storage.getItem(AUTH_STORAGE_KEY)).toBe('récent')
     })
 
+    it('efface la copie en clair restée derrière quand le coffre a déjà la valeur', async () => {
+      vault.items.set(AUTH_STORAGE_KEY, 'récent')
+      legacy.setItem(AUTH_STORAGE_KEY, 'ancien')
+      const storage = createAuthStorage(vault, legacy)
+
+      await storage.getItem(AUTH_STORAGE_KEY)
+
+      expect(legacy.length).toBe(0)
+    })
+
     it('efface la copie en clair même si le coffre refuse l’écriture : déconnecté', async () => {
       legacy.setItem(AUTH_STORAGE_KEY, SESSION)
       vault.set = async () => {

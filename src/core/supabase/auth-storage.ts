@@ -46,7 +46,11 @@ export function createAuthStorage(vault: SessionVault, legacy?: Storage): Suppor
     async getItem(key) {
       try {
         const stored = await vault.get(key)
-        if (stored !== null || !legacy) return stored
+        if (stored !== null) {
+          removeLegacy(legacy, key)
+          return stored
+        }
+        if (!legacy) return null
       } catch (cause) {
         console.warn('Session illisible dans le stockage sécurisé :', errorSummary(cause))
         return null
