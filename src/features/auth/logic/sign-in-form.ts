@@ -6,7 +6,7 @@ import { PASSWORDS_DIFFER_KEY, withPasswordConfirmation } from './new-password-c
 
 export type SignInMode = 'sign-in' | 'sign-up'
 
-interface SignInCredentials {
+export interface SignInCredentials {
   email: string
   password: string
 }

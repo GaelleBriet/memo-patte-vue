@@ -8,6 +8,7 @@ import { memoryStorage, USER_ID } from '@/features/auth/__tests__/auth-fixture'
 import { writePlusAccount } from '@/features/auth/logic/plus-account-storage'
 import { authRepository } from '@/features/auth/repository/auth.repository'
 import { provideAuthRepository } from '@/features/auth/store/auth.store'
+import { provideExportCopy } from '@/core/export-copy/export-copy-port'
 import i18n from '@/core/i18n'
 import type { RestoreMode } from '@/core/sync/repository/sync-state.repository'
 import type { RestoreProgress } from '@/core/sync/service/account-restore'
@@ -83,6 +84,7 @@ let runner: FakeRunner
 let flow: RestoreFlow
 let replace: MockInstance
 let wrapper: VueWrapper | null = null
+const exportCopy = vi.fn<() => Promise<void>>(async () => {})
 
 beforeEach(async () => {
   vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 21, 10, 0) })
@@ -100,6 +102,7 @@ beforeEach(async () => {
   runner = fakeRunner()
   flow = createRestoreFlow(runner)
   provideRestoreFlow(flow)
+  provideExportCopy(() => ({ isPreparing: ref(false), exportCopy }))
   flow.offer(SUMMARY)
   await router.push({ name: 'account-restore', query: { from: 'settings-plus' } })
   replace = vi.spyOn(router, 'replace').mockResolvedValue()
@@ -109,6 +112,7 @@ afterEach(() => {
   wrapper?.unmount()
   wrapper = null
   provideRestoreFlow(null)
+  provideExportCopy(null)
   document.body.innerHTML = ''
   i18n.global.locale.value = 'fr'
   vi.useRealTimers()
@@ -193,6 +197,18 @@ describe('Restaurer mon carnet', () => {
     await flushPromises()
     expect(replace).toHaveBeenCalledWith({ name: 'home' })
     expect(promptNotificationsIfReminders).toHaveBeenCalledWith(router, 'home', { ready: true })
+  })
+
+  it('la confirmation de « Remplacer » propose d’exporter une copie sans lancer la restauration', async () => {
+    await monter()
+    await toucher(carte('Remplacer'))
+    await toucher(bouton('Continuer'))
+
+    await toucher(bouton('Exporter une copie'))
+
+    expect(exportCopy).toHaveBeenCalledOnce()
+    expect(bouton('Remplacer')).toBeDefined()
+    expect(runner.start).not.toHaveBeenCalled()
   })
 
   it('« Remplacer » demande confirmation, et ne lance rien si on annule', async () => {
