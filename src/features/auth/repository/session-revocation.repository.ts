@@ -34,6 +34,8 @@ export function createSessionRevocation(client: () => Promise<SupabaseClient>) {
   }
 
   return {
+    forgetSession: forgetStoredSession,
+
     async signOut(): Promise<void> {
       const timeout = revocationTimeout()
       const outcome = await Promise.race([revoke('global'), timeout.reached])

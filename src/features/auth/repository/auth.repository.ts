@@ -43,6 +43,8 @@ export type AuthRepository = {
   signOut(): Promise<void>
   /** Comme `signOut`, sans fermer les autres appareils du compte. Ne lève pas. */
   discardSession(): Promise<void>
+  /** Efface la session et ses clés PKCE de l'appareil, sans rien envoyer à Supabase. Ne lève pas. */
+  forgetSession(): Promise<void>
   restoreSession(): Promise<SessionCheck>
   refreshSession(): Promise<SessionCheck>
   /** Lit la session de l'appareil ; `null` sans session. */
@@ -224,6 +226,7 @@ export function createAuthRepository({
     signOut: revocation.signOut,
 
     discardSession: revocation.discardSession,
+    forgetSession: revocation.forgetSession,
 
     async restoreSession() {
       const { data, error } = await (await client()).auth.getSession()

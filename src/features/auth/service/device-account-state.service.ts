@@ -37,3 +37,7 @@ export async function signOutDevice(): Promise<void> {
   await authRepository.signOut()
   clearPlusAccount()
 }
+
+export function forgetDeviceSession(): Promise<void> {
+  return authRepository.forgetSession()
+}
