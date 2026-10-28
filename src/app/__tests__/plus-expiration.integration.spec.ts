@@ -228,30 +228,57 @@ describe('hors ligne au moment de l’expiration, le 29 octobre à 9 h 30 (déci
     expect(server.rows('weight_entry').map(({ weight_kg }) => weight_kg)).toEqual([9.8])
   })
 
-  it.fails(
-    'défaut : au retour du réseau, app restée au premier plan, le renouvellement n’est pas relu et la pesée ne part pas',
-    async () => {
-      const miloId = await backUpMilo()
-      billing.fetchStatus.mockResolvedValue(monthlyUntil(at(9, 30)))
-      await launch()
-      stops.push(installPlusStatusRefresh())
-      await letSyncRun()
+  it('au retour du réseau, app restée au premier plan, le renouvellement est relu et la pesée part', async () => {
+    const miloId = await backUpMilo()
+    billing.fetchStatus.mockResolvedValue(monthlyUntil(at(9, 30)))
+    await launch()
+    stops.push(installPlusStatusRefresh())
+    await letSyncRun()
 
-      vi.setSystemTime(at(9, 31))
-      billing.fetchStatus.mockRejectedValue(new Error('hors ligne'))
-      vi.spyOn(console, 'warn').mockImplementation(() => {})
-      simulateWebResume()
-      await letSyncRun()
-      await phone.weight.create({ animalId: miloId, weightKg: 9.8, measuredOn: '2026-10-29' })
+    vi.setSystemTime(at(9, 31))
+    billing.fetchStatus.mockRejectedValue(new Error('hors ligne'))
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    simulateWebResume()
+    await letSyncRun()
+    await phone.weight.create({ animalId: miloId, weightKg: 9.8, measuredOn: '2026-10-29' })
 
-      vi.setSystemTime(at(11))
-      billing.fetchStatus.mockResolvedValue(monthlyUntil(at(9, 30, 30)))
-      networkBack()
+    vi.setSystemTime(at(11))
+    billing.fetchStatus.mockResolvedValue(monthlyUntil(at(9, 30, 30)))
+    networkBack()
 
-      await letSyncRun()
+    await letSyncRun()
 
-      expect(usePurchaseStore().status.plan).toBe('monthly')
-      expect(server.rows('weight_entry').map(({ weight_kg }) => weight_kg)).toEqual([9.8])
-    },
-  )
+    expect(usePurchaseStore().status.plan).toBe('monthly')
+    expect(server.rows('weight_entry').map(({ weight_kg }) => weight_kg)).toEqual([9.8])
+  })
+
+  it('renouvellement relu au retour du réseau alors que la réponse arrive après le premier cycle : la pesée part au cycle de l’activation', async () => {
+    const miloId = await backUpMilo()
+    billing.fetchStatus.mockResolvedValue(monthlyUntil(at(9, 30)))
+    await launch()
+    stops.push(installPlusStatusRefresh())
+    await letSyncRun()
+
+    vi.setSystemTime(at(9, 31))
+    billing.fetchStatus.mockRejectedValue(new Error('hors ligne'))
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    simulateWebResume()
+    await letSyncRun()
+    await phone.weight.create({ animalId: miloId, weightKg: 9.8, measuredOn: '2026-10-29' })
+    await letSyncRun()
+
+    vi.setSystemTime(at(11))
+    let renewed: (status: PlusStatus) => void = () => {}
+    billing.fetchStatus.mockReturnValueOnce(new Promise((resolve) => (renewed = resolve)))
+    networkBack()
+    await letSyncRun()
+
+    expect(server.rows('weight_entry')).toEqual([])
+
+    renewed(monthlyUntil(at(9, 30, 30)))
+    await letSyncRun()
+
+    expect(usePurchaseStore().status.plan).toBe('monthly')
+    expect(server.rows('weight_entry').map(({ weight_kg }) => weight_kg)).toEqual([9.8])
+  })
 })
