@@ -319,7 +319,7 @@ et `bundleRelease` l'embarque dans l'AAB (`BUNDLE-METADATA/com.android.tools.bui
 reçoit avec l'envoi, rien d'autre à joindre. Pour lire un plantage obscurci hors Play Console, garder le `mapping.txt` du build
 publié. Les symboles natifs restent un avertissement accepté (#1340).
 
-`android/app/src/main/res/raw/keep.xml` protège de `shrinkResources` les trois ressources de Google Play Billing (garde : `r8-release.spec.ts`).
+`android/app/src/main/res/raw/keep_memopatte_billing.xml` protège de `shrinkResources` les trois ressources de Google Play Billing (garde : `r8-release.spec.ts`).
 
 Après tout changement de dépendance Android : construire `assembleRelease`, le signer avec la clé de debug d'Android
 (`apksigner`, jamais la clé d'envoi), l'installer sur l'émulateur et rejouer import, Carnet, rappels, écran Plus.

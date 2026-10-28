@@ -18,7 +18,7 @@ describe('R8 de la version publiée', () => {
 
   it('garde les ressources de Google Play Billing que shrinkResources retirerait', () => {
     const keep = readFileSync(
-      resolve(__dirname, '../../android/app/src/main/res/raw/keep.xml'),
+      resolve(__dirname, '../../android/app/src/main/res/raw/keep_memopatte_billing.xml'),
       'utf8',
     )
     const kept = keep.match(/tools:keep="([^"]*)"/)?.[1]?.split(',') ?? []
