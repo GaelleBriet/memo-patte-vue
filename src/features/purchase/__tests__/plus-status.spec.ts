@@ -1,4 +1,5 @@
 // @vitest-environment node
+import type { CustomerInfo, PurchasesSubscriptionInfo } from '@revenuecat/purchases-capacitor'
 import { describe, expect, it } from 'vitest'
 
 import { lapsedAt, NO_PLUS, plusStatusFrom } from '../logic/plus-status'
@@ -102,6 +103,32 @@ describe('plusStatusFrom, droit promotionnel accordé dans RevenueCat', () => {
 
   it('ne dit pas offert un abonnement payé dans Google Play', () => {
     expect(plusStatusFrom(customerInfo(entitlement())).offered).toBeUndefined()
+  })
+
+  function avecAbonnementGooglePlay(info: CustomerInfo, isActive: boolean): CustomerInfo {
+    const fin = isActive ? new Date(2027, 8, 1, 10) : new Date(2026, 7, 1, 10)
+    const subscription = {
+      productIdentifier: 'memopatte_plus',
+      purchaseDate: new Date(2026, 6, 1, 10).toISOString(),
+      expiresDate: fin.toISOString(),
+      store: 'PLAY_STORE',
+      isActive,
+    } as PurchasesSubscriptionInfo
+    return { ...info, subscriptionsByProductIdentifier: { memopatte_plus: subscription } }
+  }
+
+  it('ne dit pas offert un droit offert qui coexiste avec un abonnement Google Play actif', () => {
+    const fin = new Date(2227, 9, 29, 9).toISOString()
+    const info = avecAbonnementGooglePlay(customerInfo(promotional('lifetime', fin)), true)
+
+    expect(plusStatusFrom(info).offered).toBeUndefined()
+  })
+
+  it('dit offert un droit offert à côté d’un abonnement Google Play échu', () => {
+    const fin = new Date(2026, 10, 29, 9).toISOString()
+    const info = avecAbonnementGooglePlay(customerInfo(promotional('monthly', fin)), false)
+
+    expect(plusStatusFrom(info).offered).toBe(true)
   })
 })
 

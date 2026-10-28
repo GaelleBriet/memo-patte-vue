@@ -4,6 +4,7 @@ import { differenceInDays, parseISO } from 'date-fns'
 const PLUS_ENTITLEMENT = 'plus'
 
 const OFFERED_STORE = 'PROMOTIONAL'
+const GOOGLE_PLAY_STORE = 'PLAY_STORE'
 
 export type PlusPlan = 'none' | 'monthly' | 'annual' | 'lifetime'
 
@@ -46,5 +47,14 @@ export function plusStatusFrom(customerInfo: CustomerInfo): PlusStatus {
     plus.expirationDate === null
       ? { plan: 'lifetime', expiresAt: null }
       : { plan: subscriptionPlan(plus, plus.expirationDate), expiresAt: plus.expirationDate }
-  return plus.store === OFFERED_STORE ? { ...status, offered: true } : status
+  return plus.store === OFFERED_STORE && !paysInGooglePlay(customerInfo)
+    ? { ...status, offered: true }
+    : status
+}
+
+/** Le droit ne remonte qu'un achat : un abonnement Google Play en cours peut se cacher derrière un droit offert. */
+function paysInGooglePlay(customerInfo: CustomerInfo): boolean {
+  return Object.values(customerInfo.subscriptionsByProductIdentifier).some(
+    (subscription) => subscription.isActive && subscription.store === GOOGLE_PLAY_STORE,
+  )
 }
