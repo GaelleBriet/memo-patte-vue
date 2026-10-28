@@ -3,7 +3,13 @@ import { z } from 'zod'
 
 import { errorSummary } from '@/shared/utils/error-summary'
 import { clearPlusEndedAt, readPlusEndedAt, writePlusEndedAt } from './plus-pause-storage'
-import { NO_PLUS, subscriptionOf, type PlusStatus, type SubscriptionPlan } from './plus-status'
+import {
+  lapsedAt,
+  NO_PLUS,
+  subscriptionOf,
+  type PlusStatus,
+  type SubscriptionPlan,
+} from './plus-status'
 
 export const PLUS_STATUS_STORAGE_KEY = 'memopatte.plus.status'
 
@@ -34,7 +40,6 @@ const storedPlusStatusSchema = z.object({
 
 function complete(status: WritablePlusStatus): StoredPlusStatus {
   const lastSubscription = status.lastSubscription ?? subscriptionOf(status)
-  const lapsed = status.expiresAt !== null && Date.parse(status.expiresAt) <= Date.now()
   return {
     plan: status.plan,
     expiresAt: status.expiresAt,
@@ -42,7 +47,7 @@ function complete(status: WritablePlusStatus): StoredPlusStatus {
     subscriptionEndedAt:
       lastSubscription === null
         ? null
-        : (status.subscriptionEndedAt ?? (lapsed ? status.expiresAt : null)),
+        : (status.subscriptionEndedAt ?? lapsedAt(status, Date.now())),
   }
 }
 

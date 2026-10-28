@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { NO_PLUS, plusStatusFrom } from '../logic/plus-status'
+import { lapsedAt, NO_PLUS, plusStatusFrom } from '../logic/plus-status'
 import { customerInfo, entitlement, LIFETIME } from './billing-fixture'
 
 describe('plusStatusFrom', () => {
@@ -96,5 +96,18 @@ describe('plusStatusFrom, droit promotionnel accordé dans RevenueCat', () => {
     const status = plusStatusFrom(customerInfo(promotional('lifetime', '2226-10-29T09:00:00Z')))
 
     expect(status.plan).not.toBe('none')
+  })
+})
+
+describe('lapsedAt', () => {
+  const MONTHLY = { plan: 'monthly' as const, expiresAt: '2026-09-14T08:00:00.000Z' }
+
+  it('rend l’échéance dès qu’elle est atteinte', () => {
+    expect(lapsedAt(MONTHLY, Date.parse('2026-09-14T08:00:00.000Z'))).toBe(MONTHLY.expiresAt)
+  })
+
+  it('ne rend rien avant l’échéance, ni sans échéance', () => {
+    expect(lapsedAt(MONTHLY, Date.parse('2026-09-14T07:59:59.999Z'))).toBeNull()
+    expect(lapsedAt(NO_PLUS, Date.parse('2026-09-14T08:00:00.000Z'))).toBeNull()
   })
 })
