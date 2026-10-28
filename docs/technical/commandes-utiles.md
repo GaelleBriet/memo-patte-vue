@@ -312,9 +312,15 @@ cd android && ./gradlew :app:bundleRelease
 # sortie : android/app/build/outputs/bundle/release/app-release.aab
 ```
 
-R8 est désactivé en release (`minifyEnabled false`) : il n'y a pas de `mapping.txt` à joindre. Les bibliothèques natives (SQLCipher,
-CameraX) sont déjà strippées par leurs éditeurs : la Play Console peut donc continuer d'afficher ses deux avertissements
-(fichier de désobscurcissement, symboles natifs). Ce sont des recommandations, sans effet sur le test interne ni sur la publication (#1340).
+R8 réduit et obscurcit la variante `release` seule (`minifyEnabled true`, `shrinkResources true` ; debug et CI inchangés). Les règles de
+conservation viennent des bibliothèques (Capacitor, SQLCipher, RevenueCat, Credential Manager, Google Sign-In livrent les leurs) ;
+`android/app/proguard-rules.pro` n'en ajoute aucune. Le `mapping.txt` est produit dans `android/app/build/outputs/mapping/release/`
+et `bundleRelease` l'embarque dans l'AAB (`BUNDLE-METADATA/com.android.tools.build.obfuscation/proguard.map`) : la Play Console le
+reçoit avec l'envoi, rien d'autre à joindre. Pour lire un plantage obscurci hors Play Console, garder le `mapping.txt` du build
+publié. Les symboles natifs restent un avertissement accepté (#1340).
+
+Après tout changement de dépendance Android : construire `assembleRelease`, le signer avec la clé de debug d'Android
+(`apksigner`, jamais la clé d'envoi), l'installer sur l'émulateur et rejouer import, Carnet, rappels, écran Plus.
 
 Création de la clé et envoi : guide du coffre, `technical/guides/guide-build-signe-et-test-interne.md`.
 
