@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 import { renderCarnetPdf } from '../logic/render-carnet-pdf'
 import {
@@ -258,6 +258,10 @@ function dateNumerique(isoDate: string): string {
 }
 
 describe('renderCarnetPdf — pages', () => {
+  beforeAll(() => {
+    for (const content of [...DEBORDEMENTS, ...NOMS_LONGS, ...AVEC_TERMINES]) pages(content)
+  }, 60_000)
+
   it('tient un carnet court sur une seule page, numérotée « 1 / 1 »', () => {
     const doc = pages(COURT)
     const texts = doc[0]!.texts.map((text) => text.text)
