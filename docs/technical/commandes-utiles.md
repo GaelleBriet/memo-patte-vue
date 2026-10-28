@@ -353,7 +353,8 @@ Ce workflow détient le mot de passe de la base de production, il est donc verro
 
 - CLI Supabase figé à la version de la CI (`2.119.0`), actions épinglées par SHA de commit (Dependabot
   `github-actions` les tient à jour), `permissions: contents: read`, checkout sans identifiants, un seul passage
-  à la fois (`concurrency`), mot de passe encodé masqué dans les journaux.
+  à la fois (`concurrency`), job borné à 30 minutes, scripts en `set -euo pipefail`, mot de passe encodé masqué
+  dans les journaux.
 - Le job tourne dans l'environnement GitHub `production` : chaque migration attend l'approbation de Gaelle
   (Actions › le passage en attente › Review deployments › Approve and deploy).
 
@@ -371,6 +372,39 @@ Les quatre étapes sont nécessaires. Tant que l'environnement n'est pas réglé
 premier passage et le job lit les secrets du dépôt : les migrations partent sans approbation. La garde `main` n'arrête
 qu'un lancement depuis une branche qui n'a pas modifié ce fichier ; seule l'étape 3 bloque vraiment les autres
 branches.
+
+### Sauvegarde avant migration (#1115)
+
+Avant `db push`, l'étape « Sauvegarder la base » vide le projet en trois fichiers, avec les commandes de la doc
+Supabase ([Backup and restore](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore)) :
+`roles.sql` (`--role-only`), `schema.sql` et `data.sql` (`--data-only --use-copy`, sans les tables vectorielles de
+Storage). Les fichiers de Storage (photos) ne sont jamais dans un vidage de base : seules leurs lignes
+`storage.objects` y sont. Un vidage en échec ou vide arrête le job avant la migration ; le journal n'affiche que la
+taille des fichiers.
+
+Les fichiers restent pour l'instant dans le dossier temporaire du runner, effacé à la fin du job : ils ne sont pas
+encore gardés comme artefact, car le dépôt est public et tout compte GitHub connecté peut télécharger les artefacts
+d'un dépôt public (question ouverte dans #1115).
+
+Restaurer, dans un projet neuf ou une pile locale jetable, jamais par-dessus le vrai projet sans décision de Gaelle
+(`[CONNECTION_STRING]` : chaîne du Session Pooler du projet visé, tapée dans le terminal, jamais écrite dans un
+fichier) :
+
+```bash
+psql \
+  --single-transaction \
+  --variable ON_ERROR_STOP=1 \
+  --file roles.sql \
+  --file schema.sql \
+  --command 'SET session_replication_role = replica' \
+  --file data.sql \
+  --dbname "[CONNECTION_STRING]"
+```
+
+Le projet ne crée aucun rôle : `roles.sql` ne contient que les réglages par défaut de Supabase, déjà présents dans un
+projet neuf. Sur la pile locale, sa ligne `GRANT SET ON PARAMETER "log_min_messages"` est refusée au rôle `postgres` :
+y relancer la commande sans `--file roles.sql` (vérifié le 2026-10-28, toutes les migrations, un compte et un animal
+retrouvés).
 
 Reproduire le job `android` en local :
 
