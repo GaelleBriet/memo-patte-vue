@@ -182,6 +182,12 @@ describe('abonnement mensuel de test acheté le 29 octobre à 9 h, renouvelé pu
     expect(await phone.weight.listByAnimal(miloId)).toHaveLength(1)
     await expect(phone.outbox.listPending()).resolves.toEqual([])
     expect(await phone.outbox.getLastPulledAt('animal')).toBe(pulledBefore)
+
+    vi.setSystemTime(at(9, 31, 30))
+    billing.fetchStatus.mockResolvedValueOnce(NO_PLUS)
+    await purchase.verifyKnownStatus()
+
+    expect(purchase.backupPause).toEqual({ keptUntil: '2027-10-30' })
   })
 })
 
