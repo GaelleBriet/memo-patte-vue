@@ -89,6 +89,7 @@ describe('plusStatusFrom, droit promotionnel accordé dans RevenueCat', () => {
     expect(plusStatusFrom(customerInfo(promotional('monthly', '2026-11-29T09:00:00Z')))).toEqual({
       plan: 'monthly',
       expiresAt: '2026-11-29T09:00:00Z',
+      offered: true,
     })
   })
 
@@ -96,6 +97,11 @@ describe('plusStatusFrom, droit promotionnel accordé dans RevenueCat', () => {
     const status = plusStatusFrom(customerInfo(promotional('lifetime', '2226-10-29T09:00:00Z')))
 
     expect(status.plan).not.toBe('none')
+    expect(status.offered).toBe(true)
+  })
+
+  it('ne dit pas offert un abonnement payé dans Google Play', () => {
+    expect(plusStatusFrom(customerInfo(entitlement())).offered).toBeUndefined()
   })
 })
 
@@ -109,41 +115,5 @@ describe('lapsedAt', () => {
   it('ne rend rien avant l’échéance, ni sans échéance', () => {
     expect(lapsedAt(MONTHLY, Date.parse('2026-09-14T07:59:59.999Z'))).toBeNull()
     expect(lapsedAt(NO_PLUS, Date.parse('2026-09-14T08:00:00.000Z'))).toBeNull()
-  })
-})
-
-describe('plusStatusFrom, droit offert dans RevenueCat', () => {
-  const POSE_LE = new Date(2026, 9, 29, 9).toISOString()
-
-  function offered(expirationDate: string | null) {
-    return entitlement({
-      store: 'PROMOTIONAL',
-      productIdentifier: 'rc_promo_plus_monthly',
-      productPlanIdentifier: null,
-      latestPurchaseDate: POSE_LE,
-      expirationDate,
-      willRenew: false,
-    })
-  }
-
-  it('reconnaît un mois offert et garde sa fin', () => {
-    const fin = new Date(2026, 10, 29, 9).toISOString()
-
-    expect(plusStatusFrom(customerInfo(offered(fin)))).toEqual({
-      plan: 'monthly',
-      expiresAt: fin,
-      offered: true,
-    })
-  })
-
-  it('reconnaît un droit offert « à vie », daté de deux siècles par RevenueCat', () => {
-    const status = plusStatusFrom(customerInfo(offered(new Date(2226, 9, 29, 9).toISOString())))
-
-    expect(status.offered).toBe(true)
-    expect(status.plan).not.toBe('none')
-  })
-
-  it('ne dit pas offert un abonnement payé dans Google Play', () => {
-    expect(plusStatusFrom(customerInfo(entitlement())).offered).toBeUndefined()
   })
 })
