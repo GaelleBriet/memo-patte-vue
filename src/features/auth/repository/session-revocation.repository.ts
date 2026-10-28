@@ -40,7 +40,7 @@ export function createSessionRevocation(client: () => Promise<SupabaseClient>) {
       if (!outcome.ok) {
         console.warn('Session non invalidée auprès de Supabase :', outcome.trace)
         await Promise.race([revoke('local'), timeout.reached])
-        forgetStoredSession()
+        await forgetStoredSession()
       }
       timeout.clear()
     },
@@ -48,7 +48,7 @@ export function createSessionRevocation(client: () => Promise<SupabaseClient>) {
     async discardSession(): Promise<void> {
       const timeout = revocationTimeout()
       const outcome = await Promise.race([revoke('local'), timeout.reached])
-      if (!outcome.ok) forgetStoredSession()
+      if (!outcome.ok) await forgetStoredSession()
       timeout.clear()
     },
   }

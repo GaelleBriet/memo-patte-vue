@@ -15,6 +15,7 @@ const EXCLUSIONS = [
   ['file', 'photos/'],
   ['root', 'app_webview/'],
   ['sharedpref', 'CapacitorStorage\\.xml'],
+  ['sharedpref', 'WSSecureStorageSharedPreferences\\.xml'],
 ] as const
 
 const SECTIONS = [
@@ -24,14 +25,17 @@ const SECTIONS = [
 ] as const
 
 describe('règles de sauvegarde Android', () => {
-  it.each(SECTIONS)('%s, section %s : photos, WebView et préférences exclus', (file, tag) => {
-    const body = section(xml(file), tag)
+  it.each(SECTIONS)(
+    '%s, section %s : photos, WebView, préférences et session chiffrée exclus',
+    (file, tag) => {
+      const body = section(xml(file), tag)
 
-    expect(body).not.toBe('')
-    for (const [domain, path] of EXCLUSIONS) {
-      expect(body).toMatch(excludes(domain, path))
-    }
-  })
+      expect(body).not.toBe('')
+      for (const [domain, path] of EXCLUSIONS) {
+        expect(body).toMatch(excludes(domain, path))
+      }
+    },
+  )
 
   it('le lint n’écarte que le message des exclusions hors inclusion', () => {
     const lint = read('lint.xml')
