@@ -93,4 +93,27 @@ describe('carnetPhotosRepository', () => {
       await expect(repository.listCarnetPhotos()).resolves.toEqual([PHOTO_MILO])
     })
   })
+
+  describe('listKeptPhotos', () => {
+    it('rend une fois chaque photo portée par une ligne d’animal, supprimé compris', async () => {
+      await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_MILO)
+      await insertAnimal(db, 'jumeau', T1, 'Milo bis', PHOTO_MILO)
+      await insertAnimal(db, 'parti', T1, 'Pirate', PHOTO_PIRATE)
+      await db.run("UPDATE animal SET deleted_at = ? WHERE id = 'parti'", [T2])
+      await insertAnimal(db, 'sans-photo', T1, 'Luna')
+
+      const kept = await repository.listKeptPhotos()
+
+      expect(kept.toSorted()).toEqual([PHOTO_MILO, PHOTO_PIRATE].toSorted())
+    })
+
+    it('ne rend plus une photo remplacée ou retirée', async () => {
+      await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_MILO)
+      await setAnimalPhoto(db, ANIMAL_ID, PHOTO_PIRATE, T2)
+
+      await expect(repository.listKeptPhotos()).resolves.toEqual([PHOTO_PIRATE])
+      await setAnimalPhoto(db, ANIMAL_ID, null, T2)
+      await expect(repository.listKeptPhotos()).resolves.toEqual([])
+    })
+  })
 })
