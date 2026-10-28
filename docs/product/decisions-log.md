@@ -3321,6 +3321,9 @@ le délai coûte une condition et des objets privés gardés au plus une semaine
 écartées : lister le dossier cloud et effacer ce qu'aucune ligne ne porte (course avec une photo
 qu'un autre appareil vient d'envoyer) ; effacer tout de suite (perte de P1 dans l'exemple). — À
 garder en tête : une ligne de la tablette tirée après les 7 jours ne protège plus P1.
+_Remplacée en partie le 2026-10-28 (#1355)_ : « lister le dossier cloud et effacer ce qu'aucune
+ligne ne porte » n'est plus écarté ; voir « Photos cloud : ménage du dossier du compte à la
+connexion ». La file et son délai de grâce restent.
 
 ## 2026-10-22 — Photos cloud : lecture et effacement sans droit Plus actif, envoi et remplacement réservés à Plus
 
@@ -4499,3 +4502,35 @@ Décision de la session d'analyse du moteur (Q73), pour appliquer la planche V21
 - Un autre téléphone qui n'a jamais vu l'abonnement montre la rubrique d'un gratuit : accepté.
 - Alternatives écartées : lire `plus_entitlements.expires_at` côté serveur (une lecture de plus, rien hors ligne) ; prolonger le souvenir de 30 jours à 12 mois (change la bannière de l'écran Plus, hors sujet).
 - Pour revenir dessus : `plus-pause.ts` (durée et calcul), `plus-pause-storage.ts` (préférence locale) et `BackupSettingsView.vue`.
+
+## 2026-10-28 — Photos cloud : ménage du dossier du compte à la connexion (#1355)
+
+Décision de Gaelle (option C, recommandée par la session d'analyse du moteur, Q74). Elle remplace
+l'alternative écartée le 23 octobre (« lister le dossier cloud et effacer ce qu'aucune ligne ne
+porte ») : le ménage efface désormais des fichiers du cloud qu'il trouve en listant le dossier du
+compte. La file `animal_photo` et son délai de 7 jours restent inchangés.
+
+- Exemple : le 28 octobre à 10 h, Milo change de photo (P1 par P2) ; à 10 h 05, on se déconnecte et
+  la demande d'effacement de P1 est oubliée. À la première connexion après le 4 novembre à 10 h, avec
+  Plus actif, l'app efface P1 du cloud.
+- Quand : après le contrôle de la sauvegarde d'un carnet déjà lié au compte, au plus une fois par
+  lancement et une fois par jour, et seulement avec Plus actif et la synchro en marche (même garde
+  que la synchro : ni en pause, ni abonnement échu, ni sans compte).
+- Ce qui est effacé : un fichier du dossier du compte, nommé comme une photo du carnet, qu'aucune
+  fiche d'animal ne porte (du cloud comme du téléphone, supprimée comprise), qui n'est pas en file,
+  et dont la dernière écriture sur le serveur date d'au moins 7 jours. Au plus 20 par passage, les
+  plus anciens d'abord.
+- Ce qui arrête tout : une fiche d'animal du téléphone qui attend d'être envoyée (avant ou après
+  les lectures), une lecture qui échoue (file, fiches du téléphone, fiches du cloud, dossier), un
+  effacement qui échoue, un changement de compte ou la fin de Plus pendant le passage.
+- L'âge se mesure sur les dates du serveur, jamais sur l'horloge du téléphone : « maintenant » est la
+  date la plus récente écrite par le serveur et lue pendant le passage. Une photo qu'un autre appareil
+  vient d'envoyer, sa fiche pas encore synchronisée, a moins de 7 jours et reste.
+- Alternatives écartées : garder les demandes d'effacement après la déconnexion (B : migration, ne
+  couvre ni la photo remplacée hors connexion ni un autre appareil) ; effacer à la déconnexion (A :
+  contredit les 7 jours) ; ne rien changer (fichiers orphelins gardés pour toujours).
+- À garder en tête : un fichier n'est jamais effacé tant qu'une fiche supprimée le porte encore, car
+  elle peut revenir ; sans écriture récente du compte sur le serveur, l'âge est sous-estimé et le
+  ménage attend (jamais l'inverse).
+- Pour revenir dessus : `core/sync/service/cloud-photo-sweep.ts` (règles, plafond, espacement) et
+  son déclenchement dans `core/sync/service/account-sync.ts`.
