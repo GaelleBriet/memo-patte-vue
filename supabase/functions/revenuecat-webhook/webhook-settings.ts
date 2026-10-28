@@ -5,14 +5,17 @@ export type WebhookSettings = Pick<WebhookPorts, 'expectedAuthorization' | 'sign
 
 const REFUSAL = 'Webhook RevenueCat désactivé'
 
-function signingSecretOutside(
+function signingSecretApartFrom(
   authorization: string | undefined,
   signingSecret: string | undefined,
 ): string | undefined {
   if (!signingSecret) return undefined
-  if (!authorization?.includes(signingSecret)) return signingSecret
+  if (!authorization) return signingSecret
+  if (!authorization.includes(signingSecret) && !signingSecret.includes(authorization)) {
+    return signingSecret
+  }
   console.error(
-    `${REFUSAL} : REVENUECAT_WEBHOOK_AUTHORIZATION ne doit pas contenir REVENUECAT_WEBHOOK_SIGNING_SECRET`,
+    `${REFUSAL} : REVENUECAT_WEBHOOK_AUTHORIZATION ne doit pas contenir REVENUECAT_WEBHOOK_SIGNING_SECRET, ni l'inverse`,
   )
   return undefined
 }
@@ -25,7 +28,7 @@ export function webhookSettingsFrom(env: (name: string) => string | undefined): 
       'REVENUECAT_WEBHOOK_AUTHORIZATION',
       REFUSAL,
     ),
-    signingSecret: signingSecretOutside(
+    signingSecret: signingSecretApartFrom(
       authorization,
       env('REVENUECAT_WEBHOOK_SIGNING_SECRET')?.trim(),
     ),
