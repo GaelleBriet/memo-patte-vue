@@ -10,6 +10,7 @@ export type RestoreFlowState =
   | { step: 'checking'; chosen: boolean }
   | { step: 'no-answer' }
   | { step: 'choice'; summary: BackupSummary }
+  | { step: 'send-confirmation'; animalCount: number; firstName: string }
   | { step: 'restoring'; progress: RestoreProgress }
   | { step: 'waiting-network'; chosen: boolean }
   | { step: 'waiting-sign-in'; chosen: boolean }
@@ -27,6 +28,7 @@ export type RestoreRunner = Pick<
 export function createRestoreFlow(
   runner: RestoreRunner,
   signInNeeded: () => boolean = () => false,
+  signOut: () => Promise<void> = async () => {},
 ) {
   const state = shallowRef<RestoreFlowState>({ step: 'idle' })
   const visible: Readonly<Ref<RestoreFlowState>> = computed(() =>
@@ -36,6 +38,7 @@ export function createRestoreFlow(
   )
   const restoredListeners = new Set<() => void>()
   const retryListeners = new Set<() => void>()
+  const sendListeners = new Set<() => void>()
 
   function recheck(chosen: boolean): void {
     state.value = { step: 'checking', chosen }
@@ -60,7 +63,7 @@ export function createRestoreFlow(
     } finally {
       stop()
     }
-    if (result === 'carnet-changed') {
+    if (result === 'carnet-changed' || result === 'backup-gone') {
       recheck(true)
       return false
     }
@@ -114,6 +117,33 @@ export function createRestoreFlow(
 
     offer(summary: BackupSummary): void {
       state.value = { step: 'choice', summary }
+    },
+
+    /** Le carnet du téléphone n'est mis en file qu'après `confirmSend()`. */
+    askSend(question: { animalCount: number; firstName: string }): void {
+      state.value = { step: 'send-confirmation', ...question }
+    },
+
+    confirmSend(): void {
+      if (state.value.step !== 'send-confirmation') return
+      state.value = { step: 'checking', chosen: false }
+      for (const listener of sendListeners) listener()
+    },
+
+    onSendConfirmed(listener: () => void): () => void {
+      sendListeners.add(listener)
+      return () => sendListeners.delete(listener)
+    },
+
+    /** Déconnecte sans rien envoyer ni toucher aux données ; ne lève pas. */
+    async cancelSend(): Promise<void> {
+      if (state.value.step !== 'send-confirmation') return
+      state.value = { step: 'idle' }
+      try {
+        await signOut()
+      } catch (cause) {
+        console.warn('Déconnexion après « Annuler » non terminée :', errorSummary(cause))
+      }
     },
 
     unreachable(): void {

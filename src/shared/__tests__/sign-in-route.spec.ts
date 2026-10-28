@@ -143,6 +143,9 @@ describe('afterSignInRoute', () => {
     )
     expect(afterSignInRoute(query, { step: 'waiting-network', chosen: true })).toEqual(restore)
     expect(afterSignInRoute(query, { step: 'done' })).toEqual(restore)
+    expect(
+      afterSignInRoute(query, { step: 'send-confirmation', animalCount: 1, firstName: 'Milo' }),
+    ).toEqual(restore)
   })
 
   it('reste sur la connexion quand le serveur n’a pas répondu à temps', () => {

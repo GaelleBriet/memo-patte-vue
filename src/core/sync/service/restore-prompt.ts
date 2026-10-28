@@ -38,8 +38,9 @@ export function createRestorePrompt() {
     const today = todayIsoDate()
     const current = screen()
     const onRestore = current.onRestore || navigation?.leftRestore === true
-    if (onRestore && (!choiceRan || step === 'choice')) shownOn = today
-    if (shownOn === today || step !== 'choice' || !current.onHome) return false
+    const awaitsAnswer = step === 'choice' || step === 'send-confirmation'
+    if (onRestore && (!choiceRan || awaitsAnswer)) shownOn = today
+    if (shownOn === today || !awaitsAnswer || !current.onHome) return false
     if (current.sheetShown()) return false
     if ((navigation !== null || choiceRan || shownOn !== null) && !navigation?.arrived) return false
     shownOn = today

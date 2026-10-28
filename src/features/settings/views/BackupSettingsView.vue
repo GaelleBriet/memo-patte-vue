@@ -31,6 +31,7 @@ const purchase = usePurchaseStore()
 const { status, refused, photosBackedUp, now, awaitsRestoredStatus } = useBackupStatus()
 const {
   isPending: isRestorePending,
+  sendQuestion,
   isWaitingNetwork: isRestoreWaitingNetwork,
   isWaitingSignIn: isRestoreWaitingSignIn,
   restoreProgress,
@@ -96,6 +97,36 @@ function goBack(): void {
         </div>
         <v-btn
           class="backup-settings__action backup-settings__restore-choose"
+          variant="flat"
+          color="primary"
+          block
+          prepend-icon="ms:settings_backup_restore"
+          @click="chooseRestore"
+        >
+          {{ t('settings.backup.cloud.restorePending.choose') }}
+        </v-btn>
+      </template>
+
+      <template v-if="sendQuestion">
+        <div
+          class="settings-row backup-settings__card backup-settings__send-pending backup-settings__status--warning"
+        >
+          <v-icon class="settings-row__icon" icon="ms:cloud_upload" size="24" />
+          <span class="settings-row__text">
+            <span class="settings-row__label">{{ t('auth.signIn.sendLocal.title') }}</span>
+            <span class="settings-row__hint">
+              {{
+                t(
+                  'auth.signIn.sendLocal.body',
+                  { name: sendQuestion.firstName, n: sendQuestion.animalCount },
+                  sendQuestion.animalCount,
+                )
+              }}
+            </span>
+          </span>
+        </div>
+        <v-btn
+          class="backup-settings__action backup-settings__send-choose"
           variant="flat"
           color="primary"
           block
