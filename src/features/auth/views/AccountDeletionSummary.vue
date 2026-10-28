@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 
+import type { AccountDeletionPurchase } from '../logic/account-deletion-purchase'
 import { MANAGE_SUBSCRIPTIONS_URL } from '@/shared/utils/google-play'
 
-defineProps<{ purchaseNote: string | null }>()
+defineProps<{ purchase: AccountDeletionPurchase }>()
 
 const { t } = useI18n()
 </script>
@@ -50,11 +51,12 @@ const { t } = useI18n()
       </ul>
     </section>
 
-    <div v-if="purchaseNote" class="account-deletion-summary__subscription">
+    <div v-if="purchase.note" class="account-deletion-summary__subscription">
       <v-icon icon="ms:storefront" size="20" aria-hidden="true" />
       <div class="account-deletion-summary__subscription-text">
-        <p>{{ purchaseNote }}</p>
+        <p>{{ t(purchase.note.summary) }}</p>
         <a
+          v-if="purchase.managesInGooglePlay"
           class="account-deletion-summary__manage"
           :href="MANAGE_SUBSCRIPTIONS_URL"
           target="_blank"

@@ -31,6 +31,10 @@ export function subscriptionOf(status: PlusStatus): SubscriptionPlan | null {
   return status.plan === 'monthly' || status.plan === 'annual' ? status.plan : null
 }
 
+export function managedInGooglePlay(status: PlusStatus): boolean {
+  return subscriptionOf(status) !== null && !status.offered
+}
+
 function subscriptionPlan(plus: PurchasesEntitlementInfo, expiresAt: string): SubscriptionPlan {
   const basePlan = plus.productPlanIdentifier ?? plus.productIdentifier.split(':')[1]
   if (basePlan === 'monthly' || basePlan === 'annual') return basePlan

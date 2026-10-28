@@ -458,6 +458,14 @@ describe('PlusView — déjà abonné', () => {
     expect(back).toHaveBeenCalled()
   })
 
+  it('ne renvoie pas vers Google Play pour un achat à vie, qui ne se gère pas', async () => {
+    writeStoredPlusStatus({ plan: 'lifetime', expiresAt: null })
+    const wrapper = await monter()
+
+    expect(wrapper.get('.plus-member__status').text()).toBe('Accès à vie, sans renouvellement.')
+    expect(wrapper.find('.plus-member__manage').exists()).toBe(false)
+  })
+
   it('charge les offres dès que l’abonnement s’avère échu, sans rester figé', async () => {
     writeStoredPlusStatus(ANNUEL)
     const wrapper = await monter()

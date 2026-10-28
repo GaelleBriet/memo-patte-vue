@@ -364,6 +364,7 @@ describe('AccountDeletionView — ce que dit la suppression selon l’achat Plus
       'Supprimer ton compte ne rembourse pas ton achat à vie.',
     )
     expect(wrapper.text()).not.toContain('ne résilie pas ton abonnement')
+    expect(wrapper.find('.account-deletion-summary__manage').exists()).toBe(false)
 
     await toucher('.account-deletion__continue')
     await wrapper.get('#account-deletion-password').setValue('secret-123')

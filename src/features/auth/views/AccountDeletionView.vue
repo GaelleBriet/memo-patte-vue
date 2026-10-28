@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import { useAccountDeletion } from '../composables/use-account-deletion'
-import { accountDeletionPurchaseNote } from '../logic/account-deletion-purchase-note'
+import { accountDeletionPurchase } from '../logic/account-deletion-purchase'
 import { leaveDeletedAccount } from '../logic/leave-deleted-account'
 import AccountDeletionSummary from './AccountDeletionSummary.vue'
 import GoogleSignInButton from './GoogleSignInButton.vue'
@@ -33,7 +33,7 @@ const {
 
 const password = ref('')
 
-const purchaseNote = computed(() => accountDeletionPurchaseNote(purchase.status))
+const deletionPurchase = computed(() => accountDeletionPurchase(purchase.status))
 const isExplaining = computed(() => step.value === 'explain' || step.value === 'final-confirm')
 const isConfirmingIdentity = computed(() => step.value === 'confirm-identity')
 const isDeleted = computed(() => step.value === 'deleted')
@@ -97,7 +97,7 @@ async function submitPassword(): Promise<void> {
     @back="goBack"
   >
     <div v-if="isExplaining" class="account-deletion__content">
-      <AccountDeletionSummary :purchase-note="purchaseNote ? t(purchaseNote.summary) : null" />
+      <AccountDeletionSummary :purchase="deletionPurchase" />
     </div>
 
     <div v-else-if="isConfirmingIdentity" class="account-deletion__content">
@@ -230,7 +230,7 @@ async function submitPassword(): Promise<void> {
     v-model="isFinalConfirmOpen"
     :title="t('settings.account.delete.finalConfirm.title')"
     :text="t('settings.account.delete.finalConfirm.text')"
-    :note="purchaseNote ? t(purchaseNote.finalConfirm) : null"
+    :note="deletionPurchase.note ? t(deletionPurchase.note.finalConfirm) : null"
     :cancel-label="t('settings.account.delete.cancel')"
     :confirm-label="t('settings.account.delete.finalConfirm.delete')"
     :confirm-aria-label="t('settings.account.delete.finalConfirm.deleteLabel')"
