@@ -5,6 +5,18 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.136](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.135...memo-patte-v0.1.136) (2026-10-28)
+
+
+### ✨ Fonctionnalités
+
+* **sauvegarde:** état « En pause » quand Plus est arrêté ([47869e7](https://github.com/GaelleBriet/memo-patte-vue/commit/47869e7fd268fbf02a701d66090b4bc466071640))
+
+
+### 🐛 Corrections
+
+* **purchase:** la fin de Plus gardée suit la plus récente ([0b86e54](https://github.com/GaelleBriet/memo-patte-vue/commit/0b86e54b6d2aa1f7a3bd201411c56de917ed896c))
+
 ## [0.1.135](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.134...memo-patte-v0.1.135) (2026-10-27)
 
 
