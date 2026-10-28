@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 
+import type { AccountDeletionPurchase } from '../logic/account-deletion-purchase'
 import { MANAGE_SUBSCRIPTIONS_URL } from '@/shared/utils/google-play'
+
+defineProps<{ purchase: AccountDeletionPurchase }>()
 
 const { t } = useI18n()
 </script>
@@ -41,18 +44,19 @@ const { t } = useI18n()
           <v-icon icon="ms:check_circle" size="20" aria-hidden="true" />
           <span>{{ t('settings.account.delete.kept.carnet') }}</span>
         </li>
-        <li class="account-deletion-summary__item">
+        <li v-if="purchase.keepsPurchaseHistory" class="account-deletion-summary__item">
           <v-icon icon="ms:check_circle" size="20" aria-hidden="true" />
           <span>{{ t('settings.account.delete.kept.purchases') }}</span>
         </li>
       </ul>
     </section>
 
-    <div class="account-deletion-summary__subscription">
+    <div v-if="purchase.note" class="account-deletion-summary__subscription">
       <v-icon icon="ms:storefront" size="20" aria-hidden="true" />
       <div class="account-deletion-summary__subscription-text">
-        <p>{{ t('settings.account.delete.subscription') }}</p>
+        <p>{{ t(purchase.note.summary) }}</p>
         <a
+          v-if="purchase.managesInGooglePlay"
           class="account-deletion-summary__manage"
           :href="MANAGE_SUBSCRIPTIONS_URL"
           target="_blank"

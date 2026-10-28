@@ -18,6 +18,7 @@ import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import router from '@/router'
 import { MANAGE_SUBSCRIPTIONS_URL } from '@/shared/utils/google-play'
+import { writeStoredPlusStatus } from '@/features/purchase/logic/plus-status-storage'
 
 const service = vi.hoisted(() => ({
   confirmationMethod: vi.fn<AccountDeletionService['confirmationMethod']>(),
@@ -351,5 +352,86 @@ describe('AccountDeletionView — suppression (D4, D5)', () => {
     await toucher('.account-deletion__erase')
 
     expect(push).toHaveBeenCalledWith({ name: 'settings-erase' })
+  })
+})
+
+describe('AccountDeletionView — ce que dit la suppression selon l’achat Plus', () => {
+  it('rappelle qu’un achat à vie n’est pas remboursé, au résumé puis à la confirmation', async () => {
+    writeStoredPlusStatus({ plan: 'lifetime', expiresAt: null })
+    const wrapper = await monter()
+
+    expect(wrapper.get('.account-deletion-summary__subscription').text()).toContain(
+      'Supprimer ton compte ne rembourse pas ton achat à vie.',
+    )
+    expect(wrapper.text()).not.toContain('ne résilie pas ton abonnement')
+    expect(wrapper.find('.account-deletion-summary__manage').exists()).toBe(false)
+
+    await toucher('.account-deletion__continue')
+    await wrapper.get('#account-deletion-password').setValue('secret-123')
+    await toucher('.account-deletion__confirm')
+
+    expect(dialogue()!.querySelector('.confirm-dialog__note')!.textContent).toBe(
+      'Supprimer ton compte ne rembourse pas ton achat à vie.',
+    )
+  })
+
+  it('le dit aussi en anglais', async () => {
+    writeStoredPlusStatus({ plan: 'lifetime', expiresAt: null })
+    i18n.global.locale.value = 'en'
+    try {
+      const wrapper = await monter()
+
+      expect(wrapper.get('.account-deletion-summary__subscription').text()).toContain(
+        'Deleting your account does not refund your lifetime purchase.',
+      )
+    } finally {
+      i18n.global.locale.value = 'fr'
+    }
+  })
+
+  it('ne parle ni d’abonnement ni de Google Play pour un droit offert', async () => {
+    writeStoredPlusStatus({
+      plan: 'annual',
+      expiresAt: new Date(2226, 9, 29, 9).toISOString(),
+      offered: true,
+    })
+    const wrapper = await monter()
+
+    expect(wrapper.find('.account-deletion-summary__subscription').exists()).toBe(false)
+    expect(wrapper.find('.account-deletion-summary__manage').exists()).toBe(false)
+    expect(wrapper.get('.account-deletion-summary__panel--kept').text()).not.toContain(
+      'Google Play',
+    )
+
+    await toucher('.account-deletion__continue')
+    await wrapper.get('#account-deletion-password').setValue('secret-123')
+    await toucher('.account-deletion__confirm')
+
+    expect(dialogue()!.querySelector('.confirm-dialog__note')).toBeNull()
+  })
+
+  it('ne parle ni d’abonnement ni de Google Play après un droit offert terminé', async () => {
+    writeStoredPlusStatus({
+      plan: 'none',
+      expiresAt: null,
+      lastSubscription: 'monthly',
+      lastSubscriptionOffered: true,
+      subscriptionEndedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    })
+    const wrapper = await monter()
+
+    expect(wrapper.find('.account-deletion-summary__subscription').exists()).toBe(false)
+    expect(
+      wrapper.findAll('.account-deletion-summary__panel--kept li').map((item) => item.text()),
+    ).toEqual(['Le carnet sur ce téléphone'])
+  })
+
+  it('garde l’historique d’achat Google Play pour un achat à vie', async () => {
+    writeStoredPlusStatus({ plan: 'lifetime', expiresAt: null })
+    const wrapper = await monter()
+
+    expect(
+      wrapper.findAll('.account-deletion-summary__panel--kept li').map((item) => item.text()),
+    ).toEqual(['Le carnet sur ce téléphone', 'L’historique d’achat chez Google Play'])
   })
 })

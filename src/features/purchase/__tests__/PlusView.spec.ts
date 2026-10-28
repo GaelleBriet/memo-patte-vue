@@ -458,6 +458,14 @@ describe('PlusView — déjà abonné', () => {
     expect(back).toHaveBeenCalled()
   })
 
+  it('ne renvoie pas vers Google Play pour un achat à vie, qui ne se gère pas', async () => {
+    writeStoredPlusStatus({ plan: 'lifetime', expiresAt: null })
+    const wrapper = await monter()
+
+    expect(wrapper.get('.plus-member__status').text()).toBe('Accès à vie, sans renouvellement.')
+    expect(wrapper.find('.plus-member__manage').exists()).toBe(false)
+  })
+
   it('charge les offres dès que l’abonnement s’avère échu, sans rester figé', async () => {
     writeStoredPlusStatus(ANNUEL)
     const wrapper = await monter()
@@ -469,6 +477,34 @@ describe('PlusView — déjà abonné', () => {
     expect(service.listOffers).toHaveBeenCalledTimes(1)
     expect(offres(wrapper)).toHaveLength(3)
     expect(wrapper.get('.plus__submit').text()).toBe('Continuer avec Plus annuel — $14.99/an')
+  })
+})
+
+describe('PlusView — droit offert', () => {
+  it('dit le droit offert et sa fin, sans lien vers Google Play', async () => {
+    writeStoredPlusStatus({
+      plan: 'monthly',
+      expiresAt: new Date(2026, 10, 29, 9).toISOString(),
+      offered: true,
+    })
+    const wrapper = await monter()
+
+    expect(wrapper.get('.plus-member__status').text()).toBe('Plus offert jusqu’au 29/11/2026')
+    expect(wrapper.find('.plus-member__manage').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Gérer mon abonnement')
+    expect(service.listOffers).not.toHaveBeenCalled()
+  })
+
+  it('dit un droit offert « à vie » sans date de fin', async () => {
+    writeStoredPlusStatus({
+      plan: 'annual',
+      expiresAt: new Date(2226, 9, 29, 9).toISOString(),
+      offered: true,
+    })
+    const wrapper = await monter()
+
+    expect(wrapper.get('.plus-member__status').text()).toBe('Plus offert, sans date de fin')
+    expect(wrapper.find('.plus-member__manage').exists()).toBe(false)
   })
 })
 

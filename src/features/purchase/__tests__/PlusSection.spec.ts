@@ -423,3 +423,67 @@ describe('PlusSection — restaurer mes achats : le compte d’abord', () => {
     expect(service.restore).not.toHaveBeenCalled()
   })
 })
+
+describe('PlusSection — droit offert', () => {
+  const MOIS_OFFERT: PlusStatus = {
+    plan: 'monthly',
+    expiresAt: new Date(2026, 10, 29, 9).toISOString(),
+    offered: true,
+  }
+  const OFFERT_A_VIE: PlusStatus = {
+    plan: 'annual',
+    expiresAt: new Date(2226, 9, 29, 9).toISOString(),
+    offered: true,
+  }
+
+  it('dit le mois offert et sa fin, sans renvoyer vers Google Play', async () => {
+    writeStoredPlusStatus(MOIS_OFFERT)
+    const wrapper = await monter()
+
+    expect(statut(wrapper)).toContain('Plus offert jusqu’au 29/11/2026')
+    expect(wrapper.find('.settings-row--manage-subscription').exists()).toBe(false)
+  })
+
+  it('dit un droit offert « à vie » sans date de fin', async () => {
+    writeStoredPlusStatus(OFFERT_A_VIE)
+    const wrapper = await monter()
+
+    expect(statut(wrapper)).toContain('Plus offert, sans date de fin')
+    expect(statut(wrapper)).not.toContain('2226')
+    expect(wrapper.find('.settings-row--manage-subscription').exists()).toBe(false)
+  })
+
+  it('le dit aussi en anglais', async () => {
+    i18n.global.locale.value = 'en'
+    try {
+      writeStoredPlusStatus(MOIS_OFFERT)
+      expect(statut(await monter())).toContain('Plus, complimentary until 11/29/2026')
+
+      wrapper?.unmount()
+      setActivePinia(createPinia())
+      writeStoredPlusStatus(OFFERT_A_VIE)
+      expect(statut(await monter())).toContain('Plus, complimentary, no end date')
+    } finally {
+      i18n.global.locale.value = 'fr'
+    }
+  })
+
+  it('passe en pause à sa fin, comme un abonnement fini, et dit le droit offert terminé', async () => {
+    writeStoredPlusStatus({ ...MOIS_OFFERT, expiresAt: '2026-09-01T10:00:00Z' })
+    const wrapper = await monter()
+
+    expect(wrapper.find('.plus-paused').exists()).toBe(true)
+    expect(statut(wrapper)).toContain('Plus offert — terminé')
+  })
+
+  it('dit le droit offert terminé en anglais aussi', async () => {
+    i18n.global.locale.value = 'en'
+    try {
+      writeStoredPlusStatus({ ...MOIS_OFFERT, expiresAt: '2026-09-01T10:00:00Z' })
+
+      expect(statut(await monter())).toContain('Plus, complimentary — ended')
+    } finally {
+      i18n.global.locale.value = 'fr'
+    }
+  })
+})

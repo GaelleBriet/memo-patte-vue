@@ -173,3 +173,48 @@ describe('statut Plus en préférence locale', () => {
     expect(readPlusEndedAt()).toBe(newer)
   })
 })
+
+describe('statut Plus en préférence locale, droit offert', () => {
+  it('se souvient qu’un droit est offert', () => {
+    const fin = new Date(2027, 10, 29, 9).toISOString()
+    writeStoredPlusStatus({ plan: 'monthly', expiresAt: fin, offered: true })
+
+    expect(readStoredPlusStatus()).toMatchObject({ plan: 'monthly', expiresAt: fin, offered: true })
+  })
+
+  it('n’écrit rien de plus pour un abonnement payé', () => {
+    writeStoredPlusStatus({ plan: 'annual', expiresAt: new Date(2027, 8, 14, 10).toISOString() })
+
+    expect(readStoredPlusStatus()).not.toHaveProperty('offered')
+  })
+
+  it('se souvient, une fois le droit fini, qu’il était offert', () => {
+    vi.setSystemTime(new Date(2026, 9, 3, 9))
+    writeStoredPlusStatus({
+      plan: 'none',
+      expiresAt: null,
+      lastSubscription: 'monthly',
+      lastSubscriptionOffered: true,
+      subscriptionEndedAt: new Date(2026, 9, 1, 9).toISOString(),
+    })
+
+    expect(readStoredPlusStatus()).toMatchObject({
+      lastSubscription: 'monthly',
+      lastSubscriptionOffered: true,
+    })
+  })
+
+  it('oublie qu’il était offert avec le reste du souvenir, après 30 jours', () => {
+    vi.setSystemTime(new Date(2026, 9, 3, 9))
+    writeStoredPlusStatus({
+      plan: 'none',
+      expiresAt: null,
+      lastSubscription: 'monthly',
+      lastSubscriptionOffered: true,
+      subscriptionEndedAt: new Date(2026, 9, 1, 9).toISOString(),
+    })
+    vi.setSystemTime(new Date(2026, 10, 5, 9))
+
+    expect(readStoredPlusStatus()).not.toHaveProperty('lastSubscriptionOffered')
+  })
+})

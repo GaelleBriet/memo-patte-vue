@@ -694,3 +694,61 @@ describe('usePurchaseStore › sauvegarde en pause', () => {
     expect(usePurchaseStore().backupPause).toBeNull()
   })
 })
+
+describe('usePurchaseStore › droit offert', () => {
+  const FIN = new Date(2026, 9, 1, 9).toISOString()
+  const MOIS_OFFERT: PlusStatus = { plan: 'monthly', expiresAt: FIN, offered: true }
+
+  it('garde un droit offert en cours, sans le confondre avec un abonnement', async () => {
+    service.restore.mockResolvedValue(MOIS_OFFERT)
+    const store = usePurchaseStore()
+
+    await store.restore()
+
+    expect(store.status).toEqual(MOIS_OFFERT)
+    setActivePinia(createPinia())
+    expect(usePurchaseStore().status).toEqual(MOIS_OFFERT)
+  })
+
+  it('passe en pause à sa fin, et garde la sauvegarde douze mois comme un abonnement fini', async () => {
+    writeStoredPlusStatus(MOIS_OFFERT)
+    service.fetchStatus.mockResolvedValue(NO_PLUS)
+    vi.setSystemTime(new Date(2026, 9, 3, 9))
+    const store = usePurchaseStore()
+
+    await store.verifyKnownStatus()
+
+    expect(store.status).toEqual(NO_PLUS)
+    expect(store.expiredPlan).toBe('monthly')
+    expect(store.expiredOffered).toBe(true)
+    expect(store.backupPause).toEqual({ keptUntil: '2027-10-01' })
+    setActivePinia(createPinia())
+    expect(usePurchaseStore().expiredOffered).toBe(true)
+  })
+
+  it('ne dit pas offert un abonnement payé qui a pris fin', async () => {
+    writeStoredPlusStatus({ ...MOIS_OFFERT, offered: undefined })
+    service.fetchStatus.mockResolvedValue(NO_PLUS)
+    vi.setSystemTime(new Date(2026, 9, 3, 9))
+    const store = usePurchaseStore()
+
+    await store.verifyKnownStatus()
+
+    expect(store.expiredPlan).toBe('monthly')
+    expect(store.expiredOffered).toBe(false)
+  })
+
+  it('oublie le droit offert fini dès qu’un abonnement payé reprend', async () => {
+    writeStoredPlusStatus(MOIS_OFFERT)
+    service.fetchStatus.mockResolvedValueOnce(NO_PLUS)
+    service.restore.mockResolvedValueOnce(ANNUAL)
+    vi.setSystemTime(new Date(2026, 9, 3, 9))
+    const store = usePurchaseStore()
+    await store.verifyKnownStatus()
+
+    await store.restore()
+
+    expect(store.expiredOffered).toBe(false)
+    expect(readStoredPlusStatus()).not.toHaveProperty('lastSubscriptionOffered')
+  })
+})

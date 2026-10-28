@@ -5,8 +5,9 @@ import { useRouter } from 'vue-router'
 
 import type { PaidPlan, PlusOffer } from '../service/billing.service'
 import { plusCheckout } from '../service/checkout.service'
+import { usePlusMemberText } from '../composables/use-plus-status-text'
 import { usePurchaseRestore } from '../composables/use-purchase-restore'
-import type { PlusStatus } from '../logic/plus-status'
+import { managedInGooglePlay, type PlusStatus } from '../logic/plus-status'
 import { authAvailable } from '@/shared/utils/auth-available'
 import { errorSummary } from '@/shared/utils/error-summary'
 import { signInRoute } from '@/shared/utils/sign-in-route'
@@ -37,6 +38,7 @@ const resumed = plusCheckout.resume()
 const { t } = useI18n()
 const router = useRouter()
 const purchase = usePurchaseStore()
+const memberStatus = usePlusMemberText()
 const { isRestoring, restore, resumeRestore } = usePurchaseRestore('plus', afterRestore)
 
 const phase = ref<Phase>('offers')
@@ -57,6 +59,7 @@ const isConnecting = computed(
   () => bar.value.kind === 'connecting' || (bar.value.kind === 'unavailable' && bar.value.retrying),
 )
 const isMember = computed(() => purchase.status.plan !== 'none')
+const isManaged = computed(() => managedInGooglePlay(purchase.status))
 const isPurchasing = computed(() => phase.value === 'purchasing')
 const isBusy = computed(() => isPurchasing.value || isRestoring.value)
 const canSignIn = computed(() => authAvailable())
@@ -168,9 +171,10 @@ onMounted(() => {
         <v-icon icon="ms:workspace_premium" size="40" />
       </span>
       <h2 class="plus-member__title">{{ t('plus.member.title') }}</h2>
-      <p class="plus-member__status">{{ t(`plus.member.${purchase.status.plan}`) }}</p>
+      <p class="plus-member__status">{{ memberStatus }}</p>
 
       <a
+        v-if="isManaged"
         class="plus-member__manage"
         :href="MANAGE_SUBSCRIPTIONS_URL"
         target="_blank"

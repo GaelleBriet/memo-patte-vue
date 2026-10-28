@@ -18,6 +18,7 @@ import { pausedBackupOf, type BackupPause } from '../logic/plus-pause'
 import { clearPlusEndedAt, readPlusEndedAt } from '../logic/plus-pause-storage'
 import {
   NO_STORED_PLUS,
+  offeredMemory,
   readStoredPlusStatus,
   writeStoredPlusStatus,
   type StoredPlusStatus,
@@ -26,12 +27,20 @@ import { track } from '@/core/analytics'
 import { errorSummary } from '@/shared/utils/error-summary'
 
 function remember(next: PlusStatus, previous: StoredPlusStatus): StoredPlusStatus {
-  if (next.plan !== 'none')
-    return { ...next, lastSubscription: subscriptionOf(next), subscriptionEndedAt: null }
-  const { lastSubscription, subscriptionEndedAt } = previous
+  if (next.plan !== 'none') {
+    const lastSubscription = subscriptionOf(next)
+    return {
+      ...next,
+      lastSubscription,
+      ...offeredMemory(lastSubscription !== null && next.offered),
+      subscriptionEndedAt: null,
+    }
+  }
+  const { lastSubscription, lastSubscriptionOffered, subscriptionEndedAt } = previous
   return {
     ...next,
     lastSubscription,
+    ...offeredMemory(lastSubscription !== null && lastSubscriptionOffered),
     subscriptionEndedAt:
       lastSubscription === null
         ? null
@@ -45,12 +54,17 @@ export const usePurchaseStore = defineStore('purchase', () => {
   const now = ref(Date.now())
   /** Une échéance passée se lit « aucun » ; le stocké reste, pour retrouver un renouvellement. */
   const status = computed<PlusStatus>(() => {
-    const { plan, expiresAt } = stored.value
-    return lapsedAt(stored.value, now.value) !== null ? NO_PLUS : { plan, expiresAt }
+    const { plan, expiresAt, offered } = stored.value
+    if (lapsedAt(stored.value, now.value) !== null) return NO_PLUS
+    return offered ? { plan, expiresAt, offered } : { plan, expiresAt }
   })
   /** Abonnement échu, que `status` lit déjà « aucun » : de quoi écrire « expiré ». */
   const expiredPlan = computed<SubscriptionPlan | null>(() =>
     status.value.plan === 'none' ? stored.value.lastSubscription : null,
+  )
+  /** L'abonnement échu était un droit offert : « Plus offert — terminé ». */
+  const expiredOffered = computed(
+    () => expiredPlan.value !== null && stored.value.lastSubscriptionOffered === true,
   )
   const endedAt = ref<string | null>(readPlusEndedAt())
   /** Plus arrêté et sauvegarde cloud encore conservée : 12 mois, là où `expiredPlan` n'en tient que 1. */
@@ -84,6 +98,7 @@ export const usePurchaseStore = defineStore('purchase', () => {
   return {
     status,
     expiredPlan,
+    expiredOffered,
     backupPause,
     available,
     offers,

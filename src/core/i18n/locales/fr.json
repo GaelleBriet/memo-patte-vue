@@ -1286,6 +1286,7 @@
           "purchases": "L’historique d’achat chez Google Play"
         },
         "subscription": "Supprimer ton compte ne résilie pas ton abonnement Google Play.",
+        "lifetime": "Supprimer ton compte ne rembourse pas ton achat à vie.",
         "continue": "Continuer",
         "cancel": "Annuler",
         "identity": {
@@ -1925,7 +1926,10 @@
         "annual": "Plus annuel jusqu’au {date}",
         "lifetime": "Plus à vie",
         "expiredMonthly": "Plus mensuel — expiré",
-        "expiredAnnual": "Plus annuel — expiré"
+        "expiredAnnual": "Plus annuel — expiré",
+        "offered": "Plus offert jusqu’au {date}",
+        "offeredNoEnd": "Plus offert, sans date de fin",
+        "offeredEnded": "Plus offert — terminé"
       },
       "paused": {
         "body": "Ta sauvegarde cloud est en pause. Tes carnets restent sur ton téléphone.",
