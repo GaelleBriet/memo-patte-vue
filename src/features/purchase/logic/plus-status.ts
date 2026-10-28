@@ -17,6 +17,11 @@ export const NO_PLUS: PlusStatus = { plan: 'none', expiresAt: null }
 
 const LONGEST_MONTHLY_PERIOD_DAYS = 45
 
+/** L'échéance si elle est passée à `now`, sinon `null`. */
+export function lapsedAt({ expiresAt }: PlusStatus, now: number): string | null {
+  return expiresAt !== null && Date.parse(expiresAt) <= now ? expiresAt : null
+}
+
 export function subscriptionOf(status: PlusStatus): SubscriptionPlan | null {
   return status.plan === 'monthly' || status.plan === 'annual' ? status.plan : null
 }
