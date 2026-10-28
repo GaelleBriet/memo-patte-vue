@@ -1,7 +1,7 @@
 import type { PluginListenerHandle } from '@capacitor/core'
 import { Network } from '@capacitor/network'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
-import { nextTick, ref, shallowRef } from 'vue'
+import { nextTick, ref, shallowRef, watch } from 'vue'
 import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import type { RestoreMode } from '@/core/sync/repository/sync-state.repository'
 import { createRestoreFlow, type RestoreFlowState } from '@/core/sync/service/restore-flow'
@@ -99,6 +99,7 @@ const withoutSession = {
   ),
   sweepCloudPhotos: vi.fn<(userId: string) => Promise<void>>(async () => {}),
   sessionActive: () => false,
+  signInNeeded: () => false,
   checkAccountBackup: vi.fn<() => Promise<AccountBackupCheck>>(async () => ({ kind: 'active' })),
   confirmCarnetSend: vi.fn<() => Promise<AccountBackupCheck>>(async () => ({ kind: 'active' })),
   restoreFlow: fakeRestoreFlow(),
@@ -333,6 +334,7 @@ describe('installSync', () => {
         runCycle,
         userId: () => userId.value,
         sessionActive: () => active.value,
+        signInNeeded: () => false,
         checkAccountBackup,
         confirmCarnetSend,
         restoreFlow,
@@ -997,6 +999,128 @@ describe('restauration qui attend le réseau', () => {
 
     expect(flow.state.value.step).toBe('done')
     stop()
+  })
+
+  describe('session du compte pendant une restauration interrompue', () => {
+    function interruptedSetup() {
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+      let emit!: NetworkListener
+      addNetworkListener.mockImplementation(async (_event, listener) => {
+        emit = listener
+        return { remove: vi.fn<() => Promise<void>>(async () => {}) }
+      })
+      const session = ref<'active' | 'needs-refresh' | 'needs-sign-in'>('active')
+      let pending: RestoreMode | null = 'merge'
+      let failNext = true
+      const run = vi.fn<() => Promise<'restored'>>(async () => {
+        if (failNext || session.value === 'needs-sign-in') {
+          failNext = false
+          throw new Error('réseau coupé')
+        }
+        pending = null
+        return 'restored'
+      })
+      const signInNeeded = () => session.value === 'needs-sign-in'
+      const flow = createRestoreFlow(
+        {
+          pendingMode: async () => pending,
+          start: async (mode) => {
+            pending = mode
+          },
+          run,
+          progress: { done: 0, total: 0 },
+          onProgress: () => () => {},
+        },
+        signInNeeded,
+      )
+      const steps: RestoreFlowState['step'][] = []
+      watch(
+        () => flow.state.value.step,
+        (step) => steps.push(step),
+        { flush: 'sync' },
+      )
+      const deps: SyncDependencies = {
+        outbox: fakeOutbox(0),
+        runCycle: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+        userId: () => 'user-1',
+        ...withoutSession,
+        sessionActive: () => session.value === 'active',
+        signInNeeded,
+        checkAccountBackup: vi.fn<() => Promise<AccountBackupCheck>>(async () => ({
+          kind: 'restore-pending',
+          mode: 'merge',
+        })),
+        restoreFlow: flow,
+      }
+      const comeBack = () => {
+        simulateWebResume()
+        emit({ connected: false, connectionType: 'none' })
+        emit({ connected: true, connectionType: 'wifi' })
+      }
+      return { deps, session, run, flow, steps, comeBack }
+    }
+
+    it('session expirée : un retour au premier plan ou du réseau ne relance aucune restauration', async () => {
+      const { deps, session, run, flow, steps, comeBack } = interruptedSetup()
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(0)
+      session.value = 'needs-sign-in'
+      expect(flow.state.value.step).toBe('waiting-sign-in')
+      steps.length = 0
+
+      comeBack()
+      await vi.advanceTimersByTimeAsync(SYNC_BACKOFF_STEPS_MS.at(-1)!)
+
+      expect(run).toHaveBeenCalledOnce()
+      expect(steps).toEqual([])
+      expect(flow.state.value.step).toBe('waiting-sign-in')
+      stop()
+    })
+
+    it('session expirée qui revient : la restauration reprend', async () => {
+      const { deps, session, run, flow, comeBack } = interruptedSetup()
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(0)
+      session.value = 'needs-sign-in'
+      comeBack()
+      await vi.advanceTimersByTimeAsync(0)
+
+      session.value = 'active'
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(run).toHaveBeenCalledTimes(2)
+      expect(flow.state.value.step).toBe('done')
+      stop()
+    })
+
+    it('session à rafraîchir : la restauration reprend dès le retour du réseau', async () => {
+      const { deps, session, run, flow, comeBack } = interruptedSetup()
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(0)
+      session.value = 'needs-refresh'
+      expect(flow.state.value.step).toBe('waiting-network')
+
+      comeBack()
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(run).toHaveBeenCalledTimes(2)
+      expect(flow.state.value.step).toBe('done')
+      stop()
+    })
+
+    it('session active : un retour au premier plan puis du réseau reprennent la restauration', async () => {
+      const { deps, run, flow, comeBack } = interruptedSetup()
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(0)
+      expect(flow.state.value.step).toBe('waiting-network')
+
+      comeBack()
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(run).toHaveBeenCalledTimes(2)
+      expect(flow.state.value.step).toBe('done')
+      stop()
+    })
   })
 
   it('réseau coupé pendant la restauration d’un compte parti : le contrôle du compte suivant donne sa propre réponse', async () => {

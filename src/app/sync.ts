@@ -72,6 +72,7 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
     runCycle: () => cycle.runCycle(),
     userId,
     sessionActive,
+    signInNeeded,
     checkAccountBackup: () => accountBackup.check(),
     confirmCarnetSend: () => accountBackup.confirmSend(),
     restoreFlow,

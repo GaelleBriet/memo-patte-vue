@@ -115,6 +115,17 @@ describe('createDefaultSyncDependencies', () => {
     expect(sync.sessionActive()).toBe(true)
   })
 
+  it('ne demande la reconnexion à la synchro que pour une session expirée', async () => {
+    const sync = await createDefaultSyncDependencies()
+
+    auth.sessionState = 'needs-sign-in'
+    expect(sync.signInNeeded()).toBe(true)
+    auth.sessionState = 'needs-refresh'
+    expect(sync.signInNeeded()).toBe(false)
+    auth.sessionState = 'active'
+    expect(sync.signInNeeded()).toBe(false)
+  })
+
   it('fait attendre la reconnexion à la restauration quand la session a expiré', async () => {
     const sync = await createDefaultSyncDependencies()
 
