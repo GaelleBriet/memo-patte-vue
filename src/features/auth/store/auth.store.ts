@@ -45,6 +45,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const account = ref<PlusAccount | null>(readPlusAccount())
   const sessionState = ref<SessionState>(account.value ? 'restoring' : 'none')
+  const sessionUnreadable = ref(false)
   const hasPlusAccount = computed(() => account.value !== null)
   const userId = computed(() => account.value?.userId ?? null)
 
@@ -108,10 +109,16 @@ export const useAuthStore = defineStore('auth', () => {
     else sessionState.value = 'needs-sign-in'
   })
 
+  repository.onSessionUnreadable(() => {
+    sessionUnreadable.value = true
+    if (account.value) sessionState.value = 'needs-sign-in'
+  })
+
   return {
     hasPlusAccount,
     userId,
     sessionState,
+    sessionUnreadable,
 
     /** Sans compte Plus sur l'appareil, ne contacte pas Supabase. Ne lève pas. */
     async restore(): Promise<void> {

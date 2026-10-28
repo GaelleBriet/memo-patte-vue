@@ -62,6 +62,7 @@ vi.mock('../repository/auth.repository', () => ({
     refreshSession: vi.fn<AuthRepository['refreshSession']>(),
     accountIdentity: vi.fn<AuthRepository['accountIdentity']>(),
     onSessionChange: vi.fn<AuthRepository['onSessionChange']>(),
+    onSessionUnreadable: vi.fn<AuthRepository['onSessionUnreadable']>(),
   },
 }))
 
@@ -162,6 +163,22 @@ describe('useAuthStore', () => {
 
       await store.restore()
 
+      expect(store.sessionState).toBe('needs-sign-in')
+      expect(readPlusAccount()).toEqual({ userId: USER_ID })
+    })
+
+    it('signale une session illisible et demande de se reconnecter', async () => {
+      repository.restoreSession.mockResolvedValueOnce({
+        kind: 'active',
+        session: { userId: USER_ID },
+      })
+      const store = useAuthStore()
+      await store.restore()
+      expect(store.sessionUnreadable).toBe(false)
+
+      repository.onSessionUnreadable.mock.lastCall?.[0]()
+
+      expect(store.sessionUnreadable).toBe(true)
       expect(store.sessionState).toBe('needs-sign-in')
       expect(readPlusAccount()).toEqual({ userId: USER_ID })
     })

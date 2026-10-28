@@ -41,6 +41,16 @@ async function migrateLegacy(
   }
 }
 
+const unreadableListeners: (() => void)[] = []
+
+export function onSessionUnreadable(listener: () => void): void {
+  unreadableListeners.push(listener)
+}
+
+function signalUnreadableSession(): void {
+  for (const listener of unreadableListeners) listener()
+}
+
 export function createAuthStorage(vault: SessionVault, legacy?: Storage): SupportedStorage {
   return {
     async getItem(key) {
@@ -53,6 +63,8 @@ export function createAuthStorage(vault: SessionVault, legacy?: Storage): Suppor
         if (!legacy) return null
       } catch (cause) {
         console.warn('Session illisible dans le stockage sécurisé :', errorSummary(cause))
+        removeLegacy(legacy, key)
+        signalUnreadableSession()
         return null
       }
       return migrateLegacy(vault, legacy, key)

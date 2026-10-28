@@ -45,6 +45,8 @@ export type AuthRepository = {
   discardSession(): Promise<void>
   /** Efface la session et ses clés PKCE de l'appareil, sans rien envoyer à Supabase. Ne lève pas. */
   forgetSession(): Promise<void>
+  /** Le coffre de l'appareil n'a pas pu rendre la session : elle est oubliée, la personne est déconnectée. */
+  onSessionUnreadable(listener: () => void): void
   restoreSession(): Promise<SessionCheck>
   refreshSession(): Promise<SessionCheck>
   /** Lit la session de l'appareil ; `null` sans session. */
@@ -227,6 +229,7 @@ export function createAuthRepository({
 
     discardSession: revocation.discardSession,
     forgetSession: revocation.forgetSession,
+    onSessionUnreadable: revocation.onSessionUnreadable,
 
     async restoreSession() {
       const { data, error } = await (await client()).auth.getSession()

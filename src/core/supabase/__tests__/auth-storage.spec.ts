@@ -4,6 +4,7 @@ import {
   AUTH_STORAGE_KEY,
   createAuthStorage,
   forgetSession,
+  onSessionUnreadable,
   type SessionVault,
 } from '../auth-storage'
 
@@ -114,7 +115,9 @@ describe('stockage de la session', () => {
   })
 
   describe('échec du Keystore', () => {
-    it('lecture impossible : déconnecté, sans repli sur le stockage en clair', async () => {
+    it('lecture impossible : déconnecté, copie en clair effacée et signal levé', async () => {
+      const unreadable = vi.fn<() => void>()
+      onSessionUnreadable(unreadable)
       legacy.setItem(AUTH_STORAGE_KEY, SESSION)
       vault.get = async () => {
         throw new Error('keystore indisponible')
@@ -122,7 +125,8 @@ describe('stockage de la session', () => {
       const storage = createAuthStorage(vault, legacy)
 
       expect(await storage.getItem(AUTH_STORAGE_KEY)).toBeNull()
-      expect(legacy.getItem(AUTH_STORAGE_KEY)).toBe(SESSION)
+      expect(legacy.getItem(AUTH_STORAGE_KEY)).toBeNull()
+      expect(unreadable).toHaveBeenCalledOnce()
     })
 
     it('écriture impossible : rien n’est écrit en clair et l’appel ne lève pas', async () => {
