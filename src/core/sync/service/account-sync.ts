@@ -78,6 +78,7 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
   }
 
   async function runRestore(): Promise<void> {
+    if (!deps.sessionActive()) return
     await deps.restoreFlow.resume()
   }
 
