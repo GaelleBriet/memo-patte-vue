@@ -30,7 +30,8 @@ import { formatLongDate } from '@/shared/utils/format'
 // A4 : les marges latérales du carnet, et 10 mm en haut et en bas, loin de la marge non imprimable.
 const ZONE: PdfBounds = { left: 18, right: 192, top: 10, bottom: 287 }
 const FOOTER = `Généré le ${formatLongDate('2026-09-15')} — MémoPatte 0.1.24`
-const SECTION_TITLES = ['Traitements', 'Vaccins', 'Poids']
+const CARNET_TITLES = ['Traitements', 'Vaccins', 'Poids']
+const SECTION_TITLES = [...CARNET_TITLES, 'Traitements terminés']
 const ETATS = ['À jour', 'En retard', 'Pas de rappel']
 // La mise en page laisse au moins 5,7 mm sous l'en-tête (un titre de section) et 4,6 mm sur le pied.
 const ECART_SOUS_EN_TETE = 5
@@ -92,6 +93,7 @@ function carnet(vaccinCount: number, treatmentCount: number, weighInCount: numbe
     generatedOn: '2026-09-15',
     vaccinations: vaccins(vaccinCount),
     treatments: traitements(treatmentCount),
+    finishedTreatments: [],
     weightEntries: pesees(weighInCount),
   } satisfies CarnetPdfContent
 }
@@ -170,6 +172,15 @@ const DEBORDEMENTS = [
     ).flat(),
   ),
 ]
+const AVEC_TERMINES = Array.from({ length: 30 }, (_, count) => {
+  const base = carnet(count, 2, 8)
+  return {
+    ...base,
+    finishedTreatments: Array.from({ length: 1 + (count % 6) }, () =>
+      count % 4 === 0 ? TRAITEMENT_LONG : ARRETE,
+    ),
+  }
+})
 const NOMS_LONGS = Array.from({ length: 40 }, (_, count) => carnetAuxNomsLongs(count))
 const MOT_SANS_ESPACE = avec({
   animal: { ...LONG.animal, name: MOT_80 },
@@ -311,6 +322,7 @@ describe('renderCarnetPdf — pages', () => {
     { carnets: 'court, long, mot sans espace', contents: [COURT, LONG, MOT_SANS_ESPACE] },
     { carnets: 'débordements', contents: DEBORDEMENTS },
     { carnets: 'noms longs', contents: NOMS_LONGS },
+    { carnets: 'traitements terminés', contents: AVEC_TERMINES },
   ])(
     'n’écrit ni ne dessine rien hors de la zone imprimable, ni contre l’en-tête ou le pied ($carnets)',
     ({ contents }) => {
@@ -402,9 +414,30 @@ describe('renderCarnetPdf — pages', () => {
     }
   })
 
+  it('écrit les traitements terminés en dernier : traitements, vaccins, poids, terminés', () => {
+    const content = avec({
+      treatments: traitements(1),
+      vaccinations: vaccins(1),
+      weightEntries: pesees(2),
+      finishedTreatments: [ARRETE],
+    })
+    const titres = pages(content)
+      .flatMap((page) => page.texts)
+      .filter((text) => text.bold && text.sizePt === 13)
+      .map((text) => text.text)
+
+    expect(titres).toEqual(['Traitements', 'Vaccins', 'Poids', 'Traitements terminés'])
+  })
+
+  it('n’écrit aucune section sans traitement terminé', () => {
+    const titres = pages(COURT).flatMap((page) => page.texts.map((text) => text.text))
+
+    expect(titres).not.toContain('Traitements terminés')
+  })
+
   it('ne laisse jamais un titre de section seul en bas de page', () => {
     const defauts: string[] = []
-    for (const content of [...DEBORDEMENTS, ...NOMS_LONGS]) {
+    for (const content of [...DEBORDEMENTS, ...NOMS_LONGS, ...AVEC_TERMINES]) {
       pages(content).forEach((page, index) => {
         for (const titre of page.texts.filter((text) => SECTION_TITLES.includes(text.text))) {
           const visible = (box: PdfBounds) =>
@@ -605,7 +638,7 @@ describe('renderCarnetPdf — plusieurs animaux', () => {
     expect(pagesDuPdf[0]!.texts.map((text) => text.text)).toContain('Luna')
     expect(enTete(premiereDeMilo).text).toBe('MémoPatte')
     expect(textes).toEqual(
-      expect.arrayContaining(['Milo', ...SECTION_TITLES, 'Vaccin 1', 'Vaccin 2', 'Traitement 1']),
+      expect.arrayContaining(['Milo', ...CARNET_TITLES, 'Vaccin 1', 'Vaccin 2', 'Traitement 1']),
     )
     expect(textes).not.toContain('Luna')
     expect(premiereDeMilo.images).toHaveLength(1)

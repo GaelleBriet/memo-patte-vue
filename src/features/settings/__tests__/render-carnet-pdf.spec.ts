@@ -28,6 +28,7 @@ const EMPTY_CONTENT: CarnetPdfContent = {
   generatedOn: '2026-09-15',
   vaccinations: [],
   treatments: [],
+  finishedTreatments: [],
   weightEntries: [],
 }
 
@@ -91,6 +92,7 @@ const FULL_CONTENT: CarnetPdfContent = {
       state: 'upToDate',
     },
   ],
+  finishedTreatments: [],
   weightEntries: [
     { measuredOn: '2026-01-01', weightKg: 4 },
     { measuredOn: '2026-06-01', weightKg: 4.3 },

@@ -1682,6 +1682,9 @@
         "title": "Vaccines",
         "empty": "No vaccines recorded."
       },
+      "finishedTreatments": {
+        "title": "Finished treatments"
+      },
       "treatments": {
         "title": "Treatments",
         "empty": "No treatments recorded.",

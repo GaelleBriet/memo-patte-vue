@@ -139,6 +139,7 @@ function renderAnimal(doc: jsPDF, { content, photoDataUrl }: CarnetPdfPart, t: T
   renderSection(doc, cursor, text.treatments)
   renderSection(doc, cursor, text.vaccinations)
   renderWeightSection(doc, cursor, content, text.weight, t)
+  if (text.finishedTreatments.rows.length > 0) renderSection(doc, cursor, text.finishedTreatments)
 }
 
 type DetailBlock = { lines: { text: string; x: number }[]; height: number }

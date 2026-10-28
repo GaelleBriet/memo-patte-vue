@@ -37,6 +37,7 @@ export type CarnetPdfText = {
   identity: string
   vaccinations: PdfSectionText
   treatments: PdfSectionText
+  finishedTreatments: PdfSectionText
   weight: { title: string; emptyLabel: string; rows: [date: string, weight: string][] }
 }
 
@@ -256,6 +257,19 @@ function detail(text: string, level: 0 | 1 = 0): PdfDetail {
   return { text, level }
 }
 
+function treatmentSection(rows: PdfTreatmentRow[], title: string, t: Translate): PdfSectionText {
+  return {
+    title,
+    rows: rows.map((row) => [
+      pdfName(row.name, t),
+      row.state === null && row.due.kind === 'due' ? '' : treatmentDueLabel(row, t),
+      row.state === null ? '' : t(`settings.pdf.status.${row.state}`),
+    ]),
+    emptyLabel: t('settings.pdf.treatments.empty'),
+    details: rows.map((row) => treatmentHistory(row, t)),
+  }
+}
+
 export function carnetPdfText(content: CarnetPdfContent, t: Translate): CarnetPdfText {
   return {
     animalName: pdfName(content.animal.name, t),
@@ -278,16 +292,12 @@ export function carnetPdfText(content: CarnetPdfContent, t: Translate): CarnetPd
             ],
       ),
     },
-    treatments: {
-      title: t('settings.pdf.treatments.title'),
-      rows: content.treatments.map((row) => [
-        pdfName(row.name, t),
-        row.state === null && row.due.kind === 'due' ? '' : treatmentDueLabel(row, t),
-        row.state === null ? '' : t(`settings.pdf.status.${row.state}`),
-      ]),
-      emptyLabel: t('settings.pdf.treatments.empty'),
-      details: content.treatments.map((row) => treatmentHistory(row, t)),
-    },
+    treatments: treatmentSection(content.treatments, t('settings.pdf.treatments.title'), t),
+    finishedTreatments: treatmentSection(
+      content.finishedTreatments,
+      t('settings.pdf.finishedTreatments.title'),
+      t,
+    ),
     weight: {
       title: t('settings.pdf.weight.title'),
       emptyLabel: t('settings.pdf.weight.empty'),

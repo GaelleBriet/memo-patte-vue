@@ -4472,8 +4472,8 @@ Premier retour d'une utilisatrice, décision de Gaelle : les traitements sont pl
 ## 2026-10-28 — PDF et export CSV dans l'ordre du Carnet (#1385)
 
 - Gaelle : « c'est lourd en travail ? si non fais-le, mets-le dans le même ordre ». Le PDF range ses sections traitements, vaccins, poids ; les fichiers du CSV suivent traitements, périodes, prises, vaccins, injections, poids.
-- Les traitements terminés restent dans la section « Traitements » du PDF, triés par échéance : les séparer demanderait un titre nouveau, donc un texte à valider.
-- Pour revenir dessus : l'ordre est dans `render-carnet-pdf.ts` et `export-csv.ts`.
+- Les traitements terminés ont leur propre section du PDF, comme dans le Carnet : ordre Traitements (en cours), Vaccins, Poids, Traitements terminés. Titre « Traitements terminés » / « Finished treatments », même mot que le Carnet ; section vide = pas de section. Un traitement terminé n'apparaît qu'une fois, la règle « terminé » est celle du Carnet. — Décision de Gaelle, 2026-10-28 (remplace la première version, où ils restaient dans « Traitements »). Le CSV ne change pas.
+- Pour revenir dessus : l'ordre est dans `render-carnet-pdf.ts` et `export-csv.ts` ; la règle « terminé » dans `shared/domain/treatment-finished.ts`.
 
 ## 2026-10-28 — Paramètres › Sauvegarde : « En pause » dure 12 mois après la fin de Plus (#1201)
 

@@ -1682,6 +1682,9 @@
         "title": "Vaccins",
         "empty": "Aucun vaccin enregistré."
       },
+      "finishedTreatments": {
+        "title": "Traitements terminés"
+      },
       "treatments": {
         "title": "Traitements",
         "empty": "Aucun traitement enregistré.",
