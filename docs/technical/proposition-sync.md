@@ -474,7 +474,8 @@ compris), qu'aucune entrée `animal_photo` ne le désigne, et que sa dernière �
 (`created_at`, `updated_at` de `storage.objects`) date d'au moins `PHOTO_CLOUD_GRACE_MS` avant la
 date serveur la plus récente lue pendant le passage (`server_updated_at` des lignes, dates des
 fichiers) : l'horloge du téléphone n'entre pas dans l'âge. Une entrée `animal` en file, avant ou
-après les lectures, une lecture ou un effacement en échec, la fin de Plus ou un changement de compte
+après les lectures, une lecture ou un effacement en échec, une table `animal` du cloud lue vide (la
+RLS rend vide, sans erreur, une lecture sans session), la fin de Plus ou un changement de compte
 arrêtent le passage sans rien effacer de plus.
 
 RLS `storage.objects`, pour les quatre opérations :
