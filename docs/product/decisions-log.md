@@ -3321,6 +3321,9 @@ le délai coûte une condition et des objets privés gardés au plus une semaine
 écartées : lister le dossier cloud et effacer ce qu'aucune ligne ne porte (course avec une photo
 qu'un autre appareil vient d'envoyer) ; effacer tout de suite (perte de P1 dans l'exemple). — À
 garder en tête : une ligne de la tablette tirée après les 7 jours ne protège plus P1.
+_Remplacée en partie le 2026-10-28 (#1355)_ : « lister le dossier cloud et effacer ce qu'aucune
+ligne ne porte » n'est plus écarté ; voir « Ménage des photos du cloud à la connexion ». La file et
+son délai de grâce restent.
 
 ## 2026-10-22 — Photos cloud : lecture et effacement sans droit Plus actif, envoi et remplacement réservés à Plus
 
@@ -4537,11 +4540,15 @@ Décision de la session d'analyse du moteur (Q73), pour appliquer la planche V21
 - L'identifiant RevenueCat part dès l'ouverture de l'écran Plus : déclaré tel quel. Gaelle : ok. — Raison (analyse) : pratique courante. Le nom, l'identifiant et la date d'installation de l'appareil sont synchronisés avec Plus : à ajouter à la politique de confidentialité (#1218).
 - Pour revenir dessus : #1218 et la politique de confidentialité du site.
 
-## 2026-10-28 — Ménage des photos du cloud à la connexion (#1355, option C), à livrer
+## 2026-10-28 — Ménage des photos du cloud à la connexion (#1355, option C)
 
-- À livrer (#1355) : à la connexion, avec Plus actif, un fichier de plus de 7 jours est effacé du cloud si aucune fiche ne l'utilise, du cloud comme du téléphone, supprimée comprise, et si aucune fiche n'attend d'être envoyée. L'effacement est irréversible. Remplace la décision du 23 octobre (« Photos cloud : ménage par la file, délai de grâce de 7 jours ») et revient sur l'alternative écartée ce jour-là (lister le dossier cloud), l'âge de 7 jours écartant la course. Exemple : une photo de Milo remplacée il y a 10 jours est effacée à la prochaine connexion.
+- Livré (#1355) : à la connexion, avec Plus actif, un fichier de plus de 7 jours est effacé du cloud si aucune fiche ne l'utilise, du cloud comme du téléphone, supprimée comprise, et si aucune fiche n'attend d'être envoyée. L'effacement est irréversible. Remplace la décision du 23 octobre (« Photos cloud : ménage par la file, délai de grâce de 7 jours ») et revient sur l'alternative écartée ce jour-là (lister le dossier cloud), l'âge de 7 jours écartant la course. La file `animal_photo` et son délai restent. Exemple : une photo de Milo remplacée il y a 10 jours est effacée à la prochaine connexion.
+- Quand : après le contrôle de la sauvegarde d'un carnet déjà lié au compte, au plus une fois par lancement et une fois par jour, avec Plus actif et la synchro en marche (même garde que la synchro : ni pause, ni abonnement échu, ni sans compte).
+- Ce qui est effacé : un fichier du dossier du compte, nommé comme une photo du carnet, qu'aucune fiche d'animal ne porte (du cloud comme du téléphone, supprimée comprise, car elle peut revenir), qui n'est pas en file, et dont la dernière écriture sur le serveur date d'au moins 7 jours. Au plus 20 par passage, les plus anciens d'abord.
+- Ce qui arrête tout : une fiche d'animal du téléphone qui attend d'être envoyée (avant ou après les lectures), une lecture qui échoue (file, fiches du téléphone, fiches du cloud, dossier), un cloud qui ne rend aucune fiche (une lecture sans session revient vide, sans erreur), un effacement qui échoue, un changement de compte ou la fin de Plus pendant le passage.
+- L'âge se mesure sur les dates du serveur, jamais sur l'horloge du téléphone : « maintenant » est la date la plus récente écrite par le serveur et lue pendant le passage. Une photo qu'un autre appareil vient d'envoyer, sa fiche pas encore synchronisée, a moins de 7 jours et reste. Sans écriture récente du compte sur le serveur, l'âge est sous-estimé et le ménage attend, jamais l'inverse.
 - Alternatives écartées : B (garder les demandes après la déconnexion), A (effacer à la déconnexion), ne rien changer.
-- Pour revenir dessus : #1355 et l'entrée du 23 octobre.
+- Pour revenir dessus : `core/sync/service/cloud-photo-sweep.ts` (règles, plafond, espacement), son déclenchement dans `core/sync/service/account-sync.ts`, #1355 et l'entrée du 23 octobre.
 
 ## 2026-10-28 — Webhook RevenueCat : recouvrement partiel entre secret et en-tête (#1412)
 

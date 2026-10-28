@@ -45,6 +45,8 @@ export interface SyncDependencies {
   >
   /** Ne lève pas : une photo qui manque encore se retente au lancement suivant. */
   restoreMissingPhotos: (userId: string, options?: { visible?: boolean }) => Promise<void>
+  /** Ne lève pas ; passe au plus une fois par lancement et par jour. */
+  sweepCloudPhotos: (userId: string) => Promise<void>
 }
 
 /**
@@ -69,6 +71,12 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
     else void deps.restoreMissingPhotos(userId)
   }
 
+  function sweepCloudPhotos(): void {
+    const userId = deps.userId()
+    if (!deps.sessionActive() || userId === null) return
+    void deps.sweepCloudPhotos(userId)
+  }
+
   async function runRestore(): Promise<void> {
     await deps.restoreFlow.resume()
   }
@@ -83,8 +91,10 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
       else if (outcome.kind === 'backup-found') deps.restoreFlow.offer(outcome.summary)
       else if (outcome.kind === 'confirm-send') deps.restoreFlow.askSend(outcome)
       else if (outcome.kind === 'restore-pending') await runRestore()
-      else if (outcome.kind === 'active') restorePhotos()
-      else if (outcome.kind === 'unreachable') {
+      else if (outcome.kind === 'active') {
+        restorePhotos()
+        sweepCloudPhotos()
+      } else if (outcome.kind === 'unreachable') {
         checkedFor = null
         deps.restoreFlow.unreachable()
       } else {

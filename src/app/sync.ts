@@ -21,9 +21,10 @@ import { syncAllReminders } from '@/features/treatments/service/reminders-sync.s
 
 /** Composition réelle : les repositories sur la base de l'appareil, le statut Plus des stores. */
 export async function createDefaultSyncDependencies(): Promise<SyncDependencies> {
+  const animals = await getAnimalsRepository()
   const tables: RestorableTable[] = [
     await getDeviceRepository(),
-    await getAnimalsRepository(),
+    animals,
     await getVaccinationsRepository(),
     await getVaccinationInjectionsRepository(),
     await getTreatmentsRepository(),
@@ -38,8 +39,9 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
   const sessionReset = () => useAuthStore().sessionUnreadable
   const isEligible = () =>
     useAuthStore().hasPlusAccount && usePurchaseStore().status.plan !== 'none'
-  const { outbox, cycle, restore, photoRestore } = await createLocalSyncContext({
+  const { outbox, cycle, restore, photoRestore, photoSweep } = await createLocalSyncContext({
     tables,
+    cloudAnimals: animals,
     userId,
     sessionActive,
     isEligible,
@@ -74,5 +76,6 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
     confirmCarnetSend: () => accountBackup.confirmSend(),
     restoreFlow,
     restoreMissingPhotos: (account, options) => photoRestore.restoreMissing(account, options),
+    sweepCloudPhotos: (account) => photoSweep.sweep(account),
   }
 }
