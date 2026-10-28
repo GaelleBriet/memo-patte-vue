@@ -241,7 +241,9 @@ describe.each(CAMPAIGNS)('ménage des photos du cloud : $name tirés au hasard',
 
     expect(violations).toEqual([])
     expect(sweptSomething).toBeGreaterThan(campaign.scenarios / 10)
-    if (campaign.photos > MAX_SWEEP_DELETIONS) expect(capped).toBeGreaterThan(0)
-    if (campaign.maxCloudRows > 500) expect(paged).toBeGreaterThan(campaign.scenarios / 3)
+    expect({
+      plafondAtteint: campaign.photos <= MAX_SWEEP_DELETIONS || capped > 0,
+      plusieursPages: campaign.maxCloudRows <= 500 || paged > campaign.scenarios / 3,
+    }).toEqual({ plafondAtteint: true, plusieursPages: true })
   })
 })
