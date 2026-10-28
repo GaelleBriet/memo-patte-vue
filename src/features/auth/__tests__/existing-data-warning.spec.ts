@@ -1,3 +1,4 @@
+import { nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -93,6 +94,19 @@ describe('useExistingDataWarning', () => {
 
     expect(proceed).not.toHaveBeenCalled()
     expect(warning.isOpen.value).toBe(false)
+  })
+
+  it('oublie l’action quand le dialogue se ferme sans « Continuer »', async () => {
+    animals(1)
+    const warning = useExistingDataWarning()
+    const proceed = vi.fn<() => void>()
+    await warning.guard(proceed)
+
+    warning.isOpen.value = false
+    await nextTick()
+    warning.continueSignIn()
+
+    expect(proceed).not.toHaveBeenCalled()
   })
 
   it('laisse passer un téléphone déjà relié à un compte', async () => {

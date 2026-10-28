@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 import { mustWarnBeforeSignIn } from '../logic/existing-data-warning'
 import { useAuthStore } from '../store/auth.store'
@@ -10,6 +10,10 @@ export function useExistingDataWarning() {
 
   const isOpen = ref(false)
   let pending: (() => void | Promise<void>) | null = null
+
+  watch(isOpen, (open) => {
+    if (!open) pending = null
+  })
 
   async function guard(proceed: () => void | Promise<void>): Promise<void> {
     if (!animals.hasLoaded) await animals.load()

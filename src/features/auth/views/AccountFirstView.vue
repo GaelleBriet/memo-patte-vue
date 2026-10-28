@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef } from 
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
+import { useExistingDataWarning } from '../composables/use-existing-data-warning'
 import { useGoogleSignIn } from '../composables/use-google-sign-in'
 import { accountFirstOffer, leavesAccountFirst } from '../logic/account-first'
 import { ACCOUNT_FIRST_ORIGIN } from '../logic/sign-up-access'
@@ -13,6 +14,7 @@ import { returnTo } from '@/shared/utils/return-to'
 import { signInRoute } from '@/shared/utils/sign-in-route'
 
 import AccountLegalNotice from './AccountLegalNotice.vue'
+import ExistingDataDialog from './ExistingDataDialog.vue'
 import GoogleSignInButton from './GoogleSignInButton.vue'
 
 const PLUS_ROUTE = { name: 'plus' }
@@ -22,6 +24,7 @@ const router = useRouter()
 const auth = useAuthStore()
 const purchase = usePurchaseStore()
 const { continueWithGoogle, announce } = useGoogleSignIn()
+const existingData = useExistingDataWarning()
 
 const isGoogleSignIn = ref(false)
 const failureKey = ref<string | null>(null)
@@ -52,6 +55,11 @@ function signIn(): void {
 }
 
 async function signInWithGoogle(): Promise<void> {
+  if (isGoogleSignIn.value) return
+  await existingData.guard(continueWithGoogleAccount)
+}
+
+async function continueWithGoogleAccount(): Promise<void> {
   if (isGoogleSignIn.value) return
   isGoogleSignIn.value = true
   failureKey.value = null
@@ -143,6 +151,12 @@ onUnmounted(() => {
       </div>
     </template>
   </PushedScreen>
+
+  <ExistingDataDialog
+    v-model="existingData.isOpen.value"
+    @confirm="existingData.continueSignIn"
+    @cancel="existingData.cancel"
+  />
 </template>
 
 <style scoped lang="scss">
