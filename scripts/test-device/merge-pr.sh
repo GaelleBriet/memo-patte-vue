@@ -32,6 +32,6 @@ gh api -X DELETE "repos/GaelleBriet/memo-patte-vue/git/refs/heads/$B" >/dev/null
 [ -d "$CHECK" ] || git worktree add -q --detach "$CHECK" origin/main
 cd "$CHECK" && git checkout -q --detach origin/main && pnpm install --frozen-lockfile >/dev/null 2>&1 &&
   pnpm lint >/dev/null 2>&1 && pnpm type-check >/dev/null 2>&1 &&
-  flock /tmp/claude-1000/memo-patte-suite.lock pnpm exec vitest run --no-fsModuleCache >"$LOG" 2>&1
+  flock /tmp/claude-1000/memo-patte-suite.lock pnpm exec vitest run >"$LOG" 2>&1
 R=$?; T=$(grep -E "Tests +[0-9]" "$LOG"); F=$(grep -E " FAIL |AssertionError|Timeout" "$LOG" | cut -c1-240); rm -f "$LOG"
 [ $R -eq 0 ] && pnpm build-only >/dev/null 2>&1 && echo "MAIN OK $T" || { echo "MAIN KO $T"; echo "$F"; }

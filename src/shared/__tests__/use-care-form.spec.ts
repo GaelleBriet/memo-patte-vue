@@ -1,6 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { defineComponent, h, reactive, shallowRef } from 'vue'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useCareForm, type CareFormAnimal } from '../composables/use-care-form'
 
@@ -74,6 +74,10 @@ function monter(options: {
   )
   return { form, animals, open }
 }
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 beforeEach(() => {
   replace.mockClear()
@@ -169,6 +173,7 @@ describe('useCareForm — chargement du soin', () => {
   })
 
   it('dit l’échec du chargement', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const { form } = monter({
       id: 's1',
       animalId: 'milo',
@@ -179,7 +184,7 @@ describe('useCareForm — chargement du soin', () => {
     await flushPromises()
 
     expect(form.loadFailed.value).toBe(true)
-    expect(form.loadFailed.value).toBe(true)
+    expect(warn).toHaveBeenCalledWith('Chargement du soin impossible :', 'Error')
     expect(form.isLoading.value).toBe(false)
     expect(form.canSave.value).toBe(false)
   })
@@ -203,6 +208,7 @@ describe('useCareForm — enregistrement', () => {
   })
 
   it('ne fait rien quand il n’y a rien à écrire, et efface l’échec précédent', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
     const { form } = monter({ animalId: 'milo' })
     await flushPromises()
     await form.saveThenLeave(() => Promise.reject(new Error('disque plein')), true)
@@ -230,6 +236,7 @@ describe('useCareForm — enregistrement', () => {
   })
 
   it('dit l’échec de l’écriture et reste sur l’écran', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const { form, animals } = monter({ animalId: 'milo' })
     await flushPromises()
 
@@ -238,6 +245,7 @@ describe('useCareForm — enregistrement', () => {
     }, false)
 
     expect(form.saveFailed.value).toBe(true)
+    expect(warn).toHaveBeenCalledWith('Enregistrement du soin impossible :', 'Error')
     expect(form.isSaved.value).toBe(false)
     expect(form.canSave.value).toBe(true)
     expect(animals.select).not.toHaveBeenCalled()

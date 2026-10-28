@@ -3,6 +3,7 @@ import { useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import ChoiceCards from './ChoiceCards.vue'
+import RestoreProgressCard from './RestoreProgressCard.vue'
 import { useAccountRestore } from '../composables/use-account-restore'
 import { useMergeReplaceChoices } from '../composables/use-merge-replace-choices'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
@@ -14,13 +15,12 @@ const {
   state,
   isRestoring,
   summaryText,
-  progressText,
-  progressValue,
   selected,
   isConfirmOpen,
   submit,
   confirmReplace,
   leave,
+  signIn,
   later,
 } = useAccountRestore()
 
@@ -60,25 +60,11 @@ const groupLabelId = useId()
         />
       </template>
 
-      <div
+      <RestoreProgressCard
         v-else-if="state.step === 'restoring'"
-        class="settings-row account-restore__card account-restore__progress"
-        role="status"
-      >
-        <v-icon class="settings-row__icon" icon="ms:cloud_download" size="24" />
-        <span class="settings-row__text">
-          <span class="settings-row__label">{{ t('settings.restore.progress.title') }}</span>
-          <span v-if="progressText" class="settings-row__hint">{{ progressText }}</span>
-          <v-progress-linear
-            class="account-restore__bar"
-            color="primary"
-            rounded
-            :indeterminate="progressValue === null"
-            :model-value="progressValue ?? 0"
-            aria-hidden="true"
-          />
-        </span>
-      </div>
+        class="account-restore__card account-restore__progress"
+        :progress="state.progress"
+      />
 
       <p
         v-else-if="state.step === 'waiting-network'"
@@ -88,9 +74,25 @@ const groupLabelId = useId()
         <v-icon icon="ms:cloud_off" size="19" />
         <span>{{ t('settings.restore.offline') }}</span>
       </p>
+
+      <p
+        v-else-if="state.step === 'waiting-sign-in'"
+        class="account-restore__notice account-restore__session-expired"
+        role="status"
+      >
+        <v-icon icon="ms:sync_problem" size="19" />
+        <span>{{ t('settings.restore.sessionExpired') }}</span>
+      </p>
     </div>
 
-    <template v-if="state.step === 'choice' || state.step === 'waiting-network'" #actions>
+    <template
+      v-if="
+        state.step === 'choice' ||
+        state.step === 'waiting-network' ||
+        state.step === 'waiting-sign-in'
+      "
+      #actions
+    >
       <div class="account-restore__actions">
         <v-btn
           v-if="state.step === 'choice'"
@@ -103,7 +105,17 @@ const groupLabelId = useId()
           {{ t('settings.import.submit') }}
         </v-btn>
         <v-btn
-          v-else
+          v-if="state.step === 'waiting-sign-in'"
+          class="account-restore__action account-restore__sign-in"
+          variant="flat"
+          color="primary"
+          prepend-icon="ms:login"
+          @click="signIn"
+        >
+          {{ t('settings.backup.cloud.interrupted.signIn') }}
+        </v-btn>
+        <v-btn
+          v-if="state.step !== 'choice'"
           class="account-restore__action account-restore__later"
           variant="outlined"
           color="primary"
@@ -153,10 +165,6 @@ const groupLabelId = useId()
   }
 }
 
-.account-restore__bar {
-  margin-top: 10px;
-}
-
 .account-restore__notice {
   display: flex;
   align-items: flex-start;
@@ -185,6 +193,9 @@ const groupLabelId = useId()
 }
 
 .account-restore__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   padding: 12px 20px 30px;
 }
 

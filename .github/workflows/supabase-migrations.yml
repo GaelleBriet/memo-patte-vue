@@ -4,32 +4,38 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'supabase/migrations/**'
+      - '.github/workflows/supabase-migrations.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-migrations-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   push:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    environment: production
     steps:
-      - uses: actions/checkout@v7
-
-      - uses: supabase/setup-cli@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          version: latest
+          persist-credentials: false
 
-      - name: Sauvegarder la base puis appliquer les migrations en attente
+      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
+        with:
+          version: 2.119.0
+
+      - name: Appliquer les migrations en attente
         env:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
           SUPABASE_POOLER_HOST: ${{ secrets.SUPABASE_POOLER_HOST }}
         run: |
           encoded_password=$(python3 -c "import urllib.parse, os; print(urllib.parse.quote(os.environ['SUPABASE_DB_PASSWORD'], safe=''))")
-          echo "::add-mask::${encoded_password}"
-          SUPABASE_DB_URL="postgresql://postgres.${SUPABASE_PROJECT_ID}:${encoded_password}@${SUPABASE_POOLER_HOST}:5432/postgres"
-
-          backup_dir="$RUNNER_TEMP/sauvegarde"
-          mkdir -p "$backup_dir"
-          supabase db dump --db-url "$SUPABASE_DB_URL" --role-only -f "$backup_dir/roles.sql"
-          supabase db dump --db-url "$SUPABASE_DB_URL" -f "$backup_dir/schema.sql"
-          supabase db dump --db-url "$SUPABASE_DB_URL" --data-only --use-copy -x "storage.buckets_vectors" -x "storage.vector_indexes" -f "$backup_dir/data.sql"
-          ls -l "$backup_dir"
-
-          supabase db push --db-url "$SUPABASE_DB_URL"
+          echo "::add-mask::$encoded_password"
+          supabase db push --db-url "postgresql://postgres.${SUPABASE_PROJECT_ID}:${encoded_password}@${SUPABASE_POOLER_HOST}:5432/postgres"

@@ -18,7 +18,7 @@ import {
   type RestoreFlow,
 } from '@/core/sync/service/restore-flow'
 import vuetify from '@/core/theme/vuetify'
-import { toastMessage } from '@/shared/utils/toast'
+import { dismissToast, toastMessage } from '@/shared/utils/toast'
 
 vi.mock('../repository/auth.repository', () => ({
   authRepository: {
@@ -126,6 +126,7 @@ async function basculer(wrapper: VueWrapper): Promise<void> {
 }
 
 beforeEach(() => {
+  dismissToast()
   retours.length = 0
   vi.clearAllMocks()
   stockage = memoryStorage()
@@ -1258,6 +1259,46 @@ describe('SignInView', () => {
       await flushPromises()
 
       expect(replace).toHaveBeenCalledWith({ name: 'settings' })
+      expect(toastMessage.value).toBe('Connexion avec Google réussie.')
+    })
+
+    it('garde le toast de réussite malgré la navigation qui suit', async () => {
+      googleSignIn.mockResolvedValue({ kind: 'signed-in', session: { userId: USER_ID } })
+      const wrapper = await monter('/sign-in?from=settings')
+
+      await wrapper.get('.sign-in__google').trigger('click')
+      await flushPromises()
+      wrapper.unmount()
+
+      expect(toastMessage.value).toBe('Connexion avec Google réussie.')
+    })
+
+    it('ne dit rien si l’écran est démonté avant la réponse de Google', async () => {
+      let terminer = (): void => {}
+      googleSignIn.mockReturnValue(
+        new Promise((resolve) => {
+          terminer = () => resolve({ kind: 'signed-in', session: { userId: USER_ID } })
+        }),
+      )
+      const wrapper = await monter('/sign-in?from=settings')
+
+      await wrapper.get('.sign-in__google').trigger('click')
+      wrapper.unmount()
+      terminer()
+      await flushPromises()
+
+      expect(toastMessage.value).toBeNull()
+    })
+
+    it('dit l’annulation par un toast, sans bandeau d’erreur', async () => {
+      googleSignIn.mockResolvedValue({ kind: 'cancelled' })
+      const wrapper = await monter()
+
+      await wrapper.get('.sign-in__google').trigger('click')
+      await flushPromises()
+
+      expect(toastMessage.value).toBe('Connexion annulée.')
+      expect(wrapper.find('.sign-in__error').exists()).toBe(false)
     })
 
     it('ne change rien quand le sélecteur est fermé sans choisir', async () => {
@@ -1294,6 +1335,7 @@ describe('SignInView', () => {
       await flushPromises()
 
       expect(wrapper.get('.sign-in__error').text()).toBe(message)
+      expect(toastMessage.value).toBeNull()
     })
 
     it('annonce la connexion en cours et n’ouvre le sélecteur qu’une fois', async () => {

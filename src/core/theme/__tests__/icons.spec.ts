@@ -77,6 +77,7 @@ const iconesDesMaquettes = [
   'notifications_off',
   'cloud_sync',
   'sync_problem',
+  'pause_circle',
   'photo_library',
   'login',
 ] as const

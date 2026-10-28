@@ -2,6 +2,7 @@ import { addDays, format, parseISO } from 'date-fns'
 import { describe, expect, it } from 'vitest'
 
 import { parseExportFile } from '../logic/parse-export-file'
+import { importFixtureJson } from './import-fixture'
 import exportV1 from './fixtures/export-v1-0.1.37.json?raw'
 import exportV2 from './fixtures/export-v2-0.1.48.json?raw'
 import type { ExportData } from '@/shared/domain/carnet-data'
@@ -352,10 +353,6 @@ describe('validation stricte d’un ancien export : tout ou rien', () => {
       'un identifiant en double',
       (file) => (rows(file, 'weightEntries')[1]!.id = rows(file, 'weightEntries')[0]!.id),
     ],
-    [
-      'une prise datée dans le futur',
-      (file) => (rows(file, 'treatmentDoses')[0]!.givenOn = '2199-01-01'),
-    ],
     ['une espèce inconnue', (file) => (rows(file, 'animals')[0]!.species = 'rabbit')],
     [
       'un type de traitement inconnu à l’époque',
@@ -364,6 +361,44 @@ describe('validation stricte d’un ancien export : tout ou rien', () => {
     ['une table absente', (file) => delete file.weightEntries],
   ])('refuse un export v2 avec %s', (_, change) => {
     expect(reasonOf(edited(exportV2, change))).toBe('invalid')
+  })
+
+  it('accepte une prise du lendemain de l’export, importée le jour de l’export (Paris, minuit passé)', () => {
+    const file = edited(exportV2, (doc) => {
+      doc.exportedAt = '2026-10-27T22:20:00.000Z'
+      rows(doc, 'treatmentDoses')[0]!.givenOn = '2026-10-28'
+    })
+
+    expect(parseExportFile(file, IMPORTEUR, '2026-10-27').ok).toBe(true)
+  })
+
+  it('un fichier forgé daté de 2199 de bout en bout est accepté ou refusé, sans exception', () => {
+    const file = edited(exportV2, (doc) => {
+      doc.exportedAt = '2199-06-01T00:00:00.000Z'
+      rows(doc, 'treatmentDoses')[0]!.givenOn = '2199-06-01'
+    })
+
+    expect(['invalid', null]).toContain(reasonOf(file))
+  })
+
+  it.each([
+    ['v2', exportV2],
+    ['v11', importFixtureJson()],
+  ])('accepte un export %s légitime quand l’horloge retarde de trois jours', (_, text) => {
+    const { exportedAt } = JSON.parse(text) as { exportedAt: string }
+    const late = format(addDays(parseISO(exportedAt), -3), 'yyyy-MM-dd')
+
+    expect(parseExportFile(text, IMPORTEUR, late).ok).toBe(true)
+  })
+
+  it('refuse un export sans date d’export', () => {
+    expect(reasonOf(edited(exportV2, (doc) => delete doc.exportedAt))).toBe('invalid')
+  })
+
+  it('refuse un export v2 avec une prise datée après son export, avec le motif des dates futures', () => {
+    const file = edited(exportV2, (doc) => (rows(doc, 'treatmentDoses')[0]!.givenOn = '2199-01-01'))
+
+    expect(reasonOf(file)).toBe('future')
   })
 
   it.each<[string, (file: Document) => void]>([

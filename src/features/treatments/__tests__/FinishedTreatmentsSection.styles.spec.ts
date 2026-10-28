@@ -20,9 +20,9 @@ function vueCss(fichier: string): string {
   return compileString(bloc, { importers: [aliasSrc] }).css
 }
 
-describe('TreatmentsSection — contrat de style', () => {
+describe('FinishedTreatmentsSection — contrat de style', () => {
   it('grise le nom d’un traitement terminé (V15, V15 ter)', () => {
-    const css = vueCss('src/features/treatments/views/TreatmentsSection.vue')
+    const css = vueCss('src/features/treatments/views/FinishedTreatmentsSection.vue')
 
     expect(declaration(css, '.finished-treatment-row__name', 'color')).toBe('#68625c')
   })

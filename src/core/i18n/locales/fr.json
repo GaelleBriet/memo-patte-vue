@@ -1340,7 +1340,7 @@
         "export": "Exporter une copie",
         "exportHint": "Vers Google Drive, un e-mail ou un ordinateur"
       },
-      "plus": "MémoPatte Plus ajoutera une sauvegarde cloud garantie, photos comprises, et la restaurera sur un nouveau téléphone.",
+      "plus": "MémoPatte Plus ajoute une sauvegarde cloud garantie, photos comprises, et la restaure sur un nouveau téléphone.",
       "discoverPlus": "Découvrir MémoPatte Plus",
       "cloud": {
         "saved": {
@@ -1373,7 +1373,15 @@
           "label": "Photos sauvegardées",
           "value": "Oui"
         },
-        "eraseHint": "Ta sauvegarde cloud n’est pas touchée"
+        "eraseHint": "Ta sauvegarde cloud n’est pas touchée",
+        "paused": {
+          "title": "Ta sauvegarde cloud est en pause",
+          "hint": "Tes carnets restent sur ton téléphone.",
+          "action": "Réactiver Plus",
+          "actionLabel": "Réactiver MémoPatte Plus",
+          "risk": "Depuis la pause, tes changements ne sont plus sauvegardés : si ce téléphone est perdu, ils peuvent l’être aussi.",
+          "kept": "Ta dernière sauvegarde est conservée jusqu’au {date}. Réactive Plus pour reprendre là où elle s’était arrêtée."
+        }
       }
     },
     "erase": {
@@ -1521,6 +1529,7 @@
         "invalid": "Ce fichier n’est pas un export MémoPatte.",
         "newer": "Cet export vient d’une version plus récente de l’app.",
         "outOfRange": "Ce fichier contient une valeur hors limites : 200 kg maximum pour un poids, 365 pour une fréquence.",
+        "future": "Une date de ce fichier est dans le futur.",
         "nameTooLong": "Un nom de ce fichier dépasse {max} caractères.",
         "reattached": "Ce fichier rattache une entrée de ton carnet à un autre animal.",
         "failed": "L’import n’a pas abouti. Tes données n’ont pas changé."
@@ -1550,6 +1559,7 @@
         "count": "{done} élément sur {total} | {done} élément sur {total} | {done} éléments sur {total}"
       },
       "offline": "La restauration reprendra dès le retour du réseau. Rien n’est perdu.",
+      "sessionExpired": "Ta connexion a expiré. Reconnecte-toi pour reprendre la restauration. Rien n’est perdu.",
       "later": "Plus tard"
     },
     "csv": {
@@ -1672,6 +1682,9 @@
         "title": "Vaccins",
         "empty": "Aucun vaccin enregistré."
       },
+      "finishedTreatments": {
+        "title": "Traitements terminés"
+      },
       "treatments": {
         "title": "Traitements",
         "empty": "Aucun traitement enregistré.",
@@ -1733,7 +1746,9 @@
       "emailBody": "Il sert à retrouver ton carnet et à sécuriser ton compte."
     },
     "google": {
-      "continue": "Continuer avec Google"
+      "continue": "Continuer avec Google",
+      "signedIn": "Connexion avec Google réussie.",
+      "cancelled": "Connexion annulée."
     },
     "accountFirst": {
       "title": "Étape 1 sur 2",
@@ -1831,7 +1846,7 @@
       "annual": {
         "label": "Plus annuel",
         "price": "{price}/an",
-        "detail": "≈ 44 % d’économie vs mensuel",
+        "detail": "≈ 46 % d’économie vs mensuel",
         "terms": "Renouvellement automatique chaque année. Annulable à tout moment dans Google Play — accès conservé jusqu’à la fin de la période payée.",
         "submit": "Continuer avec Plus annuel — {price}"
       },
@@ -1839,7 +1854,7 @@
         "label": "À vie",
         "price": "{price}",
         "detail": "Paiement unique, pour toujours.",
-        "terms": "Paiement unique de {price}. Pas d’abonnement, rien à renouveler.",
+        "terms": "Paiement unique de {price}. Pas d’abonnement, rien à renouveler. Sauvegarde cloud et photos incluses tant que MémoPatte Plus existe.",
         "submit": "Continuer avec Plus à vie — {price}"
       },
       "pending": "Les offres s’affichent dès que Google Play répond.",
@@ -1870,7 +1885,7 @@
     },
     "success": {
       "title": "Bienvenue dans Plus",
-      "body": "La sauvegarde de ton carnet arrive très vite.",
+      "body": "La sauvegarde de ton carnet commence maintenant, photos comprises.",
       "back": "Retour"
     },
     "cancelled": {

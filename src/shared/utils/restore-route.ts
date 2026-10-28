@@ -9,7 +9,7 @@ export function restoreRoute(from: string): RouteLocationRaw {
   return { name: RESTORE_ROUTE, query: { from } }
 }
 
-export function restoreReturnRoute(from: unknown): RouteLocationRaw {
+export function restoreReturnRoute(from: unknown): { name: string } {
   return {
     name: typeof from === 'string' && RETURN_ROUTES.includes(from) ? from : DEFAULT_RETURN_ROUTE,
   }

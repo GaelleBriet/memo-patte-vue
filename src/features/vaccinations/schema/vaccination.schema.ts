@@ -1,9 +1,11 @@
-import { isFuture, parseISO } from 'date-fns'
 import { z } from 'zod'
 
+import { isNotFuture, toDay } from '@/shared/domain/calendar-day'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
-export const injectionDateSchema = z.iso.date().refine((value) => !isFuture(parseISO(value)))
+export const injectionDateSchema = z.iso
+  .date()
+  .refine((value) => isNotFuture(value, toDay(new Date())))
 export const dueDateSchema = z.iso.date().nullable().default(null)
 
 const vaccinationFields = z.object({

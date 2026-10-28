@@ -4,7 +4,12 @@ import type { DoseFields, DoseWrite } from '../schema/treatment-dose.schema'
 import { COLUMNS, NOT_DELETED, placeholders, type DoseRow } from './treatment-dose-row.repository'
 
 /** Un `create` vise une échéance qui a déjà une ligne visible de même nature : rien n'a été écrit. */
-export class DuplicateDueError extends Error {}
+export class DuplicateDueError extends Error {
+  constructor(message?: string, options?: ErrorOptions) {
+    super(message, options)
+    this.name = 'DuplicateDueError'
+  }
+}
 
 // Q5 : une échéance a au plus une ligne visible écrite ici par famille ; la synchronisation peut en
 // apporter une seconde, dont une des deux devient sans effet pour le moteur (R11).

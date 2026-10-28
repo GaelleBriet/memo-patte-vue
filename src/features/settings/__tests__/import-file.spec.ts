@@ -949,6 +949,17 @@ describe('parseExportFile', () => {
       expect(parseExportFile(zero, IMPORTEUR)).toMatchObject({ ok: false })
     })
 
+    it('refuse un rang de report qui n’est pas un entier', () => {
+      const fractional = withDocument((document) =>
+        Object.assign(
+          rows(document, 'treatmentDoses').find(({ status }) => status === 'postponed')!,
+          { dueRank: 1.5 },
+        ),
+      )
+
+      expect(parseExportFile(fractional, IMPORTEUR)).toEqual(INVALID)
+    })
+
     it('refuse des faits de report sur une ligne qui n’est pas un report, et une heure d’arrivée d’avant sans son jour', () => {
       const prise = withDocument((document) =>
         Object.assign(

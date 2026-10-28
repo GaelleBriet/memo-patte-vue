@@ -4,14 +4,17 @@ import { syncPlusEntitlements } from './plus-entitlement-sync.ts'
 import { revenuecatSubscriberReader } from '../_shared/revenuecat-subscriber.ts'
 import { serverSecretKeyFrom, withServerSecretKey } from '../_shared/server-secret-key.ts'
 import { handleRevenuecatWebhook } from './webhook-request.ts'
+import { webhookSettingsFrom } from './webhook-settings.ts'
 
 const env = (name: string) => Deno.env.get(name)
 const fetchSubscriber = revenuecatSubscriberReader(env('REVENUECAT_SECRET_KEY')?.trim(), fetch)
+const settings = webhookSettingsFrom(env)
 
 function serveWebhook(admin: SupabaseClient) {
   return (request: Request) =>
     handleRevenuecatWebhook(request, {
-      expectedAuthorization: env('REVENUECAT_WEBHOOK_AUTHORIZATION'),
+      ...settings,
+      now: Date.now,
       processEvent: (event) =>
         syncPlusEntitlements(event, {
           now: Date.now,

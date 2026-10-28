@@ -35,10 +35,11 @@ publicité.
 
 ### 3.1 Offre et achat
 
-- **PL-1** Trois offres au même contenu : mensuel 1,49 €, annuel 9,99 € (mis en avant : « Meilleure
-  offre », « ≈ 44 % d'économie vs mensuel », jamais de prix au mois), à vie 29,99 € (« Soutenir une app
+- **PL-1** Trois offres au même contenu : mensuel 1,99 €, annuel 12,99 € (mis en avant : « Meilleure
+  offre », « ≈ 46 % d'économie vs mensuel », jamais de prix au mois), à vie 39,99 € (« Soutenir une app
   indépendante ») ; prix affichés par Google Play ; conditions de l'offre cochée affichées avant l'achat
-  (existant, conformité §1.4). (Décision du 2026-09-15 ; P12 Q1 ; relecture du lot C, QC-1)
+  (existant, conformité §1.4) ; pour l'offre à vie, la ligne dit la limite : « Sauvegarde cloud et photos incluses tant que
+  MémoPatte Plus existe. » (Décision du 2026-10-26, prix remplaçant ceux du 2026-09-15 ; P12 Q1 ; relecture du lot C, QC-1)
 - **PL-2** Contenu de Plus en v1 : sauvegarde et restauration garanties, même carnet sur plusieurs
   appareils, photos sauvegardées. **Le PDF n'en fait plus partie** (gratuit). L'écran Plus annonce
   honnêtement la suite, sans date : « Prévu ensuite dans Plus : le carnet partagé du foyer » (spec Q4).
@@ -52,7 +53,7 @@ publicité.
   puis ouvre le paiement Google Play ; l'achat est rattaché au compte. Écran : titre « Étape 1 sur 2 » ;
   « Crée ton compte MémoPatte » ; « Ton accès Plus est lié à ton compte : tu le retrouves sur tous tes
   appareils, avec ton carnet. » (juste pour les trois offres, spec Q6) ; rappel de l'offre choisie
-  (« Plus mensuel · 1,49 €/mois », « Plus annuel · 9,99 €/an » ou « Plus à vie · 29,99 € », spec Q6),
+  (« Plus mensuel · 1,99 €/mois », « Plus annuel · 12,99 €/an » ou « Plus à vie · 39,99 € », spec Q6),
   « Paiement à l'étape suivante, dans Google Play. » ; « Continuer avec Google », « Continuer avec une
   adresse e-mail », « J'ai déjà un compte · Se connecter » ; en bas, « MémoPatte s'adresse aux 18 ans et
   plus. » et le lien « Politique de confidentialité » (le compte Google se crée depuis cet écran). Déjà
@@ -160,7 +161,10 @@ publicité.
   sauvegarde cloud attend ton choix : fusionner avec le carnet de ce téléphone, ou le remplacer. » ·
   « Choisir », qui ouvre « Restaurer mon carnet » ; jamais autrement, il disparaît dès que le choix
   est fait (#1298, Q53). Tant qu'il est affiché, seuls « Exporter une copie » et « Effacer les
-  données de ce téléphone » restent sous lui (Q54). (P12 Q2 ; relecture du lot C, validé en bloc ;
+  données de ce téléphone » restent sous lui (Q54). Pendant une restauration choisie, la carte de
+  progression de « Restaurer mon carnet » prend sa place ; pendant le nouveau contrôle d'un choix
+  et jusqu'à la lecture de la sauvegarde devenue active, seuls ces deux éléments restent (#1321).
+  (P12 Q2 ; relecture du lot C, validé en bloc ;
   élément refusé : journal du 2026-10-24, #1035)
 - **PL-18** Un rappel peut sonner sur un appareil pas encore à jour ; accepté en v1. (P14 Q2)
 
@@ -258,8 +262,8 @@ publicité.
   Écartée : une version plus courte (« Un compte relie ton abonnement à toi… »), moins naturelle.
 
 - 2026-09-30 — **Q6 : « Ton accès Plus est lié à ton compte »** (PL-4), un seul texte pour les trois
-  offres ; rappel de l'offre « Plus mensuel · 1,49 €/mois », « Plus annuel · 9,99 €/an » ou « Plus à vie ·
-  29,99 € ». Raison : l'offre à vie n'est pas un
+  offres ; rappel de l'offre « Plus mensuel · 1,99 €/mois », « Plus annuel · 12,99 €/an » ou « Plus à vie ·
+  39,99 € ». Raison : l'offre à vie n'est pas un
   abonnement (« Pas d'abonnement, rien à renouveler ») ; la conformité sépare les deux. Écartée : deux
   textes selon l'offre. (Vérification du lot C révisé, T2.)
 - 2026-09-30 — **Lot C révisé, points validés en bloc** : textes nouveaux (V19 à V27, D1 à D6) ;

@@ -7,8 +7,11 @@ import type { RestoreMode } from '@/core/sync/repository/sync-state.repository'
 import { createRestoreFlow, type RestoreFlowState } from '@/core/sync/service/restore-flow'
 import { SYNC_BACKOFF_STEPS_MS, SYNC_DEBOUNCE_MS } from '@/core/sync/service/sync-scheduler'
 import type { SyncCycleOutbox } from '@/core/sync/service/sync-cycle'
-import type { AccountBackupCheck } from '@/features/settings/service/account-backup.service'
-import { installSync, type SyncDependencies } from '../sync'
+import {
+  installSync,
+  type AccountBackupCheck,
+  type SyncDependencies,
+} from '../service/account-sync'
 
 type NetworkListener = (status: { connected: boolean; connectionType: string }) => void
 type AddNetworkListener = (
@@ -40,6 +43,7 @@ function fakeOutbox(pending: number): SyncDependencies['outbox'] {
     getLastPulledAt: vi.fn<SyncCycleOutbox['getLastPulledAt']>(async () => null),
     setLastPulledAt: vi.fn<SyncCycleOutbox['setLastPulledAt']>(async () => {}),
     isEnabled: vi.fn<SyncCycleOutbox['isEnabled']>(async () => true),
+    unqueuedStatements: vi.fn<SyncCycleOutbox['unqueuedStatements']>(() => []),
     setLastSyncedAt: vi.fn<SyncCycleOutbox['setLastSyncedAt']>(async () => {}),
     forgetAccount: vi.fn<SyncDependencies['outbox']['forgetAccount']>(async () => {}),
     recordFailedPush: vi.fn<SyncCycleOutbox['recordFailedPush']>(async () => {}),
@@ -231,6 +235,24 @@ describe('installSync', () => {
       userId.value = null
 
       expect(outbox.forgetAccount).toHaveBeenCalledOnce()
+      stop()
+    })
+
+    it('une session expirée, compte gardé, n’oublie ni la file ni les curseurs', async () => {
+      const outbox = fakeOutbox(2)
+      const active = ref(true)
+      const stop = await installSync({
+        outbox,
+        runCycle: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+        userId: () => 'user-1',
+        ...withoutSession,
+        sessionActive: () => active.value,
+      })
+
+      active.value = false
+      await nextTick()
+
+      expect(outbox.forgetAccount).not.toHaveBeenCalled()
       stop()
     })
 
@@ -788,6 +810,56 @@ describe('restauration qui attend le réseau', () => {
     await vi.advanceTimersByTimeAsync(SYNC_BACKOFF_STEPS_MS[0]!)
 
     expect(flow.state.value.step).toBe('done')
+    stop()
+  })
+
+  it('réseau coupé pendant la restauration d’un compte parti : le contrôle du compte suivant donne sa propre réponse', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const userId = ref<string | null>('user-a')
+    const active = ref(true)
+    let pending: RestoreMode | null = 'merge'
+    let cut: () => void = () => {}
+    const run = vi.fn<() => Promise<'restored'>>(
+      () =>
+        new Promise((_resolve, reject) => {
+          cut = () => reject(new Error('réseau coupé'))
+        }),
+    )
+    const flow = createRestoreFlow({
+      pendingMode: async () => pending,
+      start: async (mode) => {
+        pending = mode
+      },
+      run,
+      progress: { done: 0, total: 0 },
+      onProgress: () => () => {},
+    })
+    const stop = await installSync({
+      outbox: fakeOutbox(0),
+      runCycle: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      userId: () => userId.value,
+      ...withoutSession,
+      sessionActive: () => active.value,
+      checkAccountBackup: vi.fn<() => Promise<AccountBackupCheck>>(async () =>
+        userId.value === 'user-a' ? { kind: 'restore-pending', mode: 'merge' } : { kind: 'seeded' },
+      ),
+      restoreFlow: flow,
+    })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(run).toHaveBeenCalledOnce()
+
+    userId.value = null
+    active.value = false
+    pending = null
+    userId.value = 'user-b'
+    active.value = true
+    const answered = flow.whenChecked()
+
+    cut()
+    await vi.advanceTimersByTimeAsync(0)
+
+    await expect(answered).resolves.toEqual({ step: 'idle' })
+    expect(run).toHaveBeenCalledOnce()
     stop()
   })
 })

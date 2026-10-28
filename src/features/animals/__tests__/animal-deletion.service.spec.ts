@@ -29,6 +29,7 @@ import {
   createAnimalDeletionService,
   type AnimalDeletionService,
 } from '../service/animal-deletion.service'
+import { createWriteQueue } from '@/core/write-queue/treatment-write-queue'
 import { createAnimalsRepository, type AnimalsRepository } from '../repository/animals.repository'
 import { createAnimalRemindersService } from '../service/animal-reminders.service'
 import { seedTreatmentWithDose } from '@/features/treatments/__tests__/seed-treatment'
@@ -709,5 +710,107 @@ describe('animalDeletionService', () => {
         miette.id,
       ]),
     ).resolves.toEqual([animal])
+  })
+
+  describe('ordre des écritures de traitements', () => {
+    async function queuedScenario(order: string[] = []) {
+      const queue = createWriteQueue()
+      const queued = createAnimalDeletionService(
+        () => ({
+          getById: animals.getById,
+          remove: animals.remove,
+          restore: (...args: Parameters<AnimalsRepository['restore']>) => {
+            order.push('restauration')
+            return animals.restore(...args)
+          },
+        }),
+        [
+          () => vaccinations,
+          () => createVaccinationInjectionsRepository(db),
+          () => weight,
+          () => treatments,
+          () => createTreatmentPeriodsRepository(db),
+          () => createTreatmentDosesRepository(db),
+        ],
+        reminders(),
+        photos,
+        queue,
+      )
+      const luna = await animals.create({ name: 'Luna', species: 'cat' })
+      const metacam = await seedTreatmentWithDose(db, {
+        animalId: luna.id,
+        name: 'Métacam',
+        type: 'medication',
+        frequency: { value: 1, unit: 'day' },
+        lastDoseDate: '2026-01-10',
+      })
+      function queueDoseFromNotification() {
+        let release!: () => void
+        const dose = queue(async () => {
+          await new Promise<void>((resolve) => (release = resolve))
+          order.push('dose écrite')
+          await db.runMany([
+            createTreatmentDosesRepository(db).insertStatement({
+              id: 'dose-notification',
+              periodId: metacam.id,
+              treatmentId: metacam.id,
+              animalId: luna.id,
+              dueOn: '2026-01-11',
+              dueTime: null,
+              givenOn: '2026-01-11',
+              status: 'given',
+              targetOn: null,
+              previousTargetOn: null,
+              previousTargetTime: null,
+              dueRank: null,
+              createdAt: '2026-01-11T08:00:00.000Z',
+              updatedAt: '2026-01-11T08:00:00.000Z',
+              decidedAt: '2026-01-11T08:00:00.000Z',
+              deletedAt: null,
+            }),
+          ])
+        })
+        return {
+          dose,
+          release: async () => {
+            await vi.waitFor(() => expect(release).toBeTypeOf('function'))
+            await new Promise((resolve) => setTimeout(resolve, 0))
+            release()
+          },
+        }
+      }
+      return { queued, luna, queueDoseFromNotification }
+    }
+
+    function notificationDose() {
+      return db.query<{ deleted_at: string | null }>(
+        "SELECT deleted_at FROM treatment_dose WHERE id = 'dose-notification'",
+      )
+    }
+
+    it('« Supprimer » attend la dose déjà en file, puis la marque avec le reste', async () => {
+      const { queued, luna, queueDoseFromNotification } = await queuedScenario()
+      const { dose, release } = queueDoseFromNotification()
+
+      const removing = queued.remove(luna.id)
+      await release()
+      const removal = await removing
+      await dose
+
+      await expect(notificationDose()).resolves.toEqual([{ deleted_at: removal!.deletedAt }])
+    })
+
+    it('« Annuler » attend la dose déjà en file avant de restaurer', async () => {
+      const order: string[] = []
+      const { queued, luna, queueDoseFromNotification } = await queuedScenario(order)
+      const removal = (await queued.remove(luna.id))!
+      const { dose, release } = queueDoseFromNotification()
+
+      const restoring = queued.restore(removal)
+      await release()
+      await Promise.all([dose, restoring])
+
+      expect(order).toEqual(['dose écrite', 'restauration'])
+    })
   })
 })

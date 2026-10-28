@@ -1,5 +1,6 @@
 import type { DoseAction } from './treatment-dose-change'
-import { moveText, type DoseLineAction } from './treatment-history'
+import type { DoseLineAction } from './treatment-history-rows'
+import { moveText } from './treatment-move-text'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { Due, ExtraAnswer, MoveBounds, TreatmentView } from '@/shared/domain/dose-calendar'
 import { formatDayMonthOrYear, formatLongDate, withoutFinalDot } from '@/shared/utils/format'

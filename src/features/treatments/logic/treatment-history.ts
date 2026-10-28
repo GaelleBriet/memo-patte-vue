@@ -17,7 +17,6 @@ import { historyEntries, type TreatmentReading } from '@/shared/domain/treatment
 import { formatLongDate, formatDayMonthOrYear } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
-export { moveText } from './treatment-move-text'
 export type { DoseLineAction, DoseRow, HistoryLine } from './treatment-history-rows'
 
 /** Lignes d'une période montrées avant « Voir les prises précédentes ». */

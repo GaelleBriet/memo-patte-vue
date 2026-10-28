@@ -1,6 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
+import { ref } from 'vue'
 
 import BackupSettingsView from '../views/BackupSettingsView.vue'
 import type { DataExportService } from '../service/data-export.service'
@@ -10,6 +11,7 @@ import router from '@/router'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { memoryStorage } from '@/features/purchase/__tests__/billing-fixture'
+import { writeStoredPlusStatus } from '@/features/purchase/logic/plus-status-storage'
 import { readUsageSignals } from '@/core/usage/usage-signals'
 import { showToast } from '@/shared/utils/toast'
 import { provideBackupFacts, type BackupFacts } from '@/core/sync/service/backup-facts'
@@ -18,6 +20,7 @@ import {
   provideRestoreFlow,
   type RestoreFlow,
 } from '@/core/sync/service/restore-flow'
+import type { RestoreProgress, RestoreRunResult } from '@/core/sync/service/account-restore'
 
 const exportData = vi.hoisted(() => vi.fn<DataExportService['exportData']>())
 
@@ -52,18 +55,22 @@ let push: MockInstance
 let replace: MockInstance
 let wrapper: VueWrapper | null = null
 
-beforeEach(async () => {
-  exportData.mockReset()
-  vi.mocked(showToast).mockClear()
-  vi.stubGlobal('localStorage', memoryStorage())
+function withFreshPinia() {
   setActivePinia(createPinia())
   animalsStore = useAnimalsStore()
-  animals = [MILO]
   loadAnimals = vi.spyOn(animalsStore, 'load').mockImplementation(async () => {
     animalsStore.animals = animals
     animalsStore.hasLoaded = true
     return true
   })
+}
+
+beforeEach(async () => {
+  exportData.mockReset()
+  vi.mocked(showToast).mockClear()
+  vi.stubGlobal('localStorage', memoryStorage())
+  animals = [MILO]
+  withFreshPinia()
   await router.push({ name: 'settings-backup' })
   push = vi.spyOn(router, 'push').mockResolvedValue()
   replace = vi.spyOn(router, 'replace').mockResolvedValue()
@@ -123,16 +130,16 @@ describe('BackupSettingsView', () => {
       'Si la sauvegarde de ton téléphone est active, Android peut garder une copie de ton carnet. Sans les photos ni tes réglages, et sans garantie : ne compte pas dessus pour tout retrouver.',
     )
     expect(texte).toContain(
-      'MémoPatte Plus ajoutera une sauvegarde cloud garantie, photos comprises, et la restaurera sur un nouveau téléphone.',
+      'MémoPatte Plus ajoute une sauvegarde cloud garantie, photos comprises, et la restaure sur un nouveau téléphone.',
     )
   })
 
-  it('annonce Plus au futur, en anglais aussi', async () => {
+  it('annonce Plus au présent, en anglais aussi', async () => {
     i18n.global.locale.value = 'en'
     const wrapper = await monter()
 
     expect(wrapper.text()).toContain(
-      'MémoPatte Plus will add a guaranteed cloud backup, photos included, and restore it on a new phone.',
+      'MémoPatte Plus adds a guaranteed cloud backup, photos included, and restores it on a new phone.',
     )
   })
 
@@ -667,16 +674,21 @@ describe('BackupSettingsView', () => {
       refusedPhotos: 0,
     }
 
-    async function choixCoupéParLeRéseau(): Promise<RestoreFlow> {
-      const flow = createRestoreFlow({
-        pendingMode: async () => 'merge',
-        start: async () => {},
-        run: async () => {
-          throw new Error('réseau coupé')
+    async function choixCoupéParLeRéseau(
+      signInNeeded: () => boolean = () => false,
+    ): Promise<RestoreFlow> {
+      const flow = createRestoreFlow(
+        {
+          pendingMode: async () => 'merge',
+          start: async () => {},
+          run: async () => {
+            throw new Error('réseau coupé')
+          },
+          progress: { done: 0, total: 0 },
+          onProgress: () => () => {},
         },
-        progress: { done: 0, total: 0 },
-        onProgress: () => () => {},
-      })
+        signInNeeded,
+      )
       provideRestoreFlow(flow)
       vi.spyOn(console, 'warn').mockImplementation(() => {})
       flow.offer(SUMMARY)
@@ -736,6 +748,64 @@ describe('BackupSettingsView', () => {
       )
     })
 
+    describe('session expirée pendant l’attente', () => {
+      async function monterSessionExpirée() {
+        const expired = ref(false)
+        await choixCoupéParLeRéseau(() => expired.value)
+        expired.value = true
+        return monterPlus({ ...PLUS_SANS_SAUVEGARDE, signInNeeded: true })
+      }
+
+      function texteSessionExpirée(wrapper: VueWrapper) {
+        return wrapper
+          .get('.backup-settings__restore-session-expired .settings-row__label')
+          .text()
+          .replace(/\s+/g, ' ')
+      }
+
+      it('« Ta connexion a expiré », puis « Se reconnecter » ouvre la connexion', async () => {
+        const wrapper = await monterSessionExpirée()
+
+        expect(texteSessionExpirée(wrapper)).toBe(
+          'Ta connexion a expiré. Reconnecte-toi pour reprendre la restauration. Rien n’est perdu.',
+        )
+        expect(bloc(wrapper).exists()).toBe(false)
+        expect(wrapper.text()).not.toContain('La restauration reprendra')
+        expect(wrapper.text()).not.toContain('Ton carnet est sur ce téléphone')
+        expect(
+          wrapper.findAll('.backup-settings__content > *').map((element) => element.classes()),
+        ).toEqual([
+          expect.arrayContaining(['backup-settings__restore-session-expired']),
+          expect.arrayContaining(['backup-settings__sign-in']),
+          expect.arrayContaining(['backup-settings__export']),
+          expect.arrayContaining(['backup-settings__erase']),
+        ])
+        expect(wrapper.get('.backup-settings__sign-in').text()).toBe('Se reconnecter')
+        await wrapper.get('.backup-settings__sign-in').trigger('click')
+
+        expect(push).toHaveBeenCalledWith({ name: 'sign-in', query: { from: 'settings-backup' } })
+      })
+
+      it('se lit en anglais', async () => {
+        i18n.global.locale.value = 'en'
+        const wrapper = await monterSessionExpirée()
+
+        expect(texteSessionExpirée(wrapper)).toBe(
+          'Your session has expired. Sign in again to resume the restore. Nothing is lost.',
+        )
+        expect(wrapper.get('.backup-settings__sign-in').text()).toBe('Sign in again')
+      })
+    })
+
+    it('sans expiration, garde l’attente du réseau sans « Se reconnecter »', async () => {
+      await choixCoupéParLeRéseau()
+      const wrapper = await monterPlus()
+
+      expect(bloc(wrapper).exists()).toBe(true)
+      expect(wrapper.find('.backup-settings__restore-session-expired').exists()).toBe(false)
+      expect(wrapper.find('.backup-settings__sign-in').exists()).toBe(false)
+    })
+
     it('contrôle de la sauvegarde injoignable, sans restauration choisie : écran gratuit complet', async () => {
       const flow = createRestoreFlow({
         pendingMode: async () => null,
@@ -763,6 +833,287 @@ describe('BackupSettingsView', () => {
 
       expect(bloc(wrapper).exists()).toBe(false)
       expect(wrapper.find('.backup-settings__status').text()).toContain('En attente de réseau')
+    })
+  })
+
+  describe('restauration choisie en cours', () => {
+    const SUMMARY = { animalCount: 2, lastBackupAt: '2026-10-20T19:04:00.000Z' }
+    const PLUS_SANS_SAUVEGARDE: BackupFacts = {
+      eligible: true,
+      signInNeeded: false,
+      online: true,
+      syncEnabled: false,
+      lastSyncedAt: null,
+      remaining: 0,
+      carnetSize: 0,
+      refused: 0,
+      refusedPhotos: 0,
+    }
+
+    let finishRun: (result: RestoreRunResult) => void
+    let failRun: (cause: Error) => void
+
+    function parcours(progress: RestoreProgress = { done: 0, total: 0 }): RestoreFlow {
+      const flow = createRestoreFlow({
+        pendingMode: async () => 'replace',
+        start: async () => {},
+        run: () =>
+          new Promise<RestoreRunResult>((resolve, reject) => {
+            finishRun = resolve
+            failRun = reject
+          }),
+        progress,
+        onProgress: () => () => {},
+      })
+      provideRestoreFlow(flow)
+      return flow
+    }
+
+    async function monterPlus() {
+      provideBackupFacts(async () => PLUS_SANS_SAUVEGARDE)
+      const wrapper = await monter()
+      await flushPromises()
+      return wrapper
+    }
+
+    function enfants(wrapper: VueWrapper) {
+      return wrapper.findAll('.backup-settings__content > *').map((element) => element.classes())
+    }
+
+    function écranGratuitAbsent(wrapper: VueWrapper) {
+      const texte = wrapper.text()
+      expect(texte).not.toContain('Ton carnet est sur ce téléphone')
+      expect(texte).not.toContain('Sauvegarde d’Android')
+      expect(wrapper.find('.backup-settings__discover').exists()).toBe(false)
+    }
+
+    it('montre la progression de « Restaurer mon carnet » à la place de l’écran gratuit', async () => {
+      const flow = parcours({ done: 120, total: 348 })
+      flow.offer(SUMMARY)
+      void flow.choose('replace')
+      const wrapper = await monterPlus()
+
+      expect(flow.state.value.step).toBe('restoring')
+      expect(
+        wrapper
+          .get('.backup-settings__restore-progress')
+          .findAll('.settings-row__label, .settings-row__hint')
+          .map((line) => line.text())
+          .join(' '),
+      ).toBe('Restauration de ton carnet 120 éléments sur 348')
+      écranGratuitAbsent(wrapper)
+      expect(enfants(wrapper)).toEqual([
+        expect.arrayContaining(['backup-settings__restore-progress']),
+        expect.arrayContaining(['backup-settings__export']),
+        expect.arrayContaining(['backup-settings__erase']),
+      ])
+    })
+
+    it('réseau revenu pendant l’attente : la progression remplace « En attente de réseau »', async () => {
+      const flow = parcours()
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+      flow.offer(SUMMARY)
+      void flow.choose('replace')
+      await flushPromises()
+      failRun(new Error('réseau coupé'))
+      await flushPromises()
+      const wrapper = await monterPlus()
+      expect(wrapper.find('.backup-settings__restore-waiting').exists()).toBe(true)
+
+      void flow.resume()
+      await flushPromises()
+
+      expect(flow.state.value.step).toBe('restoring')
+      expect(wrapper.find('.backup-settings__restore-waiting').exists()).toBe(false)
+      expect(wrapper.get('.backup-settings__restore-progress').text()).toBe(
+        'Restauration de ton carnet',
+      )
+      écranGratuitAbsent(wrapper)
+    })
+
+    it('carnet changé depuis « Remplacer » : le nouveau contrôle ne réaffiche pas l’écran gratuit', async () => {
+      const flow = parcours()
+      flow.offer(SUMMARY)
+      void flow.choose('replace')
+      const wrapper = await monterPlus()
+
+      finishRun('carnet-changed')
+      await flushPromises()
+
+      expect(flow.state.value).toEqual({ step: 'checking', chosen: true })
+      écranGratuitAbsent(wrapper)
+      expect(enfants(wrapper)).toEqual([
+        expect.arrayContaining(['backup-settings__export']),
+        expect.arrayContaining(['backup-settings__erase']),
+      ])
+
+      flow.offer(SUMMARY)
+      await flushPromises()
+      expect(wrapper.find('.backup-settings__restore-pending').exists()).toBe(true)
+      écranGratuitAbsent(wrapper)
+    })
+
+    it('restauration terminée : l’état de la sauvegarde active, sans repasser par l’écran gratuit', async () => {
+      const flow = parcours()
+      let answer: (facts: BackupFacts) => void = () => {}
+      const read = vi.fn<() => Promise<BackupFacts>>(async () => PLUS_SANS_SAUVEGARDE)
+      provideBackupFacts(read)
+      flow.offer(SUMMARY)
+      void flow.choose('merge')
+      const wrapper = await monter()
+      await flushPromises()
+      expect(wrapper.find('.backup-settings__restore-progress').exists()).toBe(true)
+
+      read.mockImplementationOnce(
+        () =>
+          new Promise<BackupFacts>((resolve) => {
+            answer = resolve
+          }),
+      )
+      finishRun('restored')
+      await flushPromises()
+
+      expect(flow.state.value.step).toBe('done')
+      écranGratuitAbsent(wrapper)
+      expect(enfants(wrapper)).toEqual([
+        expect.arrayContaining(['backup-settings__export']),
+        expect.arrayContaining(['backup-settings__erase']),
+      ])
+
+      answer({
+        ...PLUS_SANS_SAUVEGARDE,
+        syncEnabled: true,
+        lastSyncedAt: new Date(Date.now() - 60_000).toISOString(),
+      })
+      await flushPromises()
+
+      écranGratuitAbsent(wrapper)
+      expect(wrapper.get('.backup-settings__status').text()).toContain('Dernière sauvegarde')
+    })
+
+    it('compte sans choix, pendant le premier contrôle : écran gratuit complet', async () => {
+      const flow = parcours()
+      flow.checking()
+      const wrapper = await monterPlus()
+      const texte = wrapper.text()
+
+      expect(flow.state.value).toEqual({ step: 'checking', chosen: false })
+      expect(wrapper.find('.backup-settings__restore-progress').exists()).toBe(false)
+      expect(texte).toContain('Ton carnet est sur ce téléphone')
+      expect(texte).toContain('Si ce téléphone est perdu')
+      expect(texte).toContain('Sauvegarde d’Android')
+      expect(wrapper.find('.backup-settings__discover').exists()).toBe(true)
+    })
+
+    it('se lit en anglais', async () => {
+      i18n.global.locale.value = 'en'
+      const flow = parcours()
+      flow.offer(SUMMARY)
+      void flow.choose('merge')
+      const wrapper = await monterPlus()
+
+      expect(wrapper.get('.backup-settings__restore-progress').text()).toBe(
+        'Restoring your health record',
+      )
+    })
+
+    it('ne double pas l’état d’une sauvegarde cloud déjà active', async () => {
+      const flow = parcours()
+      flow.offer(SUMMARY)
+      void flow.choose('merge')
+      provideBackupFacts(async () => ({ ...PLUS_SANS_SAUVEGARDE, syncEnabled: true }))
+      const wrapper = await monter()
+      await flushPromises()
+
+      expect(wrapper.find('.backup-settings__restore-progress').exists()).toBe(false)
+      expect(wrapper.find('.backup-settings__status').exists()).toBe(true)
+    })
+  })
+
+  describe('Plus arrêté', () => {
+    function arrêterPlus(expiresAt = new Date(2026, 8, 14, 10).toISOString()) {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 28, 9, 0) })
+      writeStoredPlusStatus({ plan: 'monthly', expiresAt })
+      withFreshPinia()
+    }
+
+    function texte(wrapper: VueWrapper) {
+      return wrapper.text().replace(/\s+/g, ' ').replaceAll(' ', ' ')
+    }
+
+    it('dit la pause, le risque, la date de conservation, puis Android, la copie et l’effacement', async () => {
+      arrêterPlus()
+      const wrapper = await monter()
+
+      expect(texte(wrapper)).toContain(
+        'Ta sauvegarde cloud est en pauseTes carnets restent sur ton téléphone.',
+      )
+      expect(texte(wrapper)).toContain('Depuis la pause, tes changements ne sont plus sauvegardés')
+      expect(texte(wrapper)).toContain(
+        'Ta dernière sauvegarde est conservée jusqu’au 14 sept. 2027. Réactive Plus pour reprendre là où elle s’était arrêtée.',
+      )
+      expect(texte(wrapper)).toContain('Sauvegarde d’Android')
+      expect(wrapper.find('.backup-settings__export').exists()).toBe(true)
+      expect(wrapper.get('.backup-settings__erase').text()).toContain(
+        'Ta sauvegarde cloud n’est pas touchée',
+      )
+      expect(wrapper.find('.backup-settings__local').exists()).toBe(false)
+      expect(wrapper.find('.backup-settings__discover').exists()).toBe(false)
+    })
+
+    it('« Réactiver Plus » ouvre l’écran Plus', async () => {
+      arrêterPlus()
+      const wrapper = await monter()
+      const bouton = wrapper.get('.backup-settings__reactivate')
+
+      expect(bouton.attributes('aria-label')).toBe('Réactiver MémoPatte Plus')
+      await bouton.trigger('click')
+
+      expect(push).toHaveBeenCalledWith({ name: 'plus' })
+    })
+
+    it('se lit en anglais', async () => {
+      i18n.global.locale.value = 'en'
+      arrêterPlus()
+      const wrapper = await monter()
+
+      expect(texte(wrapper)).toContain(
+        'Your cloud backup is pausedYour health records stay on your phone.',
+      )
+      expect(texte(wrapper)).toContain('Your last backup is kept until Sep 14, 2027.')
+      expect(wrapper.get('.backup-settings__reactivate').text()).toBe('Reactivate Plus')
+    })
+
+    it('redevient l’écran d’un gratuit une fois la date de conservation passée', async () => {
+      arrêterPlus(new Date(2025, 8, 1, 10).toISOString())
+      const wrapper = await monter()
+
+      expect(wrapper.find('.backup-settings__paused').exists()).toBe(false)
+      expect(wrapper.find('.backup-settings__local').exists()).toBe(true)
+    })
+
+    it('n’apparaît jamais pour qui n’a jamais eu Plus', async () => {
+      const wrapper = await monter()
+
+      expect(wrapper.find('.backup-settings__paused').exists()).toBe(false)
+      expect(wrapper.find('.backup-settings__local').exists()).toBe(true)
+    })
+
+    it('cède la place à « Restauration en attente », comme l’écran d’un gratuit', async () => {
+      arrêterPlus()
+      const flow = createRestoreFlow({
+        pendingMode: async () => null,
+        start: async () => {},
+        run: () => new Promise(() => {}),
+        progress: { done: 0, total: 0 },
+        onProgress: () => () => {},
+      })
+      provideRestoreFlow(flow)
+      flow.offer({ animalCount: 2, lastBackupAt: '2026-10-20T19:04:00.000Z' })
+      const wrapper = await monter()
+
+      expect(wrapper.find('.backup-settings__restore-pending').exists()).toBe(true)
+      expect(wrapper.find('.backup-settings__paused').exists()).toBe(false)
     })
   })
 })

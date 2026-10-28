@@ -2,6 +2,7 @@ import { nextReminderDate } from './vaccination-done'
 import type { InjectionDates } from '../schema/vaccination-injection.schema'
 import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
 import type { Vaccination } from '../schema/vaccination.schema'
+import { isNotFuture } from '@/shared/domain/calendar-day'
 import { dueDelayText } from '@/shared/domain/due-delay'
 import { injectionMadeDue } from '@/shared/domain/vaccination-reminders'
 import { formatDayMonthOrYear, formatFullDate, formatLongDate } from '@/shared/utils/format'
@@ -228,7 +229,7 @@ export function pastInjectionError(
   injectedOn: string,
   { today, taken }: { today: string; taken: readonly string[] },
 ): 'future' | 'taken' | null {
-  if (injectedOn > today) return 'future'
+  if (!isNotFuture(injectedOn, today)) return 'future'
   return taken.includes(injectedOn) ? 'taken' : null
 }
 

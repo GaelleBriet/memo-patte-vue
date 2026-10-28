@@ -1,6 +1,6 @@
-import { isFuture, parseISO } from 'date-fns'
 import { z } from 'zod'
 
+import { isNotFuture, toDay } from '@/shared/domain/calendar-day'
 import type { DeviceStamps } from '@/shared/domain/carnet-data'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import { MAX_WEIGHT_KG } from '@/shared/domain/weight-bounds'
@@ -16,7 +16,7 @@ export const animalInputSchema = z.object({
   breed: z.string().trim().min(1).max(MAX_NAME_LENGTH).nullable().default(null),
   birthDate: z.iso
     .date()
-    .refine((value) => !isFuture(parseISO(value)))
+    .refine((value) => isNotFuture(value, toDay(new Date())))
     .nullable()
     .default(null),
   birthDateApproximate: z.boolean().default(false),

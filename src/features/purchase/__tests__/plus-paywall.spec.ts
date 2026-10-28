@@ -11,9 +11,9 @@ import {
 } from '../logic/plus-paywall'
 import type { PlusOffer } from '../service/billing.service'
 
-const MENSUEL: PlusOffer = { plan: 'monthly', priceString: '1,49 €' }
-const ANNUEL: PlusOffer = { plan: 'annual', priceString: '9,99 €' }
-const A_VIE: PlusOffer = { plan: 'lifetime', priceString: '29,99 €' }
+const MENSUEL: PlusOffer = { plan: 'monthly', priceString: '1,99 €' }
+const ANNUEL: PlusOffer = { plan: 'annual', priceString: '12,99 €' }
+const A_VIE: PlusOffer = { plan: 'lifetime', priceString: '39,99 €' }
 
 describe('PLUS_BENEFITS', () => {
   it('ne promet que le cloud : sauvegarde, plusieurs appareils, photos', () => {

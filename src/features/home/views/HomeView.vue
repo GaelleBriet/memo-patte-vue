@@ -26,6 +26,7 @@ import {
 } from '@/shared/domain/reminder-route'
 import { useAnimalChips } from '@/shared/composables/use-animal-chips'
 import { useOpenUnfollowed } from '@/shared/composables/use-open-unfollowed'
+import { useSheetRequest } from '@/shared/composables/use-open-sheet'
 import { authAvailable } from '@/shared/utils/auth-available'
 import { signInRoute } from '@/shared/utils/sign-in-route'
 import AnimalPickerSheet from './AnimalPickerSheet.vue'
@@ -37,12 +38,12 @@ import {
   nextReminderText,
   overdueBanner,
   reminderRows,
-  rowToReopen,
   scopeCounter,
   upToDateText,
   type ReminderRow,
 } from '../logic/home-summary'
 import { currentAnimalId } from '../logic/current-animal'
+import { reopenTarget } from '../logic/reopen-target'
 import { todoItems } from '../logic/todo-items'
 import { buildTodo } from '../logic/todo-window'
 
@@ -53,6 +54,7 @@ const router = useRouter()
 const route = useRoute()
 const animals = useAnimalsStore()
 const home = useHomeStore()
+const sheetRequest = useSheetRequest()
 
 const { today } = useForegroundRefresh(load)
 const { entry: unfollowed, open: openUnfollowed } = useOpenUnfollowed(
@@ -141,7 +143,9 @@ function load(): Promise<unknown> {
 
 function takeReminderRequest(): ReminderRequest | null {
   const request = parseReminderRequest(route.query)
-  if (request) void router.replace({ query: withoutReminderRequest(route.query) })
+  if (!request) return null
+  sheetRequest.hold()
+  void router.replace({ query: withoutReminderRequest(route.query) })
   return request
 }
 
@@ -162,26 +166,25 @@ function reopenReminder(
   request: ReminderRequest,
   { fromNotification }: { fromNotification: boolean },
 ): void {
-  const { kind, id } = request
-  if (request.step === 'given-when') {
-    givenWhen.value = { id, due: request.due }
+  const target = reopenTarget(rows.value, request, fromNotification)
+  if (target.to === 'given-when') {
+    givenWhen.value = { id: target.id, due: target.due }
     isGivenWhenOpen.value = true
-    return
+  } else if (target.to === 'sheet') {
+    openReminder(target.request, target.step)
+  } else {
+    sheetRequest.release()
+    if (target.to === 'detail') void router.push(detailRoute(target.reminder))
   }
-  const reminder = { kind, id }
-  const row = rowToReopen(rows.value, request)
-  const { due } = request
-  if (fromNotification && kind === 'treatment' && due !== undefined && due !== 'unlogged') {
-    openReminder({ kind, id, due }, request.step)
-  } else if (row) {
-    openReminder(row.request, request.step)
-  } else if (fromNotification) {
-    void router.push(detailRoute(reminder))
-  }
+}
+
+function onReminderSheetModel(open: boolean): void {
+  if (!open) sheetRequest.release()
 }
 
 function onGivenWhenUnavailable(): void {
   if (givenWhen.value === null) return
+  sheetRequest.hold()
   reopenReminder(
     { kind: 'treatment', id: givenWhen.value.id, step: 'actions' },
     { fromNotification: true },
@@ -365,12 +368,14 @@ onMounted(() => {
         v-model="isTreatmentSheetOpen"
         :treatment-id="openedReminder?.kind === 'treatment' ? openedReminder.id : null"
         :due="openedReminder?.kind === 'treatment' ? openedReminder.due : null"
+        @update:model-value="onReminderSheetModel"
         @changed="load"
       />
       <TreatmentGivenWhenSheet
         v-model="isGivenWhenOpen"
         :treatment-id="givenWhen?.id ?? null"
         :due="givenWhen?.due ?? null"
+        @update:model-value="onReminderSheetModel"
         @changed="load"
         @unavailable="onGivenWhenUnavailable"
       />
@@ -378,6 +383,7 @@ onMounted(() => {
         v-model="isVaccinationSheetOpen"
         :vaccination-id="openedReminder?.kind === 'vaccination' ? openedReminder.id : null"
         :start-at="openedStep"
+        @update:model-value="onReminderSheetModel"
         @changed="load"
       />
     </template>

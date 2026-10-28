@@ -66,7 +66,13 @@ export function useDataImport(
       return fail('invalid')
     }
 
-    const parsed = parseExportFile(text)
+    let parsed: ReturnType<typeof parseExportFile>
+    try {
+      parsed = parseExportFile(text)
+    } catch (cause) {
+      console.warn('Import impossible :', errorSummary(cause))
+      return fail('failed')
+    }
     if (!parsed.ok) return fail(parsed.reason)
 
     let hasData: boolean

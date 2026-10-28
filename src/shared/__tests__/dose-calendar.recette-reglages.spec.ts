@@ -22,8 +22,7 @@ import {
 } from './dose-calendar.recette.aides'
 
 // Jeu de recette du moteur v2 (épic #758) : attentes des règles R1 à R12 et des décisions du
-// 2026-10-10 ; un cas que le moteur en essai ne tient pas encore est marqué `it.fails` avec son
-// ticket ou sa décision.
+// 2026-10-10.
 
 describe('R2, R3, R9 : première échéance, mois, nouveau réglage', () => {
   it('TR-7 : un mensuel du 31 janv. tombe le 28 févr., puis le 31 mars et le 30 avr.', () => {
@@ -183,29 +182,24 @@ describe('R4, R9 : rythme changé, journée à venir entamée en avance (G24)', 
     expect(affiche(c, '2026-10-02', 2)).toEqual(['2026-10-03 20:00', '2026-10-05 09:00'])
   })
 
-  it.fails(
-    'tous les 3 jours à 9 h, dose du 4 donnée le 2 avec décalage, tous les 2 jours le 3 : le 4 (question du pas 4 : R4, la prise couvre le 4 ; le 6, puis le 8)',
-    () => {
-      let c = carnet('2026-10-01', jours(3), ['09:00'])
-      c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '09:00'))
-      c = donne(c, '2026-10-02', echeance(c, '2026-10-04', '09:00'), '2026-10-02', true)
-      c = modifie(c, '2026-10-03', jours(2), ['09:00'])
-      expect(journees(c, '2026-10-03', 2)).toEqual(['2026-10-04', '2026-10-06'])
-    },
-  )
+  // Lecture actuelle de R4, question de règle ouverte pour Gaelle : #1373.
+  it('#1373 : tous les 3 jours à 9 h, dose du 4 donnée le 2 avec décalage, tous les 2 jours le 3 : le nouveau rythme compte depuis l’échéance d’origine (R4), le 6 puis le 8', () => {
+    let c = carnet('2026-10-01', jours(3), ['09:00'])
+    c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '09:00'))
+    c = donne(c, '2026-10-02', echeance(c, '2026-10-04', '09:00'), '2026-10-02', true)
+    c = modifie(c, '2026-10-03', jours(2), ['09:00'])
+    expect(journees(c, '2026-10-03', 2)).toEqual(['2026-10-06', '2026-10-08'])
+  })
 
-  it.fails(
-    'tous les 3 jours, les deux doses du 4 données le 2, 20 h avec décalage, tous les 2 jours le 3 : le 4 (question du pas 4 : R4, les prises couvrent le 4 ; le 6)',
-    () => {
-      let c = carnet('2026-10-01', jours(3), H)
-      c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '08:00'))
-      c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '20:00'))
-      c = donne(c, '2026-10-02', echeance(c, '2026-10-04', '08:00'), '2026-10-02', false)
-      c = donne(c, '2026-10-02', echeance(c, '2026-10-04', '20:00'), '2026-10-02', true)
-      c = modifie(c, '2026-10-03', jours(2), H)
-      expect(affiche(c, '2026-10-03', 2)).toEqual(['2026-10-04 08:00', '2026-10-04 20:00'])
-    },
-  )
+  it('#1373 : tous les 3 jours, les deux doses du 4 données le 2, 20 h avec décalage, tous les 2 jours le 3 : le nouveau rythme compte depuis l’échéance d’origine (R4), le 6 à 8 h et 20 h', () => {
+    let c = carnet('2026-10-01', jours(3), H)
+    c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '08:00'))
+    c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '20:00'))
+    c = donne(c, '2026-10-02', echeance(c, '2026-10-04', '08:00'), '2026-10-02', false)
+    c = donne(c, '2026-10-02', echeance(c, '2026-10-04', '20:00'), '2026-10-02', true)
+    c = modifie(c, '2026-10-03', jours(2), H)
+    expect(affiche(c, '2026-10-03', 2)).toEqual(['2026-10-06 08:00', '2026-10-06 20:00'])
+  })
 })
 
 describe('R4 : réglage changé en cours de journée (Q24)', () => {

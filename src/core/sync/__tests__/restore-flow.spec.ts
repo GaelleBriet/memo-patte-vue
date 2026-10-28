@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { ref } from 'vue'
 
 import type { RestoreMode } from '../repository/sync-state.repository'
 import type { RestoreProgress } from '../service/account-restore'
@@ -98,7 +99,7 @@ describe('parcours de restauration', () => {
 
     await expect(flow.resume()).resolves.toBe(false)
 
-    expect(flow.state.value).toEqual({ step: 'checking' })
+    expect(flow.state.value).toEqual({ step: 'checking', chosen: true })
     expect(retried).toHaveBeenCalledOnce()
     expect(restored).not.toHaveBeenCalled()
   })
@@ -167,6 +168,88 @@ describe('parcours de restauration', () => {
     await expect(choosing).resolves.toBe(false)
     expect(flow.state.value).toEqual({ step: 'choice', summary: otherSummary })
     expect(restored).not.toHaveBeenCalled()
+  })
+
+  it('réseau coupé pendant la restauration d’un compte après l’arrivée d’un autre : le choix du nouveau compte reste affiché', async () => {
+    let cut: () => void = () => {}
+    let pending: RestoreMode | null = null
+    const runner = fakeRunner({
+      pendingMode: vi.fn<RestoreRunner['pendingMode']>(async () => pending),
+      start: vi.fn<RestoreRunner['start']>(async (mode: RestoreMode) => {
+        pending = mode
+      }),
+    })
+    runner.run = vi.fn<RestoreRunner['run']>(
+      () =>
+        new Promise((_resolve, reject) => {
+          cut = () => reject(new Error('réseau coupé'))
+        }),
+    )
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const flow = createRestoreFlow(runner)
+    flow.offer(SUMMARY)
+    const choosing = flow.choose('merge')
+    await vi.waitFor(() => expect(runner.run).toHaveBeenCalledOnce())
+
+    const otherSummary = { animalCount: 1, lastBackupAt: '2026-10-25T08:30:00.000Z' }
+    pending = null
+    flow.reset()
+    flow.checking()
+    flow.offer(otherSummary)
+
+    cut()
+    await expect(choosing).resolves.toBe(false)
+    expect(flow.state.value).toEqual({ step: 'choice', summary: otherSummary })
+
+    await expect(flow.resume()).resolves.toBe(false)
+    expect(runner.run).toHaveBeenCalledOnce()
+    expect(flow.state.value).toEqual({ step: 'choice', summary: otherSummary })
+  })
+
+  it('réseau coupé pendant une restauration suivie par deux appels : l’écran attend le réseau, restauration choisie', async () => {
+    let cut: () => void = () => {}
+    const shared = new Promise<never>((_resolve, reject) => {
+      cut = () => reject(new Error('réseau coupé'))
+    })
+    const runner = fakeRunner({
+      pendingMode: vi.fn<RestoreRunner['pendingMode']>(async () => 'merge'),
+      run: vi.fn<RestoreRunner['run']>(() => shared),
+    })
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const flow = createRestoreFlow(runner)
+
+    const first = flow.resume()
+    const second = flow.resume()
+    await vi.waitFor(() => expect(runner.run).toHaveBeenCalledTimes(2))
+
+    cut()
+    await expect(Promise.all([first, second])).resolves.toEqual([false, false])
+    expect(flow.state.value).toEqual({ step: 'waiting-network', chosen: true })
+  })
+
+  it('réseau coupé pendant deux appels d’un compte après l’arrivée d’un autre : le choix du nouveau compte reste affiché', async () => {
+    let cut: () => void = () => {}
+    const shared = new Promise<never>((_resolve, reject) => {
+      cut = () => reject(new Error('réseau coupé'))
+    })
+    const runner = fakeRunner({
+      pendingMode: vi.fn<RestoreRunner['pendingMode']>(async () => 'merge'),
+      run: vi.fn<RestoreRunner['run']>(() => shared),
+    })
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const flow = createRestoreFlow(runner)
+    const first = flow.resume()
+    const second = flow.resume()
+    await vi.waitFor(() => expect(runner.run).toHaveBeenCalledTimes(2))
+
+    const otherSummary = { animalCount: 1, lastBackupAt: '2026-10-25T08:30:00.000Z' }
+    flow.reset()
+    flow.checking()
+    flow.offer(otherSummary)
+
+    cut()
+    await expect(Promise.all([first, second])).resolves.toEqual([false, false])
+    expect(flow.state.value).toEqual({ step: 'choice', summary: otherSummary })
   })
 
   it('journalise le message d’une lecture ratée de la restauration en attente, en développement', async () => {
@@ -271,6 +354,14 @@ describe('parcours de restauration', () => {
     await expect(checked).resolves.toEqual({ step: 'choice', summary: SUMMARY })
   })
 
+  it('le premier contrôle de la sauvegarde ne suit aucun choix', () => {
+    const flow = createRestoreFlow(fakeRunner())
+
+    flow.checking()
+
+    expect(flow.state.value).toEqual({ step: 'checking', chosen: false })
+  })
+
   it('répond tout de suite quand aucun contrôle n’est en cours', async () => {
     const flow = createRestoreFlow(fakeRunner())
 
@@ -297,7 +388,54 @@ describe('parcours de restauration', () => {
     await expect(checked).resolves.toEqual({ step: 'no-answer' })
 
     flow.retryCheck()
-    expect(flow.state.value).toEqual({ step: 'checking' })
+    expect(flow.state.value).toEqual({ step: 'checking', chosen: false })
     expect(retried).toHaveBeenCalledOnce()
+  })
+
+  describe('session expirée pendant l’attente du réseau', () => {
+    it('attend la reconnexion, restauration choisie, puis de nouveau le réseau une fois reconnecté', async () => {
+      const runner = fakeRunner({
+        run: vi.fn<RestoreRunner['run']>(async () => {
+          throw new Error('réseau coupé')
+        }),
+      })
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const expired = ref(false)
+      const flow = createRestoreFlow(runner, () => expired.value)
+      await flow.choose('merge')
+
+      expired.value = true
+      expect(flow.state.value).toEqual({ step: 'waiting-sign-in', chosen: true })
+
+      expired.value = false
+      expect(flow.state.value).toEqual({ step: 'waiting-network', chosen: true })
+    })
+
+    it('attend aussi la reconnexion quand le contrôle de la sauvegarde n’a pas abouti', () => {
+      const flow = createRestoreFlow(fakeRunner(), () => true)
+
+      flow.unreachable()
+
+      expect(flow.state.value).toEqual({ step: 'waiting-sign-in', chosen: false })
+    })
+
+    it('la connexion apprend l’attente de la reconnexion, que le contrôle ait déjà répondu ou non', async () => {
+      const flow = createRestoreFlow(fakeRunner(), () => true)
+
+      flow.checking()
+      const answer = flow.whenChecked()
+      flow.unreachable()
+
+      await expect(answer).resolves.toEqual({ step: 'waiting-sign-in', chosen: false })
+      await expect(flow.whenChecked()).resolves.toEqual({ step: 'waiting-sign-in', chosen: false })
+    })
+
+    it('ne change rien aux autres étapes', () => {
+      const flow = createRestoreFlow(fakeRunner(), () => true)
+
+      flow.offer(SUMMARY)
+
+      expect(flow.state.value).toEqual({ step: 'choice', summary: SUMMARY })
+    })
   })
 })

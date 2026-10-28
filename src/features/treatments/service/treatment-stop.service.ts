@@ -10,7 +10,7 @@ import {
   createWriteQueue,
   treatmentWriteQueue,
   type WriteQueue,
-} from '../logic/treatment-write-queue'
+} from '@/core/write-queue/treatment-write-queue'
 import {
   DuplicateDueError,
   getTreatmentDosesRepository,

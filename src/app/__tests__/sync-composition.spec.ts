@@ -103,4 +103,15 @@ describe('createDefaultSyncDependencies', () => {
     expect(deps?.sessionActive()).toBe(true)
     expect(sync.sessionActive()).toBe(true)
   })
+
+  it('fait attendre la reconnexion à la restauration quand la session a expiré', async () => {
+    const sync = await createDefaultSyncDependencies()
+
+    auth.sessionState = 'needs-sign-in'
+    sync.restoreFlow.unreachable()
+    expect(sync.restoreFlow.state.value).toEqual({ step: 'waiting-sign-in', chosen: false })
+    auth.sessionState = 'needs-refresh'
+    sync.restoreFlow.unreachable()
+    expect(sync.restoreFlow.state.value).toEqual({ step: 'waiting-network', chosen: false })
+  })
 })

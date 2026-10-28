@@ -2,7 +2,7 @@ import { computed, onScopeDispose, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
-import { backupSummaryText, restoreProgressText } from '../logic/backup-summary-text'
+import { backupSummaryText } from '../logic/backup-summary-text'
 import { onBackButton } from '@/core/app-lifecycle/back-button'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import { promptNotificationsIfReminders } from '@/core/notifications/reminders-priming'
@@ -14,13 +14,15 @@ import {
 } from '@/core/sync/service/restore-flow'
 import { restoreReturnRoute } from '@/shared/utils/restore-route'
 import { returnTo } from '@/shared/utils/return-to'
+import { signInRoute } from '@/shared/utils/sign-in-route'
 
 const IDLE: RestoreFlowState = { step: 'idle' }
 
 /**
  * « Restaurer mon carnet » : « Fusionner » part tout de suite, « Remplacer » après confirmation ;
  * l'écran reste affiché pendant la restauration, puis ouvre l'accueil, ou « Ton carnet est prêt »
- * si l'autorisation des notifications n'a jamais été demandée.
+ * si l'autorisation des notifications n'a jamais été demandée. Session expirée : la connexion
+ * ramène ici.
  */
 export function useAccountRestore(flow: () => RestoreFlow | null = currentRestoreFlow) {
   const { t } = useI18n()
@@ -39,13 +41,6 @@ export function useAccountRestore(flow: () => RestoreFlow | null = currentRestor
       ? backupSummaryText(t, state.value.summary, todayIsoDate())
       : null,
   )
-  const progressText = computed(() =>
-    state.value.step === 'restoring' ? restoreProgressText(t, state.value.progress) : null,
-  )
-  const progressValue = computed(() => {
-    if (state.value.step !== 'restoring' || state.value.progress.total === 0) return null
-    return (100 * state.value.progress.done) / state.value.progress.total
-  })
 
   watch(
     () => state.value.step,
@@ -74,6 +69,10 @@ export function useAccountRestore(flow: () => RestoreFlow | null = currentRestor
     await promptNotificationsIfReminders(router, 'home', { ready: true })
   }
 
+  function signIn(): void {
+    void router.replace(signInRoute(origin.name, { restore: true }))
+  }
+
   function later(): void {
     void router.replace({ name: 'home' })
   }
@@ -94,13 +93,12 @@ export function useAccountRestore(flow: () => RestoreFlow | null = currentRestor
     state,
     isRestoring,
     summaryText,
-    progressText,
-    progressValue,
     selected,
     isConfirmOpen,
     submit,
     confirmReplace,
     leave,
+    signIn,
     later,
   }
 }

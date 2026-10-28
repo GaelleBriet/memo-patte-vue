@@ -13,6 +13,8 @@ import {
   type PlusStatus,
   type SubscriptionPlan,
 } from '../logic/plus-status'
+import { pausedBackupOf, type BackupPause } from '../logic/plus-pause'
+import { clearPlusEndedAt, readPlusEndedAt } from '../logic/plus-pause-storage'
 import {
   NO_STORED_PLUS,
   readStoredPlusStatus,
@@ -36,14 +38,26 @@ function remember(next: PlusStatus, previous: StoredPlusStatus): StoredPlusStatu
 
 export const usePurchaseStore = defineStore('purchase', () => {
   const stored = ref<StoredPlusStatus>(readStoredPlusStatus())
+  /** Instant de la dernière vérification : l'échéance se relit à chacune. */
+  const now = ref(Date.now())
   /** Une échéance passée se lit « aucun » ; le stocké reste, pour retrouver un renouvellement. */
   const status = computed<PlusStatus>(() => {
     const { plan, expiresAt } = stored.value
-    return expiresAt !== null && Date.parse(expiresAt) <= Date.now() ? NO_PLUS : { plan, expiresAt }
+    return expiresAt !== null && Date.parse(expiresAt) <= now.value ? NO_PLUS : { plan, expiresAt }
   })
   /** Abonnement échu, que `status` lit déjà « aucun » : de quoi écrire « expiré ». */
   const expiredPlan = computed<SubscriptionPlan | null>(() =>
     status.value.plan === 'none' ? stored.value.lastSubscription : null,
+  )
+  const endedAt = ref<string | null>(readPlusEndedAt())
+  /** Plus arrêté et sauvegarde cloud encore conservée : 12 mois, là où `expiredPlan` n'en tient que 1. */
+  const backupPause = computed<BackupPause | null>(() =>
+    pausedBackupOf({
+      status: status.value,
+      expiredPlan: expiredPlan.value,
+      endedAt: endedAt.value,
+      now: now.value,
+    }),
   )
   const available = billingService.isAvailable()
   const offers = ref<PlusOffer[]>([])
@@ -60,12 +74,14 @@ export const usePurchaseStore = defineStore('purchase', () => {
     generation += 1
     stored.value = remember(next, previous)
     writeStoredPlusStatus(stored.value)
+    endedAt.value = readPlusEndedAt()
     return next
   }
 
   return {
     status,
     expiredPlan,
+    backupPause,
     available,
     offers,
     error,
@@ -82,6 +98,8 @@ export const usePurchaseStore = defineStore('purchase', () => {
       } catch (cause) {
         console.warn('Statut Plus non revérifié :', errorSummary(cause))
         return false
+      } finally {
+        now.value = Date.now()
       }
     },
 
@@ -150,6 +168,8 @@ export const usePurchaseStore = defineStore('purchase', () => {
       pendingCheckout.value = null
       pendingRestore = false
       record(NO_PLUS, NO_STORED_PLUS)
+      endedAt.value = null
+      clearPlusEndedAt()
     },
 
     /**

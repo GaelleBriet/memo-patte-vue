@@ -1,13 +1,13 @@
-import { isFuture, parseISO } from 'date-fns'
 import { z } from 'zod'
 
+import { isNotFuture, toDay } from '@/shared/domain/calendar-day'
 import { MAX_WEIGHT_KG } from '@/shared/domain/weight-bounds'
 
 export const weightEntryInputSchema = z.object({
   animalId: z.uuid(),
   weightKg: z.number().positive().max(MAX_WEIGHT_KG),
   /** Date civile locale (yyyy-MM-dd) : une pesée passée est autorisée, jamais future. */
-  measuredOn: z.iso.date().refine((value) => !isFuture(parseISO(value))),
+  measuredOn: z.iso.date().refine((value) => isNotFuture(value, toDay(new Date()))),
 })
 
 /** Le rattachement à l'animal est figé à la création. */

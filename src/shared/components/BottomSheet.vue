@@ -2,6 +2,7 @@
 import { nextTick, onScopeDispose, useId, watch } from 'vue'
 
 import { onBackButton } from '@/core/app-lifecycle/back-button'
+import { useOpenSheet } from '@/shared/composables/use-open-sheet'
 
 const props = withDefaults(
   defineProps<{
@@ -39,6 +40,8 @@ const open = defineModel<boolean>({ default: false })
 defineSlots<{
   default(): unknown
 }>()
+
+useOpenSheet(open)
 
 const titleId = useId()
 

@@ -1,11 +1,13 @@
 import { differenceInDays, parseISO } from 'date-fns'
 import { z } from 'zod'
 
+import { errorSummary } from '@/shared/utils/error-summary'
+import { clearPlusEndedAt, readPlusEndedAt, writePlusEndedAt } from './plus-pause-storage'
 import { NO_PLUS, subscriptionOf, type PlusStatus, type SubscriptionPlan } from './plus-status'
 
 export const PLUS_STATUS_STORAGE_KEY = 'memopatte.plus.status'
 
-/** Au-delà, l'app oublie l'abonnement échu : ni bandeau « en pause », ni appel au store. */
+/** Au-delà, l'app oublie l'abonnement échu : ni bandeau « en pause » sur l'écran Plus, ni appel au store. */
 const SUBSCRIPTION_MEMORY_DAYS = 30
 
 export type StoredPlusStatus = PlusStatus & {
@@ -52,12 +54,23 @@ function forgetLapsedMemory(status: StoredPlusStatus): StoredPlusStatus {
   return { ...status, lastSubscription: null, subscriptionEndedAt: null }
 }
 
+function keepEnd(status: StoredPlusStatus): StoredPlusStatus {
+  if (status.subscriptionEndedAt === null) {
+    if (status.plan !== 'none') clearPlusEndedAt()
+  } else {
+    const kept = readPlusEndedAt()
+    if (kept === null || Date.parse(status.subscriptionEndedAt) > Date.parse(kept))
+      writePlusEndedAt(status.subscriptionEndedAt)
+  }
+  return status
+}
+
 export function readStoredPlusStatus(): StoredPlusStatus {
   try {
     const raw = localStorage.getItem(PLUS_STATUS_STORAGE_KEY)
     if (raw === null) return NO_STORED_PLUS
     const parsed = storedPlusStatusSchema.safeParse(JSON.parse(raw))
-    return parsed.success ? forgetLapsedMemory(complete(parsed.data)) : NO_STORED_PLUS
+    return parsed.success ? forgetLapsedMemory(keepEnd(complete(parsed.data))) : NO_STORED_PLUS
   } catch {
     return NO_STORED_PLUS
   }
@@ -65,9 +78,9 @@ export function readStoredPlusStatus(): StoredPlusStatus {
 
 export function writeStoredPlusStatus(status: WritablePlusStatus): void {
   try {
-    localStorage.setItem(PLUS_STATUS_STORAGE_KEY, JSON.stringify(complete(status)))
+    localStorage.setItem(PLUS_STATUS_STORAGE_KEY, JSON.stringify(keepEnd(complete(status))))
   } catch (cause) {
-    console.warn('Statut Plus non enregistré :', cause)
+    console.warn('Statut Plus non enregistré :', errorSummary(cause))
   }
 }
 
@@ -75,6 +88,6 @@ export function clearStoredPlusStatus(): void {
   try {
     localStorage.removeItem(PLUS_STATUS_STORAGE_KEY)
   } catch (cause) {
-    console.warn('Statut Plus non effacé :', cause)
+    console.warn('Statut Plus non effacé :', errorSummary(cause))
   }
 }

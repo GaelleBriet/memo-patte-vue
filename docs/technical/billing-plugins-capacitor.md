@@ -5,7 +5,7 @@ RevenueCat / Capgo / Fovea, docs Google Play Billing, docs Supabase). Toutes les
 consultées ce jour-là ; les faits non vérifiables sont regroupés en fin de document.
 
 Besoin : vendre **MémoPatte Plus** sous trois formes pour le même contenu — abonnement mensuel
-(1,49 €), abonnement annuel (9,99 €) et achat non consommable « à vie » (29,99 €), prix du
+(1,99 €), abonnement annuel (12,99 €) et achat non consommable « à vie » (39,99 €), prix du
 2026-09-15 — sur Android uniquement, depuis une app
 Capacitor 8 / Vue 3, développeuse solo, budget zéro. Fonctions attendues : lister les offres avec
 prix localisé, acheter, connaître le statut (actif / expiré / à vie / aucun), restaurer, revérifier
@@ -312,8 +312,30 @@ valide chaque `purchaseToken` avec le service account, et expose :
   — [api-v1](https://www.revenuecat.com/docs/api-v1).
 
 Côté Supabase, une seule Edge Function `revenuecat-webhook` (vérification du header
-`Authorization` configuré dans RevenueCat, upsert dans `plus_entitlements`) suffit ; pas de service
-account Google à manipuler dans Supabase, pas de JWT à signer.
+`Authorization` configuré dans RevenueCat **et** de la signature HMAC, upsert dans
+`plus_entitlements`) suffit ; pas de service account Google à manipuler dans Supabase, pas de JWT à
+signer.
+
+**Contrôles d'un envoi** (#1090, #1327, décisions de Gaelle du 2026-10-26), dans cet ordre, avant
+toute lecture de RevenueCat et toute écriture en base :
+
+1. `REVENUECAT_WEBHOOK_AUTHORIZATION` (au moins 32 caractères) et
+   `REVENUECAT_WEBHOOK_SIGNING_SECRET` posés dans les secrets de la fonction, l'en-tête ne contenant
+   pas le secret de signature (#1330). L'un manque, l'en-tête attendu est trop court, ou il contient
+   le secret de signature (valeur identique, `Bearer <secret>`…) : **tout est refusé**, `503`
+   `webhook-not-configured`, et le journal nomme la ou les variables sans citer leur valeur ;
+2. en-tête `Authorization` identique au secret, comparé en temps constant, sinon `401` ;
+3. en-tête `X-RevenueCat-Webhook-Signature: t=<horodatage>,v1=<hmac_sha256_hex>` : exactement un
+   `t` (secondes Unix) et un `v1` (64 caractères hexadécimaux minuscules), `t` à 5 minutes au plus
+   de l'heure du serveur, `v1` égal au HMAC-SHA256 de `"<t>.<corps>"` calculé avec le secret de
+   signature sur les octets reçus, avant tout `JSON.parse`, comparé en temps constant ; sinon `401` ;
+4. corps lisible (`400` sinon) ; l'événement `TEST` du tableau de bord reçoit alors `200` sans rien
+   lire ni écrire.
+
+RevenueCat recalcule `t` et `v1` à chaque renvoi : une relance reste valide. « Rotate secret »
+invalide l'ancien secret aussitôt, sans période où deux secrets valent (documentation de RevenueCat,
+section « Webhook Signature Verification (HMAC) », lue le 2026-10-26) ; un en-tête qui porte deux
+`v1` est donc refusé.
 
 ### 4.4 Sans RevenueCat : Supabase Edge Functions + Google Play Developer API
 
@@ -495,12 +517,12 @@ Le plugin maison est écarté (§3.5).
    including the internal test track ») ; les produits ne peuvent être créés qu'une fois une
    version avec la Billing Library téléversée.
 3. Produit ponctuel : **Monetize with Play > Products > In-app products > Create product** ;
-   id en minuscule/chiffre, titre ≤ 55 caractères, description ≤ 200, prix 29,99 € ; **Activate**
+   id en minuscule/chiffre, titre ≤ 55 caractères, description ≤ 200, prix 39,99 € ; **Activate**
    — [answer/1153481](https://support.google.com/googleplay/android-developer/answer/1153481).
    Proposition d'identifiant : `memopatte_plus_lifetime`.
 4. Abonnement : **Monetize with Play > Products > Subscriptions > Create subscription** (id ≤ 40
    caractères) puis deux **Add base plan**, renouvellement automatique, grâce laissée par défaut,
-   account hold automatique : période **Monthly** à 1,49 € et période **Yearly** à 9,99 € ;
+   account hold automatique : période **Monthly** à 1,99 € et période **Yearly** à 12,99 € ;
    **Activate** — [answer/140504](https://support.google.com/googleplay/android-developer/answer/140504).
    Proposition : abonnement `memopatte_plus`, base plans `monthly` et `annual` → identifiants
    RevenueCat `memopatte_plus:monthly` et `memopatte_plus:annual` ([android-products](https://www.revenuecat.com/docs/getting-started/entitlements/android-products)).
@@ -524,6 +546,20 @@ Projet → app Android (package `com.gaellebriet.memopatte`, upload de la clé J
 → entitlement `plus` rattaché aux trois → offering `default` avec trois packages (`$rc_monthly`,
 `$rc_annual`, `$rc_lifetime`) → clé API
 publique Google Play.
+
+**Webhook** (`Integrations › Webhooks`, configuration du webhook) : adresse
+`https://<ref>.supabase.co/functions/v1/revenuecat-webhook`, en-tête d'autorisation identique à
+`REVENUECAT_WEBHOOK_AUTHORIZATION` (au moins 32 caractères, `openssl rand -hex 32`), et **« HMAC
+webhook signing » activé**. Le secret de signature ne s'affiche **qu'une fois**, à sa création ou à
+sa rotation, et ne se relit plus ensuite : le coller aussitôt dans le secret
+`REVENUECAT_WEBHOOK_SIGNING_SECRET` de la fonction. Perdu ou à changer : **« Rotate secret »** en
+génère un nouveau et invalide l'ancien tout de suite ; reposer le secret de la fonction dans la
+foulée. Un envoi refusé entre-temps est relancé par RevenueCat au plus 5 fois (environ 2,5, 5, 10, 20
+et 40 minutes après, soit une fenêtre d'environ 80 minutes) ; au-delà, l'événement est **perdu**. Sans
+ce secret dans la fonction, chaque envoi reçoit `503` `webhook-not-configured`. L'en-tête
+d'autorisation ne doit pas contenir le secret de signature, ni à l'identique ni sous la forme
+`Bearer <secret>` : sinon le secret de signature est écarté, et chaque envoi reçoit aussi `503`
+`webhook-not-configured`.
 
 ### 7.3 Projet
 
@@ -562,7 +598,8 @@ avait manqué côté Flutter).
 - Reste à brancher : l'écran Plus (#45), la revérification au retour au premier plan, le passage
   de `grace` à l'UI (`billingIssueDetectedAt`, bandeau du §5.3).
 
-Côté Supabase : Edge Function `revenuecat-webhook` (secret `REVENUECAT_WEBHOOK_AUTH`), table
+Côté Supabase : Edge Function `revenuecat-webhook` (secrets `REVENUECAT_WEBHOOK_AUTHORIZATION` et
+`REVENUECAT_WEBHOOK_SIGNING_SECRET`, contrôles au §4.3), table
 `plus_entitlements`, policies RLS de la sync conditionnées à `expires_at > now()` ou
 `source = 'lifetime'`.
 

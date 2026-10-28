@@ -28,9 +28,10 @@ const gridBeforeSchema = z
   })
   .strict()
 
-/** La grille telle que la colonne `grid_before` la garde. */
+/** La grille telle que la colonne `grid_before` la garde ; vide quand elle est trop longue pour être relue. */
 export function gridBeforeColumn(grid: GridBefore | null): string | null {
-  return grid === null ? null : JSON.stringify(grid)
+  const text = grid === null ? null : JSON.stringify(grid)
+  return text !== null && text.length <= MAX_GRID_BEFORE_LENGTH ? text : null
 }
 
 /** Une valeur illisible ou trop longue se lit vide, sans erreur : elle ne fait que priver d'héritage. */

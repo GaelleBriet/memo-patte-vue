@@ -39,3 +39,40 @@ describe('parseExportFile : le jour de l’import est le jour civil local', () =
     expect(parseExportFile(dailyAllHours()).ok).toBe(true)
   })
 })
+
+describe('parseExportFile : « jamais futur » se juge contre la date de l’export', () => {
+  function withWeightOn(day: string, exportedAt: string): string {
+    const document = JSON.parse(importFixtureJson()) as ExportDocument
+    const [entry] = document.weightEntries as ExportDocument[]
+    entry!.measuredOn = day
+    document.exportedAt = exportedAt
+    return JSON.stringify(document)
+  }
+
+  it.each([new Date(2026, 9, 27, 12), new Date(2026, 9, 29, 12)])(
+    'une pesée du 28 est acceptée pour un export du 28, quel que soit le jour local (%s)',
+    (now) => {
+      vi.useFakeTimers({ toFake: ['Date'], now })
+
+      expect(parseExportFile(withWeightOn('2026-10-28', '2026-10-28T08:00:00.000Z')).ok).toBe(true)
+    },
+  )
+
+  it('absorbe le fuseau de l’appareil exportateur : le lendemain de l’export est accepté', () => {
+    expect(parseExportFile(withWeightOn('2026-10-29', '2026-10-28T08:00:00.000Z')).ok).toBe(true)
+  })
+
+  it('refuse une date deux jours après l’export, avec un motif à elle', () => {
+    expect(parseExportFile(withWeightOn('2026-10-30', '2026-10-28T08:00:00.000Z'))).toEqual({
+      ok: false,
+      reason: 'future',
+    })
+  })
+
+  it('un fichier sans date d’export reste illisible', () => {
+    const document = JSON.parse(importFixtureJson()) as ExportDocument
+    delete document.exportedAt
+
+    expect(parseExportFile(JSON.stringify(document))).toEqual({ ok: false, reason: 'invalid' })
+  })
+})

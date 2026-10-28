@@ -5,6 +5,177 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.136](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.135...memo-patte-v0.1.136) (2026-10-28)
+
+
+### ✨ Fonctionnalités
+
+* **sauvegarde:** état « En pause » quand Plus est arrêté ([47869e7](https://github.com/GaelleBriet/memo-patte-vue/commit/47869e7fd268fbf02a701d66090b4bc466071640))
+
+
+### 🐛 Corrections
+
+* **purchase:** la fin de Plus gardée suit la plus récente ([0b86e54](https://github.com/GaelleBriet/memo-patte-vue/commit/0b86e54b6d2aa1f7a3bd201411c56de917ed896c))
+
+## [0.1.135](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.134...memo-patte-v0.1.135) (2026-10-27)
+
+
+### 🐛 Corrections
+
+* **animals:** suppression d'un animal et son « Annuler » passent par la file d'écritures ([eedb3f6](https://github.com/GaelleBriet/memo-patte-vue/commit/eedb3f6854b7f30cb1320d317ac264b8604bb059))
+* **animaux:** la suppression d'un animal et son « Annuler » passent par la file d'écritures ([f87a9b5](https://github.com/GaelleBriet/memo-patte-vue/commit/f87a9b5f8402308f0f49eb61e2742298be57399b))
+* dire de se reconnecter quand la session expire pendant l'attente d'une restauration ([c828cf6](https://github.com/GaelleBriet/memo-patte-vue/commit/c828cf64941e4ed74e03b66dda5d9d2793fce010))
+* ouvrir la connexion à la place de « Restaurer mon carnet » pour ne pas le doubler ([581695b](https://github.com/GaelleBriet/memo-patte-vue/commit/581695b1356389dc4e29341f17fab88b902a5912))
+* **purge:** compter depuis la fin d'accès connue de revenuecat quand le webhook s'est perdu ([d7a8787](https://github.com/GaelleBriet/memo-patte-vue/commit/d7a87870f46f41551f569a20d70c0b7e69b45883)), closes [#1208](https://github.com/GaelleBriet/memo-patte-vue/issues/1208)
+* **purge:** ne garder un avis que si sa date j vient de la fin connue de revenuecat ([dcf1063](https://github.com/GaelleBriet/memo-patte-vue/commit/dcf1063ef8fc4adcbd8bf04f3e2f9bba62c11b33)), closes [#1208](https://github.com/GaelleBriet/memo-patte-vue/issues/1208)
+* **purge:** ne plus sauter un abonné dont le webhook d'achat s'est perdu ([1a0a8ed](https://github.com/GaelleBriet/memo-patte-vue/commit/1a0a8ed9b678070f20d296aa10eb250e8d52d00b))
+* **restauration:** dire de se reconnecter quand la session expire pendant l'attente ([5c45fca](https://github.com/GaelleBriet/memo-patte-vue/commit/5c45fcae8f21aa53131cd4f81117234bc7de9465))
+
+## [0.1.134](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.133...memo-patte-v0.1.134) (2026-10-27)
+
+
+### 🐛 Corrections
+
+* **traitements:** nommer les erreurs de geste et tracer le code d'un refus ([00183ed](https://github.com/GaelleBriet/memo-patte-vue/commit/00183ed2c2474ba6eba758815136c72787b0686f))
+* **traitements:** nommer les erreurs des doses et tracer leur nom ([8e7f0ef](https://github.com/GaelleBriet/memo-patte-vue/commit/8e7f0ef85405e609a232776d887d984162a97724))
+* **traitements:** tracer le code d'un geste refusé, sans date ([cf5c560](https://github.com/GaelleBriet/memo-patte-vue/commit/cf5c560077e18178dfd2fd6190bbe6b0356b12cc))
+
+## [0.1.133](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.132...memo-patte-v0.1.133) (2026-10-27)
+
+
+### ✨ Fonctionnalités
+
+* **carnet:** traitements en cours avant les vaccins, terminés après le poids ([70efcfb](https://github.com/GaelleBriet/memo-patte-vue/commit/70efcfbc37c460f6e9edd1ca9472e7ba35e4c138))
+* **carnet:** traitements en cours avant les vaccins, terminés en dernier ([db7a99b](https://github.com/GaelleBriet/memo-patte-vue/commit/db7a99bfb7a5e547096f8bb8147cc71fd165f0bc))
+
+## [0.1.132](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.131...memo-patte-v0.1.132) (2026-10-27)
+
+
+### 🐛 Corrections
+
+* **gestes:** tracer les échecs des gestes, des formulaires de soin et du démarrage ([5bca77d](https://github.com/GaelleBriet/memo-patte-vue/commit/5bca77d41daef19c420014d18440afdcf736a4fa))
+
+## [0.1.131](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.130...memo-patte-v0.1.131) (2026-10-27)
+
+
+### 🐛 Corrections
+
+* **plus:** dire au présent la sauvegarde de Plus dans l'app ([0d2b9b1](https://github.com/GaelleBriet/memo-patte-vue/commit/0d2b9b191f2188e3c397a69490c2e18decd4c797))
+* **plus:** dire au présent la sauvegarde de Plus dans l'app ([d4e089b](https://github.com/GaelleBriet/memo-patte-vue/commit/d4e089ba6ca97f3c51d1ac0e3f160b6e90bf81cd))
+
+## [0.1.130](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.129...memo-patte-v0.1.130) (2026-10-27)
+
+
+### 🐛 Corrections
+
+* **animaux:** « Ne plus suivre » passe par la file d'écriture des traitements ([ee32400](https://github.com/GaelleBriet/memo-patte-vue/commit/ee32400e7f98bfbbcabdeffe81dd99c0b898e8ea))
+* **animaux:** faire passer « ne plus suivre » par la file d'écriture des traitements ([d1d48db](https://github.com/GaelleBriet/memo-patte-vue/commit/d1d48dbb3b71c101c7ec38d7c82a3bd5f4232dc8)), closes [#1354](https://github.com/GaelleBriet/memo-patte-vue/issues/1354)
+
+## [0.1.129](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.128...memo-patte-v0.1.129) (2026-10-27)
+
+
+### 🐛 Corrections
+
+* **synchro:** normaliser grid_before à l'envoi comme à la réception ([83ec70c](https://github.com/GaelleBriet/memo-patte-vue/commit/83ec70cd09ab7d193f10ad1fdda0a959f2cbc267))
+* **synchro:** normaliser grid_before à l'envoi comme à la réception ([7d53a87](https://github.com/GaelleBriet/memo-patte-vue/commit/7d53a87cc5ca94be089b6643151a656a3cde0e0c))
+* **vaccinations:** tracer le chargement raté du vaccin dans la feuille de rappel ([5e35bb0](https://github.com/GaelleBriet/memo-patte-vue/commit/5e35bb0fe281c4bcb9bb89e1b0097483dfdbe2d0))
+* **vaccinations:** tracer le chargement raté du vaccin dans la feuille de rappel ([0b98560](https://github.com/GaelleBriet/memo-patte-vue/commit/0b985600f9a654827d50ac54a6d774af21ee0542))
+
+## [0.1.128](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.127...memo-patte-v0.1.128) (2026-10-27)
+
+
+### 🐛 Corrections
+
+* **treatments:** ranger vide une grille d'avant trop longue pour être relue ([86bb717](https://github.com/GaelleBriet/memo-patte-vue/commit/86bb717b391f92bd526b8fbe9c2e77ce8255af73))
+
+## [0.1.127](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.126...memo-patte-v0.1.127) (2026-10-27)
+
+
+### ✨ Fonctionnalités
+
+* **import:** les dates se jugent contre la date de l'export, motif dédié pour une date future ([a4710bb](https://github.com/GaelleBriet/memo-patte-vue/commit/a4710bb7ab0e34c5a53955e69eaaaf515e332a45))
+
+
+### 🐛 Corrections
+
+* **i18n:** la longueur du code de réinitialisation passe en variable en anglais ([b36ce9e](https://github.com/GaelleBriet/memo-patte-vue/commit/b36ce9e1329f583479b6cd6f894706ef2f90c74e))
+* **import:** les dates d'un export se jugent d'après sa date d'export ; règle unique, textes et journaux ([8eadd56](https://github.com/GaelleBriet/memo-patte-vue/commit/8eadd561487e785f3f08a162cab5304bfe709b76))
+* **import:** plus de plafond sur la date d'export, le fichier seul fait foi ([819b0c3](https://github.com/GaelleBriet/memo-patte-vue/commit/819b0c32b07f6d746f833c206c4e14e17ecd5cfa))
+* **import:** rejeu des anciens exports gardé par la date de l'export, aucune exception ne sort ([1066075](https://github.com/GaelleBriet/memo-patte-vue/commit/10660753adc349f064ce8b4dedf5b54da06cc34d))
+* les erreurs d'enregistrement laissent une trace dans la console ([28a30fa](https://github.com/GaelleBriet/memo-patte-vue/commit/28a30fab36d9ed34239a7b6b953ed5d046373925))
+* **plus:** relit le statut plus au retour au premier plan et son échéance à chaque vérification ([5994168](https://github.com/GaelleBriet/memo-patte-vue/commit/5994168844dc5f9fb57b2c386b780f2be8980bb6))
+* règle « jamais futur » écrite une fois, l'import suit le jour fourni ([a1a9624](https://github.com/GaelleBriet/memo-patte-vue/commit/a1a9624234cf5f83b31871eee5825256f80cae77))
+* **sync:** n'efface plus de photo dans le cloud du compte quitté pendant le pull ([d853a64](https://github.com/GaelleBriet/memo-patte-vue/commit/d853a64ea91fd7836c31b125b325994b37617809))
+* **sync:** reconstruit les rappels d'une page tirée même si le compte change ensuite ([3e535f8](https://github.com/GaelleBriet/memo-patte-vue/commit/3e535f8bc09de7f1c6de8b8daf739f105a2868f2))
+* **sync:** un pull n'écrit plus pour un compte quitté, statut Plus relu au retour au premier plan ([eb132be](https://github.com/GaelleBriet/memo-patte-vue/commit/eb132bea4414a6fd05c106c6f40b87b10691b2c9))
+* **sync:** un pull n'écrit plus rien pour un compte quitté en cours de cycle ([8bb94c7](https://github.com/GaelleBriet/memo-patte-vue/commit/8bb94c791dd7c5a9c80a17c7324d1b1a5aa7db71))
+
+## [0.1.126](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.125...memo-patte-v0.1.126) (2026-10-27)
+
+
+### ✨ Fonctionnalités
+
+* **feuilles:** chaque feuille du bas se déclare ouverte dans un état partagé ([f52b5cd](https://github.com/GaelleBriet/memo-patte-vue/commit/f52b5cdab105717b301f17af6c83171ed92e3e53))
+
+
+### 🐛 Corrections
+
+* **restauration:** une feuille affichée ou demandée sur l'accueil retient « Restaurer mon carnet » ([112f999](https://github.com/GaelleBriet/memo-patte-vue/commit/112f9992318051aab264331fa030da21960e4edf))
+* **restauration:** une feuille affichée sur l'accueil retient « Restaurer mon carnet » ([2ef566e](https://github.com/GaelleBriet/memo-patte-vue/commit/2ef566e5cfd689659f2516960213f1f150b1e6d9))
+* **restauration:** une feuille de l'écran quitté ne retient plus l'arrivée sur l'accueil ([4f0e024](https://github.com/GaelleBriet/memo-patte-vue/commit/4f0e024d482fd4c68398ca3d850fce61fdc40239))
+* **restauration:** une feuille demandée par une notification retient l'écran jusqu'à son affichage ([46a0f8a](https://github.com/GaelleBriet/memo-patte-vue/commit/46a0f8a6e3951b0235c79295ef810b741962ed91))
+
+## [0.1.125](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.124...memo-patte-v0.1.125) (2026-10-27)
+
+
+### ✨ Fonctionnalités
+
+* **auth:** confirmer ou dire l'annulation de la connexion Google par un toast ([e309914](https://github.com/GaelleBriet/memo-patte-vue/commit/e309914bfea7d8763a895176647c362885f6e7f3))
+* **auth:** dire quand la connexion Google réussit ou est annulée ([a46841f](https://github.com/GaelleBriet/memo-patte-vue/commit/a46841f28df74133cac10e2ee04e75d361abb3d4))
+
+
+### 🐛 Corrections
+
+* **android:** ignorer le contrôle FullBackupContent sur les règles de sauvegarde ([6c0d5b9](https://github.com/GaelleBriet/memo-patte-vue/commit/6c0d5b95e5747d6f6b1b82128a9f5382b286006c))
+* **android:** le build de publication passe malgré le contrôle FullBackupContent des règles de sauvegarde ([a059583](https://github.com/GaelleBriet/memo-patte-vue/commit/a059583660cf1c9eac2bf9f90eb1f98963dbb24f))
+* **android:** n'écarter du lint que le message des exclusions hors inclusion ([85722c9](https://github.com/GaelleBriet/memo-patte-vue/commit/85722c929a532049896a892091f53258d2f21b4d))
+* **i18n:** tournure neutre du toast de connexion Google ([64f6943](https://github.com/GaelleBriet/memo-patte-vue/commit/64f6943608058dcaa35c8ae5369c37ddb8cefe8b))
+* **plus:** dire au journal que le secret de signature peut recopier l'en-tête ([4c8b750](https://github.com/GaelleBriet/memo-patte-vue/commit/4c8b7502d4de1bdb44d560e1f29373e93e2e0518)), closes [#89](https://github.com/GaelleBriet/memo-patte-vue/issues/89)
+* **plus:** le webhook refuse un secret de signature que l'en-tête d'autorisation contient ([5f77226](https://github.com/GaelleBriet/memo-patte-vue/commit/5f772260b2eaf4755a38fc3acf42a171b81787b4))
+* **plus:** refuser un en-tête du webhook qui contient le secret de signature ([25832d9](https://github.com/GaelleBriet/memo-patte-vue/commit/25832d985f43e267ad7d48dea59824660ab06b46)), closes [#89](https://github.com/GaelleBriet/memo-patte-vue/issues/89)
+* **plus:** refuser un secret de signature identique à l'en-tête du webhook ([38e0d0b](https://github.com/GaelleBriet/memo-patte-vue/commit/38e0d0b7d3a5b114ce9cec18ff0e465d3c882dd5)), closes [#89](https://github.com/GaelleBriet/memo-patte-vue/issues/89)
+* **restauration:** l'erreur réseau d'un compte parti ne remplace plus l'écran du compte suivant ([33d6a07](https://github.com/GaelleBriet/memo-patte-vue/commit/33d6a07523312b140973139bfd2eb65d14e422c9))
+* **restauration:** le nouveau contrôle qui suit un choix se distingue du premier ([5b9e6c1](https://github.com/GaelleBriet/memo-patte-vue/commit/5b9e6c1582604aa5ed108ae65d520f9679a53b5b))
+* **restauration:** une erreur réseau du téléchargement d'un ancien compte ne touche plus l'écran du nouveau ([f065596](https://github.com/GaelleBriet/memo-patte-vue/commit/f06559609dd45067c520718627f91b3b403f4a9a))
+* **sauvegarde:** fin de restauration relue sans repasser par l'écran gratuit ([94cd978](https://github.com/GaelleBriet/memo-patte-vue/commit/94cd978941b2813edfc1c0a5029e03d8e9443b09))
+* **sauvegarde:** la rubrique ne réaffiche plus l'écran gratuit pendant ni après une restauration ([d9e9a4c](https://github.com/GaelleBriet/memo-patte-vue/commit/d9e9a4cb39a7f3fac1811e269948d38eaa10472d))
+* **sauvegarde:** lecture ratée après une restauration dite illisible ([c1335fc](https://github.com/GaelleBriet/memo-patte-vue/commit/c1335fcaec9aab1b6c23af47c5d3e47165e31470))
+* **sauvegarde:** restauration en cours ou recontrôlée sans réafficher l'écran gratuit ([2598470](https://github.com/GaelleBriet/memo-patte-vue/commit/259847089559b59e19e2d2cae6ac3296193c065c))
+
+## [0.1.124](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.123...memo-patte-v0.1.124) (2026-10-26)
+
+
+### ✨ Fonctionnalités
+
+* **plus:** le webhook RevenueCat exige une signature HMAC valide et un mot de passe d'en-tête de 32 caractères ([48419ca](https://github.com/GaelleBriet/memo-patte-vue/commit/48419ca454f98d292a8c763524ac5813934b0449))
+* **plus:** pourcentage de l'annuel à 46 % et limite dite sur l'offre à vie ([8370d0b](https://github.com/GaelleBriet/memo-patte-vue/commit/8370d0b140fd5901038fdb7fe8b590157db591df))
+* **plus:** webhook revenuecat refusé sans signature hmac valide ni en-tête de 32 caractères ([9f02360](https://github.com/GaelleBriet/memo-patte-vue/commit/9f02360361222d361a6b9671d0408a9f5d9d6dad)), closes [#89](https://github.com/GaelleBriet/memo-patte-vue/issues/89)
+
+
+### 🐛 Corrections
+
+* **a11y:** « Voir l'historique » du poids passe à la ligne au lieu d'être rogné ([d8c2f05](https://github.com/GaelleBriet/memo-patte-vue/commit/d8c2f058b8738be96f601d8d7c209a533665bd64)), closes [#51](https://github.com/GaelleBriet/memo-patte-vue/issues/51)
+* **a11y:** libellé « À renseigner » de l'accueil à 12 px au lieu de 11,5 ([affd795](https://github.com/GaelleBriet/memo-patte-vue/commit/affd7957f929e19a3ca95f5f9f63c19b474ad1ed)), closes [#51](https://github.com/GaelleBriet/memo-patte-vue/issues/51)
+* **a11y:** repasse accessibilité et affichage du 26 octobre (stats du Carnet, textes à 12 px, zone de tap) ([b21b033](https://github.com/GaelleBriet/memo-patte-vue/commit/b21b033a0bfb7f3853e817b38b6d7c7e13930403))
+* **a11y:** stats du Carnet de largeur égale à 100 %, comme la grille d'origine ([456516b](https://github.com/GaelleBriet/memo-patte-vue/commit/456516b7f690d3959b44cd019d05e1bd7952fd68)), closes [#51](https://github.com/GaelleBriet/memo-patte-vue/issues/51)
+* **a11y:** stats du Carnet en flex, colonnes qui s'élargissent puis passent à la ligne ([fa01a1a](https://github.com/GaelleBriet/memo-patte-vue/commit/fa01a1a80e6bda2085bdc39860d714528e0b38b2)), closes [#51](https://github.com/GaelleBriet/memo-patte-vue/issues/51)
+* **a11y:** stats du Carnet sans défilement horizontal quand le texte grossit ([22b1a4c](https://github.com/GaelleBriet/memo-patte-vue/commit/22b1a4c14f64e891da3538c8edc3db0a42f7bec7)), closes [#51](https://github.com/GaelleBriet/memo-patte-vue/issues/51)
+* **a11y:** trois textes encore sous 12 px passent à 12 px ([09594b5](https://github.com/GaelleBriet/memo-patte-vue/commit/09594b5db0e8d92d8aebfd262dcce1e8c2b088b4)), closes [#51](https://github.com/GaelleBriet/memo-patte-vue/issues/51)
+* **a11y:** zone de tap de « Voir l'historique » au-dessus de la ligne de variation ([51a2acf](https://github.com/GaelleBriet/memo-patte-vue/commit/51a2acfe1ae60b6c603da7b576cbdc97fbfb53bf)), closes [#51](https://github.com/GaelleBriet/memo-patte-vue/issues/51)
+* **plus:** octets signés typés pour webcrypto ([d4d58c1](https://github.com/GaelleBriet/memo-patte-vue/commit/d4d58c177927d0cb34028ca34151410891616c37)), closes [#89](https://github.com/GaelleBriet/memo-patte-vue/issues/89)
+* **plus:** pourcentage de l'annuel à 46 % aussi en français ([11c5ad7](https://github.com/GaelleBriet/memo-patte-vue/commit/11c5ad7139ea372393760c1d90dd58c381cbab89))
+* **plus:** suites de relecture du webhook signé (journal, tests de garde, doc) ([05ffb4f](https://github.com/GaelleBriet/memo-patte-vue/commit/05ffb4f389c52bda76ef8d25deb9b05a3a73d09f)), closes [#89](https://github.com/GaelleBriet/memo-patte-vue/issues/89)
+
 ## [0.1.123](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.122...memo-patte-v0.1.123) (2026-10-26)
 
 

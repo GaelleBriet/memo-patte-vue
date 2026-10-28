@@ -2,11 +2,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  clearStoredPlusStatus,
   NO_STORED_PLUS,
   PLUS_STATUS_STORAGE_KEY,
   readStoredPlusStatus,
   writeStoredPlusStatus,
 } from '../logic/plus-status-storage'
+import { readPlusEndedAt } from '../logic/plus-pause-storage'
 import { memoryStorage } from './billing-fixture'
 
 beforeEach(() => {
@@ -111,8 +113,11 @@ describe('statut Plus en préférence locale', () => {
   })
 
   it('ne lève pas quand le stockage est inaccessible', () => {
-    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     vi.stubGlobal('localStorage', {
+      removeItem: () => {
+        throw new DOMException('bloqué', 'SecurityError')
+      },
       getItem: () => {
         throw new DOMException('bloqué', 'SecurityError')
       },
@@ -122,6 +127,49 @@ describe('statut Plus en préférence locale', () => {
     })
 
     expect(() => writeStoredPlusStatus({ plan: 'lifetime', expiresAt: null })).not.toThrow()
+    clearStoredPlusStatus()
     expect(readStoredPlusStatus()).toEqual(NO_STORED_PLUS)
+    expect(warn).toHaveBeenCalledWith('Statut Plus non enregistré :', 'QuotaExceededError 22')
+    expect(warn).toHaveBeenCalledWith('Statut Plus non effacé :', 'SecurityError 18')
+  })
+
+  it('garde la fin la plus récente quand un second abonnement s’arrête sans que Plus ait été vu actif', () => {
+    const first = new Date(2025, 0, 10, 10).toISOString()
+    const second = new Date(2026, 8, 14, 10).toISOString()
+    writeStoredPlusStatus({
+      plan: 'none',
+      expiresAt: null,
+      lastSubscription: 'monthly',
+      subscriptionEndedAt: first,
+    })
+
+    writeStoredPlusStatus({
+      plan: 'none',
+      expiresAt: null,
+      lastSubscription: 'monthly',
+      subscriptionEndedAt: second,
+    })
+
+    expect(readPlusEndedAt()).toBe(second)
+  })
+
+  it('ne recule pas la fin gardée devant une fin plus ancienne', () => {
+    const older = new Date(2025, 0, 10, 10).toISOString()
+    const newer = new Date(2026, 8, 14, 10).toISOString()
+    writeStoredPlusStatus({
+      plan: 'none',
+      expiresAt: null,
+      lastSubscription: 'monthly',
+      subscriptionEndedAt: newer,
+    })
+
+    writeStoredPlusStatus({
+      plan: 'none',
+      expiresAt: null,
+      lastSubscription: 'monthly',
+      subscriptionEndedAt: older,
+    })
+
+    expect(readPlusEndedAt()).toBe(newer)
   })
 })

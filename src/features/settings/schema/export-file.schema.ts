@@ -2,7 +2,10 @@ import { z } from 'zod'
 
 import { MAX_MODEL_LENGTH } from '@/core/device/device-model'
 import { gridBeforeFromValue } from '@/features/treatments/schema/grid-before.schema'
-import { DOSE_STATUSES } from '@/features/treatments/schema/treatment-dose.schema'
+import {
+  DOSE_STATUSES,
+  treatmentDoseSchema,
+} from '@/features/treatments/schema/treatment-dose.schema'
 import {
   doseQuantitySchema,
   doseUnitSchema,
@@ -127,7 +130,7 @@ const reportedDose = signed({
   targetOn: day.nullable(),
   previousTargetOn: day.nullable(),
   previousTargetTime: clockTime.nullable(),
-  dueRank: z.number().int().min(1).nullable(),
+  dueRank: treatmentDoseSchema.shape.dueRank,
 })
 const checkedDoses = <T extends z.output<typeof reportedDose>, I>(dose: z.ZodType<T, I>) =>
   z.array(

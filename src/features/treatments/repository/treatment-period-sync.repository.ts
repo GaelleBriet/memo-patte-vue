@@ -8,6 +8,10 @@ import { syncField } from '@/core/sync/service/syncable-table'
 import { SYNC_COLUMN_NAMES, SYNC_COLUMNS } from './treatment-period-row.repository'
 import { gridBeforeColumn, gridBeforeFromColumn } from '../schema/grid-before.schema'
 
+function syncedGridBefore(column: unknown): string | null {
+  return gridBeforeColumn(gridBeforeFromColumn(column))
+}
+
 export function createPeriodSync(db: DbClient, loadClient: () => Promise<SupabaseClient>) {
   return {
     /** Tombstones compris : le push doit pouvoir renvoyer une suppression comme une ligne normale. */
@@ -16,7 +20,8 @@ export function createPeriodSync(db: DbClient, loadClient: () => Promise<Supabas
         `SELECT ${SYNC_COLUMNS} FROM treatment_period WHERE id = ?`,
         [id],
       )
-      return rows[0] ?? null
+      const row = rows[0]
+      return row ? { ...row, grid_before: syncedGridBefore(row.grid_before) } : null
     },
 
     ...createRemoteSyncTable({ table: 'treatment_period', columns: SYNC_COLUMNS, loadClient }),
@@ -32,9 +37,7 @@ export function createPeriodSync(db: DbClient, loadClient: () => Promise<Supabas
                   .join(', ')}
               WHERE excluded.updated_at > treatment_period.updated_at`,
         params: SYNC_COLUMN_NAMES.map((column) =>
-          column === 'grid_before'
-            ? gridBeforeColumn(gridBeforeFromColumn(row.grid_before))
-            : syncField(row, column),
+          column === 'grid_before' ? syncedGridBefore(row.grid_before) : syncField(row, column),
         ),
       }
     },

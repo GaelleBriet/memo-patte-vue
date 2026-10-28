@@ -25,6 +25,9 @@ describe('aucun texte sous 12 px', () => {
   it.each([
     ['src/features/animals/views/CarnetView.vue', '.carnet-stat__label'],
     ['src/features/animals/views/CarnetView.vue', '.carnet-stat__sub'],
+    ['src/features/settings/views/PdfExportSheet.vue', '.pdf-export-sheet__group'],
+    ['src/features/treatments/views/TreatmentChooseDaysMonth.vue', '.choose-days-month__weekdays'],
+    ['src/features/vaccinations/views/VaccineNameField.vue', '.vaccine-name-field__heading'],
     ['src/features/weight/views/WeightHistoryView.vue', '.weight-history__current-label'],
     // Les courbes se dessinent à leur largeur rendue : 12 px dans le SVG font 12 px à l'écran.
     ['src/shared/components/WeightChartTrace.vue', '.weight-chart-trace__month'],

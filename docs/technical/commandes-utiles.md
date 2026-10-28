@@ -33,7 +33,7 @@ paru -S android-studio   # ou yay
 #    sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
 # 6. Vérification : premier build debug
-pnpm build && pnpm cap:sync
+pnpm cap:sync          # fait déjà le build Vite
 cd android && ./gradlew assembleDebug && cd ..
 ```
 
@@ -291,6 +291,39 @@ quelle et `versionCode` vaut `major × 1 000 000 + minor × 1 000 + patch` (0.1.
 `minor` ou `patch` atteint 1000, borne qui garantit que le code reste strictement croissant. Rien à mettre à jour
 à la main avant un upload.
 
+## 7 bis. Build signé pour la Play Console (#53)
+
+`android/app/build.gradle` signe la variante `release` avec une clé lue dans quatre variables d'environnement ; rien n'est
+dans le dépôt, et `.gitignore` couvre `*.jks`, `*.keystore` et `keystore.properties` (garde : `signature-release.spec.ts`).
+
+| Variable                      | Contenu                                  |
+| ----------------------------- | ---------------------------------------- |
+| `MEMOPATTE_KEYSTORE_FILE`     | chemin absolu du fichier de clé d'envoi  |
+| `MEMOPATTE_KEYSTORE_PASSWORD` | mot de passe du fichier                  |
+| `MEMOPATTE_KEY_ALIAS`         | alias de la clé                          |
+| `MEMOPATTE_KEY_PASSWORD`      | mot de passe de la clé                   |
+
+Les quatre ou aucune : sans elles, la variante `release` (`assemble`, `build` et `bundle` compris) sort non signée et Gradle l'écrit en avertissement ; `bundleRelease` n'aboutit sans variables qu'après le merge de `fix/lint-regles-sauvegarde-53` (sans lui, le contrôle lint de la variante `release` échoue) ; debug,
+`devApp` et la CI ne changent pas. Un chemin de fichier introuvable fait échouer le build avec un message clair.
+
+```bash
+pnpm cap:sync          # fait déjà le build Vite
+cd android && ./gradlew :app:bundleRelease
+# sortie : android/app/build/outputs/bundle/release/app-release.aab
+```
+
+R8 réduit et obscurcit la variante `release` seule (`minifyEnabled true`, `shrinkResources true` ; debug et CI inchangés). Les règles de
+conservation viennent des bibliothèques (Capacitor, SQLCipher, RevenueCat, Credential Manager, Google Sign-In livrent les leurs) ;
+`android/app/proguard-rules.pro` n'en ajoute aucune. Le `mapping.txt` est produit dans `android/app/build/outputs/mapping/release/`
+et `bundleRelease` l'embarque dans l'AAB (`BUNDLE-METADATA/com.android.tools.build.obfuscation/proguard.map`) : la Play Console le
+reçoit avec l'envoi, rien d'autre à joindre. Pour lire un plantage obscurci hors Play Console, garder le `mapping.txt` du build
+publié. Les symboles natifs restent un avertissement accepté (#1340).
+
+Après tout changement de dépendance Android : construire `assembleRelease`, le signer avec la clé de debug d'Android
+(`apksigner`, jamais la clé d'envoi), l'installer sur l'émulateur et rejouer import, Carnet, rappels, écran Plus.
+
+Création de la clé et envoi : guide du coffre, `technical/guides/guide-build-signe-et-test-interne.md`.
+
 ## 8. Ce que fait la CI
 
 `.github/workflows/ci.yml` lance deux jobs en parallèle sur chaque PR vers `main` et sur chaque push sur `main`.
@@ -305,13 +338,39 @@ public (minutes Actions gratuites), et un filtre à tenir à jour aurait le mêm
 celui qui a motivé le ticket #260 — une CI verte qui ne construit rien.
 
 `.github/workflows/supabase-migrations.yml` pousse les migrations de `supabase/migrations/` vers le vrai projet
-Supabase (`supabase db push --db-url ...`) à chaque push sur `main`, sans filtre de chemins pour la même raison.
-`db push` est idempotent : il ne rejoue que ce qui manque, donc ce workflow rattrape aussi tout ce qui a pu être
-ajouté au dépôt avant sa mise en place. Passe par le **Session Pooler** (compatible IPv4, contrairement à la
+Supabase (`supabase db push --db-url ...`) quand un push sur `main` touche `supabase/migrations/` ou ce workflow.
+Il se relance aussi à la main, **depuis `main`** (Actions › Supabase migrations › Run workflow, branche `main`) :
+après un échec, ou après un refus (Reject) du déploiement, car le filtre de chemins ne relancera pas la migration
+tout seul. Lancé depuis une autre branche, le job est sauté.
+`db push` est idempotent : il ne rejoue que ce qui manque, donc chaque passage rattrape aussi tout ce qui a pu
+manquer avant. Passe par le **Session Pooler** (compatible IPv4, contrairement à la
 connexion directe) plutôt que par `supabase link` (cassé avec les tokens à permissions fines du Dashboard,
 [supabase/supabase#50244](https://github.com/supabase/supabase/issues/50244)) : aucun jeton de compte nécessaire.
 Secrets nécessaires : `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID`, `SUPABASE_POOLER_HOST` (détail dans le
 coffre de notes de Gaelle, jamais dans le dépôt).
+
+Ce workflow détient le mot de passe de la base de production, il est donc verrouillé :
+
+- CLI Supabase figé à la version de la CI (`2.119.0`), actions épinglées par SHA de commit (Dependabot
+  `github-actions` les tient à jour), `permissions: contents: read`, checkout sans identifiants, un seul passage
+  à la fois (`concurrency`), mot de passe encodé masqué dans les journaux.
+- Le job tourne dans l'environnement GitHub `production` : chaque migration attend l'approbation de Gaelle
+  (Actions › le passage en attente › Review deployments › Approve and deploy).
+
+Réglage de l'environnement, une fois, dans GitHub (Settings › Environments) :
+
+1. New environment, nom `production`.
+2. Required reviewers : cocher, ajouter Gaelle, laisser « Prevent self-review » décoché (Gaelle est seule
+   approbatrice et les merges partent sous son compte), Save protection rules.
+3. Deployment branches and tags : Selected branches and tags, ajouter la règle `main`.
+4. Environment secrets : y recréer `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID` et `SUPABASE_POOLER_HOST`, puis
+   les supprimer de Settings › Secrets and variables › Actions › Repository secrets, pour qu'aucun autre workflow
+   ne puisse les lire.
+
+Les quatre étapes sont nécessaires. Tant que l'environnement n'est pas réglé, GitHub le crée sans protection au
+premier passage et le job lit les secrets du dépôt : les migrations partent sans approbation. La garde `main` n'arrête
+qu'un lancement depuis une branche qui n'a pas modifié ce fichier ; seule l'étape 3 bloque vraiment les autres
+branches.
 
 Reproduire le job `android` en local :
 

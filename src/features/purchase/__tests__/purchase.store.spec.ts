@@ -185,6 +185,37 @@ describe('usePurchaseStore', () => {
     })
   })
 
+  describe('abonnement qui échoit en cours de session', () => {
+    const ENDING: PlusStatus = { plan: 'monthly', expiresAt: '2026-09-20T10:00:00Z' }
+
+    beforeEach(() => {
+      writeStoredPlusStatus(ENDING)
+    })
+
+    it('se lit « aucun » à la revérification qui suit l’échéance, même sans réseau', async () => {
+      service.fetchStatus.mockRejectedValueOnce(new BillingError('failed'))
+      const store = usePurchaseStore()
+      expect(store.status).toEqual(ENDING)
+      vi.setSystemTime(new Date('2026-09-21T10:00:00Z'))
+
+      await store.verifyKnownStatus()
+
+      expect(store.status).toEqual(NO_PLUS)
+      expect(store.expiredPlan).toBe('monthly')
+    })
+
+    it('reste Plus quand la revérification trouve un renouvellement', async () => {
+      const renewed: PlusStatus = { plan: 'monthly', expiresAt: '2026-10-20T10:00:00Z' }
+      service.fetchStatus.mockResolvedValueOnce(renewed)
+      const store = usePurchaseStore()
+      vi.setSystemTime(new Date('2026-09-21T10:00:00Z'))
+
+      await store.verifyKnownStatus()
+
+      expect(store.status).toEqual(renewed)
+    })
+  })
+
   it('n’invente aucun plan échu à qui n’a jamais payé, même après vérification', async () => {
     const store = usePurchaseStore()
 
@@ -317,12 +348,12 @@ describe('usePurchaseStore', () => {
 
   describe('loadOffers', () => {
     it('expose les offres', async () => {
-      service.listOffers.mockResolvedValueOnce([{ plan: 'annual', priceString: '9,99 €' }])
+      service.listOffers.mockResolvedValueOnce([{ plan: 'annual', priceString: '12,99 €' }])
       const store = usePurchaseStore()
 
       await expect(store.loadOffers()).resolves.toBe(true)
 
-      expect(store.offers).toEqual([{ plan: 'annual', priceString: '9,99 €' }])
+      expect(store.offers).toEqual([{ plan: 'annual', priceString: '12,99 €' }])
       expect(store.error).toBeNull()
     })
 
@@ -514,5 +545,53 @@ describe('usePurchaseStore — offre en attente d’un compte', () => {
 
     await expect(lent).resolves.toEqual(LIFETIME)
     expect(store.status).toEqual(LIFETIME)
+  })
+})
+
+describe('usePurchaseStore › sauvegarde en pause', () => {
+  const LAPSED: PlusStatus = { plan: 'monthly', expiresAt: new Date(2026, 8, 1, 10).toISOString() }
+
+  it('garde la date de fin 12 mois quand le souvenir de 30 jours est oublié', async () => {
+    writeStoredPlusStatus(LAPSED)
+    service.fetchStatus.mockResolvedValue(NO_PLUS)
+    await usePurchaseStore().verifyKnownStatus()
+    vi.setSystemTime(new Date(2026, 10, 15, 10))
+
+    setActivePinia(createPinia())
+    const relance = usePurchaseStore()
+
+    expect(relance.expiredPlan).toBeNull()
+    expect(relance.backupPause).toEqual({ keptUntil: '2027-09-01' })
+  })
+
+  it('n’est pas en pause avant l’expiration confirmée, ni pour qui n’a jamais payé', () => {
+    expect(usePurchaseStore().backupPause).toBeNull()
+  })
+
+  it('cesse la pause dès que Plus est réactivé', async () => {
+    writeStoredPlusStatus(LAPSED)
+    service.fetchStatus.mockResolvedValueOnce(NO_PLUS)
+    service.restore.mockResolvedValueOnce(ANNUAL)
+    const store = usePurchaseStore()
+    await store.verifyKnownStatus()
+
+    await store.restore()
+
+    expect(store.backupPause).toBeNull()
+    setActivePinia(createPinia())
+    expect(usePurchaseStore().backupPause).toBeNull()
+  })
+
+  it('ne lègue pas la pause du compte quitté', async () => {
+    writeStoredPlusStatus(LAPSED)
+    service.fetchStatus.mockResolvedValueOnce(NO_PLUS)
+    const store = usePurchaseStore()
+    await store.verifyKnownStatus()
+
+    store.reset()
+
+    expect(store.backupPause).toBeNull()
+    setActivePinia(createPinia())
+    expect(usePurchaseStore().backupPause).toBeNull()
   })
 })

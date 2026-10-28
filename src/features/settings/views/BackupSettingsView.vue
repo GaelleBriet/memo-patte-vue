@@ -6,8 +6,14 @@ import { useRouter } from 'vue-router'
 import { useBackupStatus } from '../composables/use-backup-status'
 import { useRestorePending } from '../composables/use-restore-pending'
 import type { CloudBackupStatus } from '../logic/backup-status'
-import { cloudBackupText, refusedItemsHelpText } from '../logic/backup-status-text'
+import {
+  cloudBackupText,
+  pausedBackupText,
+  refusedItemsHelpText,
+} from '../logic/backup-status-text'
 import BackupCopyRow from './BackupCopyRow.vue'
+import RestoreProgressCard from './RestoreProgressCard.vue'
+import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { returnTo } from '@/shared/utils/return-to'
 import { helpRoute, signInRoute } from '@/shared/utils/sign-in-route'
@@ -21,13 +27,16 @@ const STATUS_LOOK: Record<CloudBackupStatus['kind'], { icon: string; tone: strin
 
 const { t } = useI18n()
 const router = useRouter()
-const { status, refused, photosBackedUp, now } = useBackupStatus()
+const purchase = usePurchaseStore()
+const { status, refused, photosBackedUp, now, awaitsRestoredStatus } = useBackupStatus()
 const {
   isPending: isRestorePending,
   isWaitingNetwork: isRestoreWaitingNetwork,
+  isWaitingSignIn: isRestoreWaitingSignIn,
+  restoreProgress,
   showsLocalBackup,
   choose: chooseRestore,
-} = useRestorePending(status)
+} = useRestorePending(status, awaitsRestoredStatus)
 
 const cloud = computed<CloudBackupStatus | null>(() =>
   status.value === null || status.value.kind === 'local' || status.value.kind === 'unread'
@@ -36,6 +45,8 @@ const cloud = computed<CloudBackupStatus | null>(() =>
 )
 const cloudText = computed(() => cloud.value && cloudBackupText(t, cloud.value, now.value))
 const cloudLook = computed(() => cloud.value && STATUS_LOOK[cloud.value.kind])
+const pause = computed(() => (showsLocalBackup.value ? purchase.backupPause : null))
+const pauseText = computed(() => pause.value && pausedBackupText(t, pause.value))
 const refusedText = computed(() =>
   refused.value > 0 ? refusedItemsHelpText(t, refused.value) : null,
 )
@@ -108,6 +119,33 @@ function goBack(): void {
         </span>
       </div>
 
+      <template v-if="isRestoreWaitingSignIn">
+        <div
+          class="settings-row settings-row--multiline backup-settings__card backup-settings__status--warning backup-settings__restore-session-expired"
+        >
+          <v-icon class="settings-row__icon" icon="ms:sync_problem" size="24" />
+          <span class="settings-row__text">
+            <span class="settings-row__label">{{ t('settings.restore.sessionExpired') }}</span>
+          </span>
+        </div>
+        <v-btn
+          class="backup-settings__action backup-settings__sign-in"
+          variant="flat"
+          color="primary"
+          block
+          prepend-icon="ms:login"
+          @click="signInAgain"
+        >
+          {{ t('settings.backup.cloud.interrupted.signIn') }}
+        </v-btn>
+      </template>
+
+      <RestoreProgressCard
+        v-if="restoreProgress"
+        class="backup-settings__card backup-settings__restore-progress"
+        :progress="restoreProgress"
+      />
+
       <template v-if="cloud && cloudText && cloudLook">
         <div
           class="settings-row backup-settings__card backup-settings__status"
@@ -162,6 +200,37 @@ function goBack(): void {
         />
       </template>
 
+      <template v-else-if="pause && pauseText">
+        <div
+          class="settings-row backup-settings__card backup-settings__status backup-settings__status--neutral backup-settings__paused"
+        >
+          <v-icon class="settings-row__icon" icon="ms:pause_circle" size="24" />
+          <span class="settings-row__text">
+            <span class="settings-row__label">{{ pauseText.title }}</span>
+            <span class="settings-row__hint">{{ pauseText.hint }}</span>
+          </span>
+        </div>
+        <v-btn
+          class="backup-settings__action backup-settings__reactivate"
+          variant="flat"
+          color="primary"
+          block
+          prepend-icon="ms:star"
+          :aria-label="t('settings.backup.cloud.paused.actionLabel')"
+          @click="discoverPlus"
+        >
+          {{ t('settings.backup.cloud.paused.action') }}
+        </v-btn>
+        <p class="backup-settings__text">{{ pauseText.risk }}</p>
+        <p v-if="pauseText.kept" class="backup-settings__text backup-settings__kept">
+          {{ pauseText.kept }}
+        </p>
+
+        <h2 class="backup-settings__section">{{ t('settings.backup.android.title') }}</h2>
+        <p class="backup-settings__text">{{ t('settings.backup.android.body') }}</p>
+        <BackupCopyRow class="backup-settings__card" />
+      </template>
+
       <template v-else-if="showsLocalBackup">
         <div class="settings-row backup-settings__card backup-settings__local">
           <v-icon class="settings-row__icon" icon="ms:mobile" size="24" />
@@ -198,7 +267,7 @@ function goBack(): void {
         <v-icon class="settings-row__icon" icon="ms:delete_forever" size="22" />
         <span class="settings-row__text">
           <span class="settings-row__label">{{ t('settings.erase.title') }}</span>
-          <span v-if="cloud" class="settings-row__hint">
+          <span v-if="cloud || pause" class="settings-row__hint">
             {{ t('settings.backup.cloud.eraseHint') }}
           </span>
         </span>

@@ -32,6 +32,7 @@ import {
 import DateCalendar from '@/shared/components/DateCalendar.vue'
 import ReminderActions from '@/shared/components/ReminderActions.vue'
 import { confirmUndoable } from '@/shared/composables/use-guarded-gestures'
+import { errorSummary } from '@/shared/utils/error-summary'
 import { formatLongDate } from '@/shared/utils/format'
 import { showToast } from '@/shared/utils/toast'
 
@@ -128,7 +129,8 @@ watch(
       vaccination.value = props.vaccinationId
         ? await vaccinations.getById(props.vaccinationId)
         : null
-    } catch {
+    } catch (cause) {
+      console.warn('Chargement du vaccin impossible :', errorSummary(cause))
       vaccination.value = null
     }
     if (vaccination.value === null && open.value) {
@@ -224,7 +226,8 @@ async function save(): Promise<void> {
     }
     const priming = await primingAfterReminderSaved({ ...saved, ...originQuery(route) })
     if (priming) void router.replace(priming)
-  } catch {
+  } catch (cause) {
+    console.warn('Enregistrement du rappel impossible :', errorSummary(cause))
     saveFailed.value = true
   } finally {
     isSubmitting.value = false

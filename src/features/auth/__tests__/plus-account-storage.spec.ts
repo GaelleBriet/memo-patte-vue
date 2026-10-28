@@ -46,7 +46,7 @@ describe('drapeau « cet appareil a un compte Plus »', () => {
   })
 
   it('ne lève pas quand le stockage est inaccessible', () => {
-    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const blocked = () => {
       throw new DOMException('bloqué', 'SecurityError')
     }
@@ -55,5 +55,7 @@ describe('drapeau « cet appareil a un compte Plus »', () => {
     expect(() => writePlusAccount({ userId: USER_ID })).not.toThrow()
     expect(() => clearPlusAccount()).not.toThrow()
     expect(readPlusAccount()).toBeNull()
+    expect(warn).toHaveBeenCalledWith('Compte Plus non enregistré :', 'SecurityError 18')
+    expect(warn).toHaveBeenCalledWith('Compte Plus non effacé :', 'SecurityError 18')
   })
 })

@@ -139,7 +139,7 @@ Gratuit, sans compte :
 - Auto Backup Android (sans photos)
 - Interface en français et en anglais (vue-i18n, FR source)
 
-MémoPatte Plus (1,49 €/mois, 9,99 €/an ou 29,99 € à vie) :
+MémoPatte Plus (1,99 €/mois, 12,99 €/an ou 39,99 € à vie) :
 
 - Compte + sauvegarde cloud Supabase + restauration
 - Même carnet sur tablette et téléphone, **un appareil à la fois** (push + pull, la modification la plus récente remplace l'autre, sans fusion fine entre deux appareils ; décision du 2026-10-20)
@@ -178,7 +178,7 @@ Hors scope :
 - Tu **peux** committer et pousser toi-même, **uniquement sur une branche dédiée** (`feat/...`, `fix/...`, `chore/...`, `docs/...`), jamais sur `main`.
 - **Jamais** de `git commit` ni de `git push` sur `main` (ni `HEAD:main`, ni `--force`, ni `--all`) : `main` ne change que par le merge d’une PR.
 - **Pull Requests** : tu ouvres la PR **toi-même, sans demander**, dès qu’une branche est prête — critères d’acceptation du ticket satisfaits, les quatre commandes vertes (`pnpm lint && pnpm type-check && pnpm exec vitest run && pnpm build-only`), diff relu. Corps au format **Quoi / Vérifié / Points à garder en tête** ; toute décision prise faute de précision dans le ticket y est listée, et elle a d’abord été posée en question à Gaelle ou consignée dans son journal en mode autonomie. Une branche dont une question reste sans réponse **n’est pas prête** : elle attend, sans PR.
-- **Merge** (accordé par Gaelle le 2026-09-15, pour ce projet uniquement) : tu merges **toi-même tes PR**, en chef de projet et lead dev, quand les quatre conditions sont réunies — revue propre (Critical / Important corrigés), intégration du lot vérifiée dans un worktree jetable, branche à jour avec `main` (`gh pr update-branch`, jamais de rebase), CI verte sur le dernier commit (`main` n’est pas protégée : c’est à toi de l’attendre). Merge commit (`gh pr merge --merge`), une PR à la fois, puis vérification de `main` avant la suivante. Tu ne tagues jamais et tu ne merges pas la PR de quelqu’un d’autre (Dependabot, release-please) : celles-là restent à Gaelle.
+- **Merge** (accordé par Gaelle le 2026-09-15, pour ce projet uniquement) : tu merges **toi-même tes PR**, en chef de projet et lead dev, quand les quatre conditions sont réunies — revue propre (Critical / Important corrigés), intégration du lot vérifiée dans un worktree jetable, branche à jour avec `main` (`gh pr update-branch`, jamais de rebase), CI verte sur le dernier commit (`main` est protégée : PR obligatoire, job `ci` vert, branche à jour ; la CI reste à attendre avant `gh pr merge`). Merge commit (`gh pr merge --merge`), une PR à la fois, puis vérification de `main` avant la suivante. Tu ne tagues jamais et tu ne merges pas la PR de quelqu’un d’autre (Dependabot, release-please) : celles-là restent à Gaelle.
 - Ne **jamais** réécrire l’historique d’une branche déjà poussée (`reset --hard`, `rebase`, `push --force`).
 - Messages au format Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`…), en français comme le reste du dépôt.
 - Les hooks Husky (lint-staged, commitlint, lint + type-check au push) doivent passer : ne jamais les contourner avec `--no-verify`.

@@ -1,4 +1,4 @@
-import { readonly, shallowRef, watch, type Ref } from 'vue'
+import { computed, shallowRef, watch, type Ref } from 'vue'
 
 import { errorSummary, localErrorMessage } from '@/shared/utils/error-summary'
 import type { RestoreMode } from '../repository/sync-state.repository'
@@ -7,11 +7,12 @@ import type { BackupSummary } from './backup-summary'
 
 export type RestoreFlowState =
   | { step: 'idle' }
-  | { step: 'checking' }
+  | { step: 'checking'; chosen: boolean }
   | { step: 'no-answer' }
   | { step: 'choice'; summary: BackupSummary }
   | { step: 'restoring'; progress: RestoreProgress }
   | { step: 'waiting-network'; chosen: boolean }
+  | { step: 'waiting-sign-in'; chosen: boolean }
   | { step: 'done' }
 
 export type RestoreRunner = Pick<
@@ -20,16 +21,24 @@ export type RestoreRunner = Pick<
 >
 
 /**
- * Ce que l'écran « Restaurer mon carnet » montre : le choix, la progression, l'attente du réseau
- * ou le carnet prêt. Aucune méthode ne lève.
+ * Ce que l'écran « Restaurer mon carnet » montre : le choix, la progression, l'attente du réseau,
+ * celle de la reconnexion quand la session a expiré, ou le carnet prêt. Aucune méthode ne lève.
  */
-export function createRestoreFlow(runner: RestoreRunner) {
+export function createRestoreFlow(
+  runner: RestoreRunner,
+  signInNeeded: () => boolean = () => false,
+) {
   const state = shallowRef<RestoreFlowState>({ step: 'idle' })
+  const visible: Readonly<Ref<RestoreFlowState>> = computed(() =>
+    state.value.step === 'waiting-network' && signInNeeded()
+      ? { step: 'waiting-sign-in', chosen: state.value.chosen }
+      : state.value,
+  )
   const restoredListeners = new Set<() => void>()
   const retryListeners = new Set<() => void>()
 
-  function retryCheck(): void {
-    state.value = { step: 'checking' }
+  function recheck(chosen: boolean): void {
+    state.value = { step: 'checking', chosen }
     for (const listener of retryListeners) listener()
   }
 
@@ -46,13 +55,13 @@ export function createRestoreFlow(runner: RestoreRunner) {
       result = await runner.run()
     } catch (cause) {
       console.warn('Restauration interrompue, elle reprendra :', errorSummary(cause))
-      state.value = { step: 'waiting-network', chosen: true }
+      if (state.value === shown) state.value = { step: 'waiting-network', chosen: true }
       return false
     } finally {
       stop()
     }
     if (result === 'carnet-changed') {
-      retryCheck()
+      recheck(true)
       return false
     }
     if (result === 'nothing-to-restore') {
@@ -65,19 +74,19 @@ export function createRestoreFlow(runner: RestoreRunner) {
   }
 
   return {
-    state: readonly(state) as Readonly<Ref<RestoreFlowState>>,
+    state: visible,
 
     /** Sans effet sur un écran déjà affiché : il garde son message jusqu'à la réponse. */
     checking(): void {
-      if (state.value.step === 'idle') state.value = { step: 'checking' }
+      if (state.value.step === 'idle') state.value = { step: 'checking', chosen: false }
     },
 
     /** Ce que le contrôle de la sauvegarde a trouvé, dès qu'il a répondu. */
     whenChecked(): Promise<RestoreFlowState> {
-      if (state.value.step !== 'checking') return Promise.resolve(state.value)
+      if (state.value.step !== 'checking') return Promise.resolve(visible.value)
       return new Promise((resolve) => {
         const stop = watch(
-          state,
+          visible,
           (current) => {
             if (current.step === 'checking') return
             stop()
@@ -94,7 +103,9 @@ export function createRestoreFlow(runner: RestoreRunner) {
     },
 
     /** « Réessayer » : le contrôle de la sauvegarde est redemandé tout de suite. */
-    retryCheck,
+    retryCheck(): void {
+      recheck(false)
+    },
 
     onRetryCheck(listener: () => void): () => void {
       retryListeners.add(listener)

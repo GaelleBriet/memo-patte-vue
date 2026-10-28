@@ -11,11 +11,13 @@ import { installReminderActions, reminderActions } from '@/app/reminder-actions'
 import { installLaunchPriming, installRemindersPriming } from '@/app/reminders-priming'
 import { installRestorePrompt } from '@/app/restore-prompt'
 import { installRemindersSync } from '@/app/reminders-sync'
-import { createDefaultSyncDependencies, installSync } from '@/app/sync'
+import { createDefaultSyncDependencies } from '@/app/sync'
 import { initAnalytics } from '@/core/analytics'
 import { installBackButton } from '@/core/app-lifecycle/back-button'
 import { registerCurrentDevice } from '@/core/device/register-device'
+import { installSync } from '@/core/sync/service/account-sync'
 import { restoreWeightUnit } from '@/core/preferences/weight-unit-preference'
+import { errorSummary } from '@/shared/utils/error-summary'
 import vuetify from '@/core/theme/vuetify'
 import i18n, { applyLocale, detectLocale } from '@/core/i18n'
 import { getAnimalsRepository } from '@/features/animals/repository/animals.repository'
@@ -26,7 +28,7 @@ import { provideAuthRepository, useAuthStore } from '@/features/auth/store/auth.
 import { backfillCareSignalOnLaunch } from '@/features/home/service/care-signal-backfill.service'
 import { provideCheckoutAccount } from '@/features/purchase/service/checkout.service'
 import { installPlusAccountLink } from '@/features/purchase/service/plus-account-link.service'
-import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
+import { installPlusStatusRefresh } from '@/features/purchase/service/plus-status-refresh.service'
 import { clearExports } from '@/features/settings/service/export-delivery.service'
 import { getCarnetSettingsRepository } from '@/features/settings/repository/carnet-settings.repository'
 import { provideCarnetSettingsRepository } from '@/features/settings/store/carnet-settings.store'
@@ -80,7 +82,7 @@ installRemindersSync()
 installCarnetSettingsReminders()
 installLaunchPriming(router)
 installRestorePrompt(router)
-void usePurchaseStore().verifyKnownStatus()
+installPlusStatusRefresh()
 installPlusAccountLink(() => useAuthStore().userId)
 provideCheckoutAccount({
   accountId: () => useAuthStore().userId,
@@ -90,4 +92,6 @@ provideCheckoutAccount({
 })
 installPendingCheckoutGuard(router)
 void useAuthStore().restore()
-void createDefaultSyncDependencies().then(installSync)
+void createDefaultSyncDependencies()
+  .then(installSync)
+  .catch((cause) => console.warn('Synchro non installée :', errorSummary(cause)))

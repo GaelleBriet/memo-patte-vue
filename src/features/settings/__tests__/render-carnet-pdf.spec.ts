@@ -28,6 +28,7 @@ const EMPTY_CONTENT: CarnetPdfContent = {
   generatedOn: '2026-09-15',
   vaccinations: [],
   treatments: [],
+  finishedTreatments: [],
   weightEntries: [],
 }
 
@@ -91,6 +92,7 @@ const FULL_CONTENT: CarnetPdfContent = {
       state: 'upToDate',
     },
   ],
+  finishedTreatments: [],
   weightEntries: [
     { measuredOn: '2026-01-01', weightKg: 4 },
     { measuredOn: '2026-06-01', weightKg: 4.3 },
@@ -225,6 +227,17 @@ describe('renderCarnetPdf — historique', () => {
     expect(find('Poids')!.baseline).toBeGreaterThan(precedentes.baseline)
   })
 
+  it('range les sections comme le Carnet : traitements, vaccins, poids', () => {
+    const content = { ...FULL_CONTENT, weightEntries: PESEES_IRREGULIERES }
+    const { texts } = readPdf(
+      renderCarnetPdf([{ content, photoDataUrl: null }], '0.1.24', i18n.global.t),
+    )
+    const baseline = (title: string) => texts.find((item) => item.text === title)!.baseline
+
+    expect(baseline('Traitements')).toBeLessThan(baseline('Vaccins'))
+    expect(baseline('Vaccins')).toBeLessThan(baseline('Poids'))
+  })
+
   it('coupe à la ligne une longue liste d’injections, dans la largeur de la page', () => {
     const years = Array.from({ length: 30 }, (_, index) => `${2025 - index}-05-20`)
     const content: CarnetPdfContent = {
@@ -234,9 +247,7 @@ describe('renderCarnetPdf — historique', () => {
     const all = readPdf(
       renderCarnetPdf([{ content, photoDataUrl: null }], '0.1.24', i18n.global.t),
     ).texts
-    const [vaccin, titre] = ['Rage', 'Traitements'].map((name) =>
-      all.find((text) => text.text === name),
-    )
+    const [vaccin, titre] = ['Rage', 'Poids'].map((name) => all.find((text) => text.text === name))
     const lignes = all.filter(
       (text) => text.baseline > vaccin!.baseline && text.baseline < titre!.baseline,
     )

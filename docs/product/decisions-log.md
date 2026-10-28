@@ -887,7 +887,7 @@ plafond d'alarmes d'Android (~500) au-delà duquel le plugin fait planter l'app.
 traitement non noté (il se tairait après la première prise oubliée) ; rien
 après l'échéance (un oubli passe inaperçu).
 
-2026-09-15 — **MémoPatte Plus en trois offres au même contenu : abonnement
+2026-09-15 — _(prix remplacés le 2026-10-26)_ **MémoPatte Plus en trois offres au même contenu : abonnement
 mensuel 1,49 €/mois, abonnement annuel 9,99 €/an, achat non consommable « à vie »
 29,99 €.** Remplace « 7,99 €/an ou 24,99 € à vie » du 2026-09-07. Les abonnements
 Google Play sont annulables à tout moment, l'accès restant ouvert jusqu'à la fin
@@ -1809,8 +1809,8 @@ publie que ce dossier. — Raison : la politique de confidentialité vit à côt
 change dans la même PR. — Alternative écartée : des pages dans le site Nuxt de Gaelle, qui demandaient
 du code propre à Cloudflare pour servir le sous-domaine.
 
-3) **Mentions légales sur `gaelle-briet.fr`** (adresse de domiciliation, SIRET, contact, hébergeur) ; les
-pages MémoPatte y renvoient, et ni l'adresse ni le SIRET n'entrent dans ce dépôt.
+3) **Mentions légales sur `gaelle-briet.fr`** (identité de l'éditeur, contact, hébergeur) ; les
+pages MémoPatte y renvoient, et aucune coordonnée personnelle n'entre dans ce dépôt.
 
 4) **Page d'attente d'abord** (« Bientôt sur Google Play ») pour brancher Cloudflare et le DNS tout de
 suite ; la politique et la page de suppression de compte la rejoignent quand l'e-mail de contact est
@@ -2976,6 +2976,33 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-27 — Revue complète : durcissement du workflow des migrations, abonné échu, statut hors ligne
+
+Décisions de Gaelle après la revue de code et de sécurité du jour (aucune faille Critical ; détail des constats dans son coffre).
+
+- **Workflow des migrations (S1, S2, validé)** : version du CLI figée sur celle de la CI, actions épinglées par SHA (tenues à jour par Dependabot), droits minimaux, `concurrency`, environnement `production` avec approbation manuelle, mot de passe encodé masqué. Raison : ce workflow est le seul à détenir le mot de passe `postgres` de la base de production. Alternative écartée : appliquer les migrations depuis le poste de Gaelle (plus sûr, mais dépend de sa présence et perd la trace CI).
+- **Filtre de chemins (validé)** : le workflow ne se lance que si `supabase/migrations/**` ou lui-même change, plus un lancement manuel depuis `main` seulement. Raison : sans filtre, chaque merge sur `main` (release-please en fait un par jour) attendrait une approbation. Alternative écartée : pas de filtre.
+- **Aucun agent n'approuve un déploiement de production** (règle, `.claude/rules/collaboration.md`) : les agents travaillent sous l'identité GitHub de Gaelle, qui pourrait techniquement approuver ; l'approbation doit prouver que Gaelle a vu passer la migration.
+- **Dépendances (S3), limites de longueur des colonnes texte côté serveur (S4) et en-têtes de sécurité du site (S6) : validés** .
+- **Abonné dont Plus a expiré : il peut relire sa sauvegarde, plus l'écraser** (garder). Raison : « données jamais otages ». Alternative écartée : fermer aussi la lecture.
+- **Statut Plus hors ligne** : après l'échéance locale, l'écran Plus peut afficher « expiré » jusqu'au retour du réseau, y compris en cours de session (#1350). Raison : plus honnête que d'afficher Plus actif sans pouvoir vérifier. Alternative écartée : garder « actif » jusqu'à la vérification.
+
+## 2026-10-27 — Une feuille affichée retient « Restaurer mon carnet », adresse ou non (#1320)
+
+- Choix de bonnes pratiques : chaque feuille du bas se déclare ouverte dans un état partagé
+  (`shared/composables/use-open-sheet.ts`) tant qu'elle est affichée et montée, et
+  `app/restore-prompt.ts` le lit avec l'adresse. Raison : l'accueil efface tout de suite de
+  l'adresse la feuille demandée par une notification, et une feuille ouverte d'un tap n'y a jamais
+  été. — Alternative écartée : lire l'adresse seule, qui laissait l'écran recouvrir la feuille.
+- Une feuille demandée par l'adresse (notification, retour de « Modifier ») compte comme ouverte
+  dès que l'accueil l'efface de l'adresse, jusqu'à ce qu'une feuille s'affiche. L'état retombe
+  aussi quand la demande est abandonnée (soin introuvable, fiche ouverte à la place, soin sorti
+  de « À faire »), au démontage de l'accueil, et au plus tard après 5 secondes. Raison : entre
+  l'effacement et l'affichage, le carnet puis le soin se chargent, et la feuille demandée se
+  perdait si l'écran passait devant. Le délai évite de retenir la proposition indéfiniment. —
+  Alternative écartée : effacer l'adresse seulement après l'affichage, ce qui change le retour de
+  « Modifier », qui y laisse son rappel.
+
 ## 2026-10-26 — Première proposition de restauration et attente du réseau dans Paramètres › Sauvegarde (#1299, Q53, Q62)
 
 Cas : le 25 octobre, la sauvegarde cloud de Milo et Luna est trouvée pendant que le Carnet de Milo
@@ -2995,7 +3022,8 @@ carnet » recouvrait la feuille ouverte sur l'accueil.
   « Remplacer », ou un choix gardé repris au lancement). Un contrôle de la sauvegarde injoignable,
   sans choix (compte sans Plus lancé hors réseau, par exemple), laisse l'écran sans sauvegarde cloud
   complet, comme avant.
-- Pour revenir dessus : l'arrivée se juge dans `app/restore-prompt.ts` ; le bloc d'attente vient de
+- Pour revenir dessus : l'arrivée se juge dans `core/sync/service/restore-prompt.ts`, à partir de
+  la navigation lue par `app/restore-prompt.ts` ; le bloc d'attente vient de
   `use-restore-pending.ts`.
 
 ## 2026-10-25 — Retour du réseau : « état inconnu → en ligne » compte comme un passage (#1295)
@@ -3058,8 +3086,8 @@ choisir. Android garde l'app vivante plusieurs jours : l'écran ne revenait qu'a
   et « Effacer les données de ce téléphone ». Aucun texte nouveau. Raison : une personne abonnée ne
   doit pas lire qu'elle a une sauvegarde cloud, puis une invitation à découvrir Plus. — Alternative
   écartée : garder l'écran sans sauvegarde cloud sous le bloc.
-- Pour revenir dessus : la journée et l'arrivée se jugent dans `app/restore-prompt.ts` ; le bloc et
-  ce qu'il masque viennent de `use-restore-pending.ts`.
+- Pour revenir dessus : la journée et l'arrivée se jugent dans `core/sync/service/restore-prompt.ts` ;
+  le bloc et ce qu'il masque viennent de `use-restore-pending.ts`.
 
 ## 2026-10-25 — « Remplacer » différé : rien n'est effacé si le carnet du téléphone a changé depuis le choix (#1293)
 
@@ -3098,7 +3126,7 @@ plan) la restauration effaçait cette pesée sans nouvelle décision.
   date ne changerait pas la somme. L'état gardé survit à
   une déconnexion, sans effet : le choix suivant le remplace.
 - Pour revenir dessus : retirer la comparaison de `restore()` dans `account-restore.ts`, et le
-  traitement d'un choix reproposé dans `app/restore-prompt.ts`.
+  traitement d'un choix reproposé dans `core/sync/service/restore-prompt.ts`.
 
 ## 2026-10-25 — Ligne unique de `sync_state` reposée à l'ouverture de la base, sans migration (#1286)
 
@@ -3894,6 +3922,30 @@ une première valeur choisie par l'appelant ne doit pas masquer la vraie. — Al
 première valeur seule (entrée précédente : l'appelant la choisit) ; la dernière valeur seule (elle
 pourrait n'être qu'une adresse interne de la plateforme).
 
+2026-10-22 — **Webhook RevenueCat : le serveur relit l'état chez RevenueCat à chaque événement**
+(#89, questions Q1 à Q8 du coffre de Gaelle). Réponses de la session d'analyse du 22 octobre, à qui
+Gaelle a délégué les lectures, sauf Q2, Q4, Q6 et Q7, tranchées par elle le 2026-10-26. Q1 : quel que soit l'événement, la
+fonction redemande à RevenueCat l'état actuel du droit Plus du compte et le recopie dans
+`plus_entitlements` ; un événement en double ou en retard redonne la même ligne, sans stocker
+`event.id` ; si le compte n'existe plus, rien n'est demandé à RevenueCat. Le compte se cherche dans
+tous les identifiants de l'événement (principal, alias, transfert « de » et « vers ») ; sans aucun
+compte MémoPatte, l'événement est ignoré et journalisé. Q3 : les 12 mois de conservation partent de
+la date de fin d'accès de la ligne, délai de paiement compris, sans nouvelle colonne. Q4 : un achat en
+bac à sable donne Plus côté serveur ; un seul webhook, production et bac à sable (confirmé par Gaelle le
+2026-10-26 pour le test interne, à revoir à la sortie). Q5 : le réglage de restauration de RevenueCat
+reste « Transfer to new App User ID » ; le serveur relit les deux comptes. Q6 : décidé par Gaelle le
+2026-10-26, la signature HMAC (#1090) est **obligatoire dès le déploiement** : tant que le secret de
+signature n'est pas posé, la fonction refuse tout ; le secret d'en-tête fait au moins 32 caractères
+(#1327). Q8 : le critère de test devient l'événement de test reçu sans écriture, puis un achat en bac
+à sable sur le vrai projet, avec Gaelle. Q2, confirmée par Gaelle le 2026-10-26 : un remboursement
+coupe l'accès à la date du remboursement ; la dernière sauvegarde reste lisible 12 mois à partir de
+cette date. Q7, confirmée par Gaelle le 2026-10-26 : pendant la pause d'un abonnement mensuel, la
+sauvegarde est en pause et reprend au premier paiement. Un événement d'achat perdu (#1208) est mis de
+côté pour le moment (Gaelle, 2026-10-26). — Raison : RevenueCat renvoie un événement raté jusqu'à 80 minutes plus tard, donc dans le
+désordre ; relire l'état du moment rend l'ordre indifférent. — Alternative écartée : appliquer chaque
+événement selon son type, avec une table des événements reçus et une règle par type (remboursement
+d'un achat à vie, pause, transfert).
+
 2026-10-23 — **Le retour d'Android revient à l'étape précédente du code, comme la flèche** (#1106).
 Décision de Gaelle du 23 octobre (« oui »). Sur « Changer mon adresse e-mail » et « Mot de passe
 oublié », à l'étape où l'app attend un code, le bouton ou le geste retour d'Android ramène à la saisie
@@ -4324,3 +4376,111 @@ CORS de `delete-account` reçoit toujours son `204`.
   Alternative écartée : garder les clés locales historiques (décision 3 de l'étude). — Pour revenir
   dessus : renommer `SUPABASE_LOCAL_SECRET_KEY` en `SUPABASE_LOCAL_SERVICE_ROLE_KEY` et relire
   `auth.service_role_key`, dans les six `*.local.spec.ts`, `commandes-utiles.md` et `ci.yml`.
+
+2026-10-26 — **MémoPatte Plus : nouveaux prix, 1,99 €/mois, 12,99 €/an (offre mise en avant) ou 39,99 € à vie, même contenu.**
+Remplace les prix du 2026-09-15 (1,49 / 9,99 / 29,99). Les trois produits, l'entitlement `plus` et le contenu de Plus ne
+changent pas. — Raison : mensuel au plancher du marché, annuel en hausse sans effet attendu sur l'achat, à vie ≈ 3 ans d'annuel ; détail dans le coffre de Gaelle, `questions-analyse-moteur.md`, entrée « Prix de Plus ».
+— Alternative écartée : garder les prix du 2026-09-15. — Reste à faire hors dépôt : produits Play Console et offres RevenueCat.
+Pourcentage affiché sur l'annuel validé par Gaelle le 2026-10-26 : « ≈ 46 % » (12,99 € contre 12 × 1,99 €) remplace « ≈ 44 % ». Ligne de conditions de l'offre à vie validée le même jour : elle ajoute « Sauvegarde cloud et photos incluses tant que MémoPatte Plus existe. » (limite dite avant l'achat).
+
+## 2026-10-26 — Webhook RevenueCat : signature HMAC obligatoire, en-tête d'au moins 32 caractères (#1090, #1327)
+
+Décisions de Gaelle du 2026-10-26 (questions D1 à D4 de l'audit de #89).
+
+- **D1 — Signature HMAC obligatoire dès le déploiement.** `revenuecat-webhook` vérifie
+  `X-RevenueCat-Webhook-Signature` (`t=…,v1=…`, HMAC-SHA256 de `"<t>.<corps brut>"`, `t` à 5 minutes
+  au plus) en plus de l'en-tête `Authorization`. Tant que `REVENUECAT_WEBHOOK_SIGNING_SECRET` n'est pas
+  posé, chaque envoi reçoit `503` `webhook-not-configured`. — Raison : un en-tête `Authorization` qui
+  fuit suffirait sinon à rejouer des envois en rafale, à faire limiter les appels à RevenueCat et à
+  perdre les vrais événements à la fin des relances. — Alternative écartée : signature facultative tant
+  que le secret manque, qui retomberait sur l'en-tête seul sans que personne le voie.
+- **D2 — `REVENUECAT_WEBHOOK_AUTHORIZATION` d'au moins 32 caractères**, sinon la fonction refuse tout
+  (`503` `webhook-not-configured`, journal qui nomme la variable sans sa valeur), comme le secret du
+  cron et `ADMIN_DELETE_SECRET` ; la règle est écrite une seule fois (`longEnoughSecret`). —
+  Alternative écartée : ne rien imposer, seulement conseiller 64 caractères dans le guide.
+- **D3 — Production et bac à sable acceptés pendant le test interne** (comportement déjà codé, inchangé),
+  à revoir à la sortie. — Alternative écartée : production seule, qui priverait les testeurs de
+  sauvegarde. Remède au risque (un ancien testeur de licence jamais retiré) : retirer les testeurs à
+  la sortie.
+- **D4 — Webhook d'achat perdu : mis de côté**, rien de codé.
+- **L'en-tête ne contient pas le secret de signature (#1330, décisions de Gaelle du 2026-10-26)** :
+  un `REVENUECAT_WEBHOOK_SIGNING_SECRET` contenu dans `REVENUECAT_WEBHOOK_AUTHORIZATION` (après retrait
+  des espaces : valeur identique, `Bearer <secret>`, préfixe, suffixe ou n'importe où dans
+  l'en-tête) est écarté, chaque envoi reçoit `503` `webhook-not-configured`, et le journal nomme les
+  deux variables sans leurs valeurs. — Raison : sinon un en-tête qui fuit suffit à forger des
+  signatures, ce qui annule D1. — Alternative écartée : refuser la seule égalité, qui laissait
+  passer `Bearer <secret>`.
+- Choix de lecture de Claude, d'après la documentation de RevenueCat lue le 2026-10-26 (« Rotate
+  secret » invalide l'ancien secret aussitôt ; un seul `v1` documenté) : l'en-tête doit porter
+  exactement un `t` et un `v1`, en minuscules, dans un ordre quelconque ; deux `v1`, un champ inconnu
+  ou des espaces sont refusés. — Alternative écartée : accepter plusieurs `v1` pour une rotation
+  progressive que RevenueCat ne fait pas. — Pour revenir dessus : `signatureIn` dans
+  `supabase/functions/revenuecat-webhook/webhook-signature.ts` et ses tests.
+
+2026-10-26 — Build release : pas de `debugSymbolLevel`, R8 laissé désactivé,
+les deux avertissements de la Play Console acceptés (#1340). — `debugSymbolLevel`
+n'a aucun effet mesuré (libs natives déjà strippées, AAB identique à 4 octets
+près) et exigerait le NDK pour tout `bundleRelease`, que la CI (`assembleDebug`)
+ne verrait pas casser ; R8 risquerait de casser les plugins Capacitor, la
+WebView, SQLCipher et RevenueCat sans test complet sur appareil. — Pour revenir
+dessus : activer R8 avec règles de conservation et test complet sur appareil
+(ticket à part).
+
+2026-10-28 — R8 activé en release (#1342). — `minifyEnabled` et
+`shrinkResources` passent à `true` sur la variante `release` seule, sans règle
+maison : Capacitor, SQLCipher, RevenueCat, Credential Manager et Google Sign-In
+livrent leurs règles de conservation, vérifiées dans la configuration fusionnée.
+Le `mapping.txt` est embarqué dans l'AAB, d'où l'avertissement de désobscurcissement
+de la Play Console en moins. Décision de la session d'analyse du moteur (Q75) :
+activer maintenant pour que le prochain build du test interne Play porte R8 et
+que l'achat sandbox, la connexion Google, « Restaurer mes achats », le tir réel
+d'une notification, l'export Share / FileOpener, le redémarrage du téléphone et
+Android 10 / 11 y soient joués. Joué sur l'émulateur : démarrage, import, Carnet,
+écritures, programmation des rappels, chargement des plugins ; ni achat ni
+connexion Google. — Alternative écartée : attendre après la mise en production
+(R8 serait alors activé sur une app publiée sans test). — Pour revenir dessus :
+remettre `minifyEnabled false` et retirer `shrinkResources` en un commit ; à
+faire si l'achat de test échoue. Complète l'entrée du 2026-10-26 (#1340) ; #1342
+reste ouvert jusqu'au retour de Gaelle sur l'achat.
+
+## 2026-10-26 — Paramètres › Sauvegarde pendant une restauration choisie (#1321)
+
+Décision d'affichage de bonne pratique, prise par Claude en autonomie (cohérence avec Q54 et Q62).
+
+- Pendant la restauration, la rubrique affiche la carte de progression de « Restaurer mon carnet »
+  (« Restauration de ton carnet », « 120 éléments sur 348 »), puis « Exporter une copie » et
+  « Effacer les données de ce téléphone ». Pendant le nouveau contrôle qui suit un « Remplacer »
+  abandonné, et entre la fin de la restauration et la lecture de la sauvegarde devenue active,
+  seuls « Exporter une copie » et « Effacer les données » restent, sans bloc d'état. L'écran sans
+  sauvegarde cloud ne revient plus pendant ces étapes. — Raison : Q54 et Q62 ne montrent jamais cet
+  écran à une personne dont la sauvegarde cloud est en cours de restauration ; aucun texte nouveau.
+- Alternative écartée : garder le bloc « En attente de réseau » pendant la restauration en cours,
+  qui dirait une attente alors que les données arrivent.
+- Pour revenir dessus : `use-restore-pending.ts` choisit ce qui s'affiche ; `use-backup-status.ts`
+  relit la sauvegarde à la fin d'une restauration.
+
+## 2026-10-27 — Carnet : traitements en cours en premier, terminés en dernier
+
+Premier retour d'une utilisatrice, décision de Gaelle : les traitements sont plus utilisés que les vaccins, ils passent donc en premier.
+
+- Sur le Carnet d'un animal, l'ordre est : traitements en cours, vaccins, poids, traitements terminés. Le bloc « Traitements terminés » garde son aspect (grisé, replié, avec son compteur) et passe tout en bas. Exemple (Milo) : Panacur, Drontal, Bravecto, puis CHPPi et Rage, puis la courbe de poids, puis « Traitements terminés 1 ».
+- Alternatives écartées : traitements en cours et terminés groupés au-dessus des vaccins (les vaccins descendent trop quand il y a beaucoup de terminés) ; ordre inchangé.
+- À l'accueil, « À faire » reste trié par urgence : en retard (le plus ancien d'abord), puis aujourd'hui, puis à venir dans les 30 jours ; à égalité, l'heure, puis le nom.
+- Ne change pas ici : le PDF et l'export CSV, alignés ensuite (voir « PDF et export CSV dans l'ordre du Carnet », 2026-10-28, #1385) ; les captures du site et de la FAQ, qui montrent peut-être l'ancien ordre.
+- Pour revenir dessus : l'ordre des sections est dans `CarnetView.vue` ; le bloc terminé est `FinishedTreatmentsSection.vue`, alimenté par l'événement `finished` de `TreatmentsSection`.
+
+## 2026-10-28 — PDF et export CSV dans l'ordre du Carnet (#1385)
+
+- Gaelle : « c'est lourd en travail ? si non fais-le, mets-le dans le même ordre ». Le PDF range ses sections traitements, vaccins, poids ; les fichiers du CSV suivent traitements, périodes, prises, vaccins, injections, poids.
+- Les traitements terminés ont leur propre section du PDF, comme dans le Carnet : ordre Traitements (en cours), Vaccins, Poids, Traitements terminés. Titre « Traitements terminés » / « Finished treatments », même mot que le Carnet ; section vide = pas de section. Un traitement terminé n'apparaît qu'une fois, la règle « terminé » est celle du Carnet. — Décision de Gaelle, 2026-10-28 (remplace la première version, où ils restaient dans « Traitements »). Le CSV ne change pas.
+- Pour revenir dessus : l'ordre est dans `render-carnet-pdf.ts` et `export-csv.ts` ; la règle « terminé » dans `shared/domain/treatment-finished.ts`.
+
+## 2026-10-28 — Paramètres › Sauvegarde : « En pause » dure 12 mois après la fin de Plus (#1201)
+
+Décision de la session d'analyse du moteur (Q73), pour appliquer la planche V21 quinquies telle que la spec Données la décrit (DO-12, PL-20).
+
+- Après la fin de Plus, Paramètres › Sauvegarde montre « Ta sauvegarde cloud est en pause » et « Ta dernière sauvegarde est conservée jusqu'au … » pendant 12 mois, puis redevient la rubrique d'un gratuit. Exemple : Plus mensuel fini le 14 septembre 2026, la phrase dit « 14 sept. 2027 » ; le 15 septembre 2027, l'écran est celui d'un gratuit. La date est le même jour 12 mois plus tard (le 29 février 2028 donne le 28 février 2029) ; si la fin de Plus est inconnue, seule cette phrase disparaît.
+- Le souvenir de 30 jours de l'écran Plus ne change pas : la fin de Plus est gardée à part, dans une préférence locale, pendant 12 mois. Aucune colonne, aucune migration, aucune lecture du serveur.
+- Un autre téléphone qui n'a jamais vu l'abonnement montre la rubrique d'un gratuit : accepté.
+- Alternatives écartées : lire `plus_entitlements.expires_at` côté serveur (une lecture de plus, rien hors ligne) ; prolonger le souvenir de 30 jours à 12 mois (change la bannière de l'écran Plus, hors sujet).
+- Pour revenir dessus : `plus-pause.ts` (durée et calcul), `plus-pause-storage.ts` (préférence locale) et `BackupSettingsView.vue`.

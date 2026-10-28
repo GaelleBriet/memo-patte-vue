@@ -45,6 +45,12 @@ describe('carnetPdfText', () => {
           ],
         ],
       },
+      finishedTreatments: {
+        title: 'Traitements terminés',
+        rows: [],
+        emptyLabel: 'Aucun traitement enregistré.',
+        details: [],
+      },
       weight: {
         title: 'Poids',
         emptyLabel: 'Aucune pesée enregistrée.',
@@ -75,6 +81,7 @@ describe('carnetPdfText', () => {
 
     expect(milo.identity).toBe('Dog · until Sep 12, 2026')
     expect(milo.treatments.title).toBe('Treatments')
+    expect(milo.finishedTreatments.title).toBe('Finished treatments')
     expect(milo.weight.rows).toEqual([['08/30/2026', '12.0 kg']])
   })
 

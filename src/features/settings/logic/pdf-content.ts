@@ -3,6 +3,7 @@ import { format } from 'date-fns'
 import { EXPORT_FILE_TIME } from './export-format'
 import { lastIntake, treatmentPeriods, type PdfTreatmentPeriod } from './pdf-treatment-history'
 import { treatmentStates, type TreatmentOutlook } from '@/shared/domain/treatment-outlook'
+import { isTreatmentFinished } from '@/shared/domain/treatment-finished'
 import { buildReminders, type ReminderKind } from '@/shared/domain/reminders'
 import type { ExportData } from '@/shared/domain/carnet-data'
 import { injectionsByVaccination } from '@/shared/domain/carnet-heads'
@@ -59,6 +60,8 @@ export type CarnetPdfContent = {
   generatedOn: string
   vaccinations: PdfVaccinationRow[]
   treatments: PdfTreatmentRow[]
+  /** Le plus récemment fini d'abord. */
+  finishedTreatments: PdfTreatmentRow[]
   weightEntries: PdfWeightRow[]
 }
 
@@ -116,13 +119,13 @@ export function buildCarnetPdfContent(
     })
     .sort(byDueDateAscending)
 
-  const treatments: PdfTreatmentRow[] = data.treatments
+  const rows = data.treatments
     .filter((item) => item.animalId === animalId && treatedIds.has(item.id))
     .map((item) => {
       const state = states(item.id)
       const periods = treatmentPeriods(state)
       const last = lastIntake(state)
-      return {
+      const row: PdfTreatmentRow = {
         name: item.name,
         lastDoseDate: last?.on ?? null,
         lastDoseExtra: last?.extra ?? false,
@@ -130,8 +133,17 @@ export function buildCarnetPdfContent(
         due: state.outlook,
         state: followed ? treatmentState(state.outlook) : null,
       }
+      const finished = state.view !== null && isTreatmentFinished(state.view, followed)
+      return { row, finished, endedOn: state.view?.endedOn ?? '' }
     })
+  const treatments = rows
+    .filter(({ finished }) => !finished)
+    .map(({ row }) => row)
     .sort((a, b) => byDueDateAscending(dueKey(a.due), dueKey(b.due)))
+  const finishedTreatments = rows
+    .filter(({ finished }) => finished)
+    .sort((a, b) => b.endedOn.localeCompare(a.endedOn))
+    .map(({ row }) => row)
 
   const weightEntries: PdfWeightRow[] = data.weightEntries
     .filter((item) => item.animalId === animalId)
@@ -151,6 +163,7 @@ export function buildCarnetPdfContent(
     generatedOn: today,
     vaccinations,
     treatments,
+    finishedTreatments,
     weightEntries,
   }
 }
