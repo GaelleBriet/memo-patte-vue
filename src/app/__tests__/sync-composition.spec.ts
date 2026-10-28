@@ -16,6 +16,7 @@ const auth = vi.hoisted(() => ({
 }))
 
 const photos = vi.hoisted(() => ({ isRunning: { value: false } }))
+const photoSweep = vi.hoisted(() => ({ sweep: vi.fn<(userId: string) => Promise<void>>() }))
 
 vi.mock('@/features/auth/store/auth.store', () => ({ useAuthStore: () => auth }))
 
@@ -27,6 +28,7 @@ vi.mock('@/core/sync/service/local-sync-context', () => ({
       outbox: {},
       cycle: { runCycle: async () => {} },
       photoRestore: { isRunning: photos.isRunning },
+      photoSweep,
     } as unknown as LocalSyncContext
   }),
 }))
@@ -79,6 +81,15 @@ describe('createDefaultSyncDependencies', () => {
 
     const [deps] = vi.mocked(createLocalSyncContext).mock.calls[0] ?? []
     expect(deps?.tables.map((table) => table.entity)).toEqual(SYNC_ENTITY_ORDER)
+  })
+
+  it('donne au ménage des photos du cloud la table des animaux, et le lance pour le compte', async () => {
+    const sync = await createDefaultSyncDependencies()
+
+    const [deps] = vi.mocked(createLocalSyncContext).mock.calls.at(-1) ?? []
+    expect(deps?.cloudAnimals).toEqual({ entity: 'animal' })
+    await sync.sweepCloudPhotos('user-1')
+    expect(photoSweep.sweep).toHaveBeenCalledExactlyOnceWith('user-1')
   })
 
   it('branche l’état de la restauration des photos pour l’accueil', async () => {
