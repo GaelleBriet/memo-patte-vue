@@ -67,7 +67,6 @@ import notificationsOff from '@material-symbols/svg-400/outlined/notifications_o
 import openInNew from '@material-symbols/svg-400/outlined/open_in_new.svg?raw'
 import personOff from '@material-symbols/svg-400/outlined/person_off.svg?raw'
 import pestControl from '@material-symbols/svg-400/outlined/pest_control.svg?raw'
-import pauseCircle from '@material-symbols/svg-400/outlined/pause_circle.svg?raw'
 import pendingActions from '@material-symbols/svg-400/outlined/pending_actions.svg?raw'
 import pets from '@material-symbols/svg-400/outlined/pets.svg?raw'
 import photoCamera from '@material-symbols/svg-400/outlined/photo_camera.svg?raw'
@@ -133,6 +132,7 @@ import lastPage from '@material-symbols/svg-400/outlined/last_page.svg?raw'
 import menu from '@material-symbols/svg-400/outlined/menu.svg?raw'
 import palette from '@material-symbols/svg-400/outlined/palette.svg?raw'
 import pause from '@material-symbols/svg-400/outlined/pause.svg?raw'
+import pauseCircle from '@material-symbols/svg-400/outlined/pause_circle.svg?raw'
 import playArrow from '@material-symbols/svg-400/outlined/play_arrow.svg?raw'
 import radioButtonChecked from '@material-symbols/svg-400/outlined/radio_button_checked.svg?raw'
 import radioButtonUnchecked from '@material-symbols/svg-400/outlined/radio_button_unchecked.svg?raw'
@@ -259,9 +259,9 @@ export const msIcons = {
   palette,
   password,
   pause,
+  pause_circle: pauseCircle,
   person_off: personOff,
   pest_control: pestControl,
-  pause_circle: pauseCircle,
   pending_actions: pendingActions,
   pets,
   photo_camera: photoCamera,
