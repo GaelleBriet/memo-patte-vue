@@ -21,7 +21,7 @@ describe('R8 de la version publiée', () => {
       resolve(__dirname, '../../android/app/src/main/res/raw/keep.xml'),
       'utf8',
     )
-    const kept = keep.match(/tools:keep="([^"]*)"/)?.[1].split(',') ?? []
+    const kept = keep.match(/tools:keep="([^"]*)"/)?.[1]?.split(',') ?? []
 
     expect(kept).toEqual([
       '@raw/com_android_billingclient_heterodyne_info',
