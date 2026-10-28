@@ -121,6 +121,16 @@ describe('periodShownRange (R12, #1007, #1421)', () => {
     expect(periodShownRange(periods, daily, lines).lastDay).toBe('2026-10-27')
   })
 
+  it('Q85 : ne dépasse jamais l’arrêt ni la date de fin de la période', () => {
+    const advance = [{ status: 'given', dueOn: '2026-11-30' }] as const
+    const stopped = { ...daily, stoppedOn: '2026-10-27' }
+    const ended = { ...daily, endsOn: '2026-10-29' }
+
+    expect(periodShownRange([stopped], stopped, advance).lastDay).toBe('2026-10-27')
+    expect(periodShownRange([ended, fortnightly], ended, advance).lastDay).toBe('2026-10-29')
+    expect(periodShownRange([stopped, fortnightly], stopped, advance).lastDay).toBe('2026-10-27')
+  })
+
   it('une période ouverte reste ouverte', () => {
     expect(
       periodShownRange(periods, fortnightly, [{ status: 'given', dueOn: '2026-11-07' }]),

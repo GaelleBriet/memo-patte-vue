@@ -767,6 +767,33 @@ describe('buildCarnetPdfContent — historique', () => {
     })
   })
 
+  it('Q85, Milbémax : la période ne dépasse jamais son arrêt, même avec une dose donnée en avance', () => {
+    const content = contentOf(
+      [
+        {
+          id: 'p',
+          startsOn: '2026-03-01',
+          frequency: { value: 3, unit: 'month' },
+          stoppedOn: '2026-03-15',
+        },
+      ],
+      [
+        ...given('p', '2026-03-01'),
+        { periodId: 'p', dueOn: '2026-06-01', status: 'given', givenOn: '2026-03-10' },
+      ],
+      '2026-03-20',
+    )
+    const { rows, details } = plain(carnetPdfText(content, i18n.global.t)).finishedTreatments
+
+    expect(rows).toEqual([['Milbémax', 'Arrêté le 15/03/2026', 'Pas de rappel']])
+    expect(details.flat().map(({ text }) => text)).toEqual([
+      'Dernière prise : 10/03/2026',
+      'Du 01/03/2026 au 15/03/2026 · Tous les 3 mois',
+      'Prise : 10/03/2026 · sans effet',
+      'Prise : 01/03/2026',
+    ])
+  })
+
   it('distingue une dose avancée d’une dose reportée', () => {
     const row = treatmentRow(
       [{ id: 'p', startsOn: '2026-04-01' }],

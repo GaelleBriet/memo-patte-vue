@@ -574,6 +574,35 @@ describe('treatmentHistory — plusieurs périodes (planche A · V3)', () => {
     ])
   })
 
+  it('Q85 : n’étend jamais l’étiquette au-delà de l’arrêt, même pour une dose donnée en avance', () => {
+    const book = treatment(
+      [
+        period({
+          startsOn: '2026-03-01',
+          firstDueOn: '2026-03-01',
+          stoppedOn: '2026-03-15',
+          frequency: { value: 3, unit: 'month' },
+        }),
+        period({
+          id: 'p-2',
+          startsOn: '2026-03-20',
+          firstDueOn: '2026-03-20',
+          frequency: { value: 3, unit: 'month' },
+          createdAt: '2026-03-20T08:00:00.000Z',
+        }),
+      ],
+      [
+        dose('2026-03-01', '2026-06-01'),
+        dose('2026-06-01', '2026-09-01', { givenOn: '2026-03-10' }),
+      ],
+    )
+
+    expect(history(book, '2026-03-20').periods.map(({ head }) => head?.title)).toEqual([
+      'Depuis le 20 mars 2026',
+      'Du 1er mars au 15 mars 2026',
+    ])
+  })
+
   it('écrit « Le … » pour une période fermée le jour de son ouverture', () => {
     const sameDay = { startsOn: '2026-10-02', firstDueOn: '2026-10-02' }
     const reopened = period({ ...sameDay, id: 'p-3', createdAt: '2026-10-02T10:00:00.000Z' })

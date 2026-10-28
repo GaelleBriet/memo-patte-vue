@@ -33,8 +33,8 @@ function shownStartOf(period: Shown, older: Shown | undefined): string {
 }
 
 /**
- * R12 : les jours qu'affichent la fiche, le PDF et le Carnet pour une période ; une période qui suit
- * une période arrêtée ou finie commence à sa première échéance. `lastDay` : `null` si ouverte.
+ * R12 : le début d'une période et sa fin enregistrée ; une période qui suit une période arrêtée ou
+ * finie commence à sa première échéance. `lastDay` : `null` si ouverte.
  */
 export function periodShownDays(
   periods: readonly Shown[],
@@ -53,8 +53,9 @@ export function periodShownDays(
 type DoseDay = Pick<Line, 'status' | 'dueOn'>
 
 /**
- * R12 : les jours de l'étiquette d'une période, sur la fiche comme sur le PDF ; sa fin va jusqu'à
- * l'échéance de sa dernière ligne, hors décalage et « pas à donner ». `lines` : ses lignes de l'historique.
+ * R12 : les jours de l'étiquette d'une période, sur la fiche comme sur le PDF ; la veille de la période
+ * suivante s'allonge jusqu'à l'échéance de sa dernière ligne, hors décalage et « pas à donner », jamais
+ * au-delà de son arrêt ni de sa date de fin. `lines` : ses lignes de l'historique.
  */
 export function periodShownRange(
   periods: readonly Shown[],
@@ -68,10 +69,9 @@ export function periodShownRange(
       (last, { dueOn }) => (last === null || dueOn > last ? dueOn : last),
       null,
     )
-  return {
-    start,
-    lastDay: lastDay !== null && lastDose !== null && lastDose > lastDay ? lastDose : lastDay,
-  }
+  if (lastDay === null || lastDose === null || lastDose <= lastDay) return { start, lastDay }
+  const closedOn = [period.endsOn, period.stoppedOn].filter((day) => day !== null).sort()[0]
+  return { start, lastDay: closedOn !== undefined && closedOn < lastDose ? closedOn : lastDose }
 }
 
 /** Arrêtée, finie ou remplacée par `next` avant sa première échéance. */
