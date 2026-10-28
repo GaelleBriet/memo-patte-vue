@@ -64,7 +64,7 @@ export function createCloudPhotoSweep(deps: CloudPhotoSweepDependencies): CloudP
     return !(elapsed >= 0 && elapsed < CLOUD_PHOTO_SWEEP_INTERVAL_MS)
   }
 
-  /** `null` tant qu'une fiche d'animal attend d'être envoyée : celle du cloud est peut-être en retard. */
+  /** `null` si une fiche d'animal attend d'être envoyée, ou si le cloud n'en rend aucune. */
   async function findOrphans(userId: string): Promise<string[] | null> {
     const pending = await deps.outbox.listPending()
     if (pending.some(isAnimalEntry)) return null
@@ -77,7 +77,9 @@ export function createCloudPhotoSweep(deps: CloudPhotoSweepDependencies): CloudP
 
     // Le serveur n'a écrit aucune de ses dates après son propre « maintenant » : l'âge ne surestime jamais.
     let serverNow = Number.NEGATIVE_INFINITY
+    let cloudRows = 0
     for await (const page of remotePages(deps.cloudAnimals, userId, CLOUD_PAGE_SIZE)) {
+      cloudRows += page.rows.length
       for (const row of page.rows) {
         const photoPath = syncField(row, 'photo_path')
         if (typeof photoPath === 'string') kept.add(photoPath)
@@ -87,6 +89,8 @@ export function createCloudPhotoSweep(deps: CloudPhotoSweepDependencies): CloudP
         if (!Number.isNaN(at)) serverNow = Math.max(serverNow, at)
       }
     }
+    // La RLS rend une lecture vide, sans erreur, à une session absente : un dossier sans fiche est suspect.
+    if (cloudRows === 0) return null
     const photos = (await deps.objects.list(userId)).flatMap((object) => {
       const photo = lastServerWrite(object)
       return photo === null ? [] : [photo]

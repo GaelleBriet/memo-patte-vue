@@ -235,6 +235,17 @@ describe('createCloudPhotoSweep', () => {
     expect(storage.deleted).toEqual([P1])
   })
 
+  it('n’efface rien quand le cloud ne rend aucune fiche : une lecture sans session revient vide', async () => {
+    const { sweep, storage } = setup({
+      objects: [object(P1, daysAgo(30)), object(P2, daysAgo(0))],
+      cloud: [],
+    })
+
+    await sweep.sweep(USER)
+
+    expect(storage.deleted).toEqual([])
+  })
+
   it('lit toutes les fiches du cloud, page après page', async () => {
     const cloud = Array.from({ length: 1234 }, (_, index) =>
       cloudAnimal(`animal-${String(index).padStart(5, '0')}`, null, daysAgo(index % 3)),
