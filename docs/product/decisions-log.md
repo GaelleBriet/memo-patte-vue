@@ -4426,6 +4426,23 @@ WebView, SQLCipher et RevenueCat sans test complet sur appareil. — Pour reveni
 dessus : activer R8 avec règles de conservation et test complet sur appareil
 (ticket à part).
 
+2026-10-28 — R8 activé en release (#1342). — `minifyEnabled` et
+`shrinkResources` passent à `true` sur la variante `release` seule, sans règle
+maison : Capacitor, SQLCipher, RevenueCat, Credential Manager et Google Sign-In
+livrent leurs règles de conservation, vérifiées dans la configuration fusionnée.
+Le `mapping.txt` est embarqué dans l'AAB, d'où l'avertissement de désobscurcissement
+de la Play Console en moins. Décision de la session d'analyse du moteur (Q75) :
+activer maintenant pour que le prochain build du test interne Play porte R8 et
+que l'achat sandbox, la connexion Google, « Restaurer mes achats », le tir réel
+d'une notification, l'export Share / FileOpener, le redémarrage du téléphone et
+Android 10 / 11 y soient joués. Joué sur l'émulateur : démarrage, import, Carnet,
+écritures, programmation des rappels, chargement des plugins ; ni achat ni
+connexion Google. — Alternative écartée : attendre après la mise en production
+(R8 serait alors activé sur une app publiée sans test). — Pour revenir dessus :
+remettre `minifyEnabled false` et retirer `shrinkResources` en un commit ; à
+faire si l'achat de test échoue. Complète l'entrée du 2026-10-26 (#1340) ; #1342
+reste ouvert jusqu'au retour de Gaelle sur l'achat.
+
 ## 2026-10-26 — Paramètres › Sauvegarde pendant une restauration choisie (#1321)
 
 Décision d'affichage de bonne pratique, prise par Claude en autonomie (cohérence avec Q54 et Q62).
