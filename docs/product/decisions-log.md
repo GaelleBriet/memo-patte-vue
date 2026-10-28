@@ -4410,6 +4410,14 @@ Décisions de Gaelle du 2026-10-26 (questions D1 à D4 de l'audit de #89).
   deux variables sans leurs valeurs. — Raison : sinon un en-tête qui fuit suffit à forger des
   signatures, ce qui annule D1. — Alternative écartée : refuser la seule égalité, qui laissait
   passer `Bearer <secret>`.
+- **Le secret de signature ne contient pas tout l'en-tête (#1335, décision de Gaelle du 2026-10-28)** :
+  le cas inverse est refusé de la même façon, dans la même règle (`webhookSettingsFrom`) : un
+  `REVENUECAT_WEBHOOK_SIGNING_SECRET` qui contient tout `REVENUECAT_WEBHOOK_AUTHORIZATION` (après
+  retrait des espaces, par exemple l'en-tête suivi d'un caractère) est écarté, `503`
+  `webhook-not-configured`, journal sans les valeurs. Comparaison sensible à la casse, comme dans
+  l'autre sens ; un en-tête absent ne déclenche pas ce refus. — Raison : si l'en-tête fuit, il ne
+  manquerait que la fin du secret pour forger des signatures. — Alternative écartée : garder la règle
+  de #1330 seule, le secret étant généré par RevenueCat (risque faible, mais fabricable exprès).
 - Choix de lecture de Claude, d'après la documentation de RevenueCat lue le 2026-10-26 (« Rotate
   secret » invalide l'ancien secret aussitôt ; un seul `v1` documenté) : l'en-tête doit porter
   exactement un `t` et un `v1`, en minuscules, dans un ordre quelconque ; deux `v1`, un champ inconnu
