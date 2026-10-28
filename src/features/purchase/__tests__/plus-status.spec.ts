@@ -73,6 +73,32 @@ describe('plusStatusFrom', () => {
   })
 })
 
+describe('plusStatusFrom, droit promotionnel accordé dans RevenueCat', () => {
+  function promotional(duration: string, expirationDate: string) {
+    return entitlement({
+      store: 'PROMOTIONAL',
+      productIdentifier: `rc_promo_plus_${duration}`,
+      productPlanIdentifier: null,
+      latestPurchaseDate: '2026-10-29T09:00:00Z',
+      expirationDate,
+      willRenew: false,
+    })
+  }
+
+  it('un mois offert donne Plus jusqu’à sa fin', () => {
+    expect(plusStatusFrom(customerInfo(promotional('monthly', '2026-11-29T09:00:00Z')))).toEqual({
+      plan: 'monthly',
+      expiresAt: '2026-11-29T09:00:00Z',
+    })
+  })
+
+  it('un droit offert « à vie », que RevenueCat date de deux siècles, donne Plus', () => {
+    const status = plusStatusFrom(customerInfo(promotional('lifetime', '2226-10-29T09:00:00Z')))
+
+    expect(status.plan).not.toBe('none')
+  })
+})
+
 describe('lapsedAt', () => {
   const MONTHLY = { plan: 'monthly' as const, expiresAt: '2026-09-14T08:00:00.000Z' }
 
