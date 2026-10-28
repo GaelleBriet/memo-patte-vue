@@ -30,7 +30,7 @@ import { formatLongDate } from '@/shared/utils/format'
 // A4 : les marges latérales du carnet, et 10 mm en haut et en bas, loin de la marge non imprimable.
 const ZONE: PdfBounds = { left: 18, right: 192, top: 10, bottom: 287 }
 const FOOTER = `Généré le ${formatLongDate('2026-09-15')} — MémoPatte 0.1.24`
-const SECTION_TITLES = ['Vaccins', 'Traitements', 'Poids']
+const SECTION_TITLES = ['Traitements', 'Vaccins', 'Poids']
 const ETATS = ['À jour', 'En retard', 'Pas de rappel']
 // La mise en page laisse au moins 5,7 mm sous l'en-tête (un titre de section) et 4,6 mm sur le pied.
 const ECART_SOUS_EN_TETE = 5
@@ -152,7 +152,24 @@ function carnetAuxNomsLongs(count: number): CarnetPdfContent {
 
 const COURT = carnet(2, 1, 6)
 const LONG = carnet(25, 20, 40)
-const DEBORDEMENTS = Array.from({ length: 46 }, (_, count) => carnet(count, 3, 8))
+const DEBORDEMENTS = [
+  ...Array.from({ length: 46 }, (_, count) => carnet(count, 3, 8)),
+  ...Array.from({ length: 14 }, (_, count) => count).flatMap((count) =>
+    Array.from({ length: 6 }, (_, arretes) =>
+      Array.from({ length: 4 }, (_, longs) => {
+        const base = carnet(3, count, 8)
+        return {
+          ...base,
+          treatments: [
+            ...base.treatments,
+            ...Array.from({ length: arretes }, () => ARRETE),
+            ...Array.from({ length: longs }, () => TRAITEMENT_LONG),
+          ],
+        }
+      }),
+    ).flat(),
+  ),
+]
 const NOMS_LONGS = Array.from({ length: 40 }, (_, count) => carnetAuxNomsLongs(count))
 const MOT_SANS_ESPACE = avec({
   animal: { ...LONG.animal, name: MOT_80 },
@@ -241,13 +258,13 @@ describe('renderCarnetPdf — pages', () => {
   it('continue un carnet long sur de nouvelles pages, sans perdre ni répéter une ligne', () => {
     const doc = pages(LONG)
     const lignes = [
-      ...LONG.vaccinations.map((row) => row.name),
       ...LONG.treatments.map((row) => row.name),
+      ...LONG.vaccinations.map((row) => row.name),
       ...LONG.weightEntries.map((entry) => dateNumerique(entry.measuredOn)),
     ]
     const ecrites = doc.flatMap((page) => page.texts.map((text) => text.text))
 
-    expect(doc).toHaveLength(4)
+    expect(doc).toHaveLength(5)
     expect(ecrites.filter((text) => lignes.includes(text))).toEqual(lignes)
   })
 
@@ -272,7 +289,7 @@ describe('renderCarnetPdf — pages', () => {
       page.texts.reduce((haut, text) => (text.baseline < haut.baseline ? text : haut))
 
     expect(enTete(premiere!).text).toBe('MémoPatte')
-    expect(suivantes).toHaveLength(3)
+    expect(suivantes).toHaveLength(4)
     for (const page of suivantes) {
       expect(enTete(page)).toMatchObject({ text: 'Luna', bold: true })
     }
@@ -283,7 +300,7 @@ describe('renderCarnetPdf — pages', () => {
     const style = ({ bold, sizePt, color }: PdfText) => ({ bold, sizePt, color })
     const cellule = (text: PdfText) =>
       /^(Vaccin \d+|Traitement \d+|\d{2}\/\d{2}\/\d{4}|\d+,\d kg|À jour)$/.test(text.text)
-    const reference = style(premiere!.texts.find((text) => text.text === 'Vaccin 1')!)
+    const reference = style(premiere!.texts.find((text) => text.text === 'Traitement 1')!)
     const lignes = suivantes.flatMap((page) => page.texts.filter(cellule))
 
     expect(lignes.length).toBeGreaterThan(0)
@@ -300,7 +317,7 @@ describe('renderCarnetPdf — pages', () => {
       const defauts: string[] = []
       for (const content of contents) {
         pages(content).forEach((page, index) => {
-          const lieu = `${content.vaccinations.length} vaccins, page ${index + 1}`
+          const lieu = `${content.vaccinations.length} vaccins, ${content.treatments.length} traitements, page ${index + 1}`
           const pied = hautDuPied(page)
           const enTete = index > 0 ? enTeteDeSuite(page) : []
           if (index > 0 && enTete.length === 0) defauts.push(`pas d’en-tête, ${lieu}`)
@@ -397,7 +414,7 @@ describe('renderCarnetPdf — pages', () => {
             page.paths.some((path) => visible(pathBounds(path)))
           if (!suite) {
             defauts.push(
-              `${titre.text} seul, ${content.vaccinations.length} vaccins, p. ${index + 1}`,
+              `${titre.text} seul, ${content.vaccinations.length} vaccins, ${content.treatments.length} traitements, p. ${index + 1}`,
             )
           }
         }
@@ -520,7 +537,7 @@ describe('renderCarnetPdf — noms longs', () => {
     let reportees = 0
     for (const content of NOMS_LONGS) {
       const doc = pages(content)
-      const attendues = [...content.vaccinations, ...content.treatments].map((row) => row.name)
+      const attendues = [...content.treatments, ...content.vaccinations].map((row) => row.name)
 
       expect(lignesDuTableau(doc).map((ligne) => ligne.join(' '))).toEqual(attendues)
       doc.slice(0, -1).forEach((page, index) => {
@@ -580,10 +597,10 @@ describe('renderCarnetPdf — plusieurs animaux', () => {
 
   it('commence chaque animal sur une nouvelle page, dans l’ordre donné, avec son carnet complet', () => {
     const pagesDuPdf = doc()
-    const premiereDeMilo = pagesDuPdf[4]!
+    const premiereDeMilo = pagesDuPdf[5]!
     const textes = premiereDeMilo.texts.map((text) => text.text)
 
-    expect(pagesDuPdf).toHaveLength(5)
+    expect(pagesDuPdf).toHaveLength(6)
     expect(enTete(pagesDuPdf[0]!).text).toBe('MémoPatte')
     expect(pagesDuPdf[0]!.texts.map((text) => text.text)).toContain('Luna')
     expect(enTete(premiereDeMilo).text).toBe('MémoPatte')
@@ -592,11 +609,11 @@ describe('renderCarnetPdf — plusieurs animaux', () => {
     )
     expect(textes).not.toContain('Luna')
     expect(premiereDeMilo.images).toHaveLength(1)
-    expect(pagesDuPdf.slice(0, 4).every((page) => page.images.length === 0)).toBe(true)
+    expect(pagesDuPdf.slice(0, 5).every((page) => page.images.length === 0)).toBe(true)
   })
 
   it('reprend le nom du premier animal en tête de ses pages de suite', () => {
-    for (const page of doc().slice(1, 4)) {
+    for (const page of doc().slice(1, 5)) {
       expect(enTete(page)).toMatchObject({ text: 'Luna', bold: true })
     }
   })
@@ -613,7 +630,7 @@ describe('renderCarnetPdf — plusieurs animaux', () => {
       ),
     )
 
-    expect(pagesDuPdf).toHaveLength(5)
+    expect(pagesDuPdf).toHaveLength(6)
     expect(enTete(pagesDuPdf[1]!).text).toBe('MémoPatte')
     for (const page of pagesDuPdf.slice(2)) {
       expect(enTete(page)).toMatchObject({ text: 'Luna', bold: true })
@@ -627,13 +644,13 @@ describe('renderCarnetPdf — plusieurs animaux', () => {
       return { color, bold, sizePt }
     }
 
-    expect(nom(pagesDuPdf[4]!, 'Milo')).toEqual(nom(pagesDuPdf[0]!, 'Luna'))
+    expect(nom(pagesDuPdf[5]!, 'Milo')).toEqual(nom(pagesDuPdf[0]!, 'Luna'))
   })
 
   it('numérote les pages sur tout le document', () => {
     doc().forEach((page, index) => {
       expect(page.texts.map((text) => text.text)).toEqual(
-        expect.arrayContaining([`${index + 1} / 5`, FOOTER]),
+        expect.arrayContaining([`${index + 1} / 6`, FOOTER]),
       )
     })
   })
