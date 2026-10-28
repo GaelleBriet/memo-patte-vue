@@ -1,5 +1,5 @@
 import type { DbClient } from '@/core/db/db-client'
-import { LIVE_ANIMAL_PHOTOS_FROM } from '@/core/db/schema-statements'
+import { KEPT_ANIMAL_PHOTOS_FROM, LIVE_ANIMAL_PHOTOS_FROM } from '@/core/db/schema-statements'
 
 export function createCarnetPhotosRepository(db: DbClient) {
   return {
@@ -13,8 +13,18 @@ export function createCarnetPhotosRepository(db: DbClient) {
     },
 
     async isPhotoKeptByAnimal(fileName: string): Promise<boolean> {
-      const rows = await db.query('SELECT 1 FROM animal WHERE photo_path = ? LIMIT 1', [fileName])
+      const rows = await db.query(
+        `SELECT 1 ${KEPT_ANIMAL_PHOTOS_FROM} AND photo_path = ? LIMIT 1`,
+        [fileName],
+      )
       return rows.length > 0
+    },
+
+    async listKeptPhotos(): Promise<string[]> {
+      const rows = await db.query<{ photo_path: string }>(
+        `SELECT DISTINCT photo_path ${KEPT_ANIMAL_PHOTOS_FROM}`,
+      )
+      return rows.map(({ photo_path }) => photo_path)
     },
 
     async listCarnetPhotos(): Promise<string[]> {

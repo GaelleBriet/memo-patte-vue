@@ -55,6 +55,9 @@ const LIVE_ANIMAL_PHOTO = `(SELECT enabled FROM sync_state WHERE id = 1) = 1
 export const LIVE_ANIMAL_PHOTOS_FROM =
   'FROM animal WHERE photo_path IS NOT NULL AND deleted_at IS NULL'
 
+/** Les photos que garde le cloud : celles de toute ligne d'animal, supprimé compris, qui peut revenir. */
+export const KEPT_ANIMAL_PHOTOS_FROM = 'FROM animal WHERE photo_path IS NOT NULL'
+
 /** Photos des animaux non supprimés, mises en file par la migration v18. */
 export const LIVE_ANIMAL_PHOTOS_SELECT = `SELECT '${ANIMAL_PHOTO_ENTITY}', photo_path, updated_at
      ${LIVE_ANIMAL_PHOTOS_FROM}`
