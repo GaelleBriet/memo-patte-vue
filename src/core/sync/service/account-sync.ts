@@ -56,6 +56,7 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
   const scheduler = createSyncScheduler({ runCycle: deps.runCycle })
   let accountWork: Promise<void> = Promise.resolve()
   let checkedFor: string | null = null
+  let sendConfirmedFor: string | null = null
 
   const enqueue = (task: () => Promise<void>) => {
     accountWork = accountWork.then(task)
@@ -77,6 +78,7 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
     try {
       const outcome = await answeredInTime(check())
       if (deps.userId() !== checkedUserId) return
+      if (outcome !== null && outcome.kind !== 'unreachable') sendConfirmedFor = null
       if (outcome === null) deps.restoreFlow.noAnswer()
       else if (outcome.kind === 'backup-found') deps.restoreFlow.offer(outcome.summary)
       else if (outcome.kind === 'confirm-send') deps.restoreFlow.askSend(outcome)
@@ -106,7 +108,9 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
     if (!deps.sessionActive() || userId === null || checkedFor === userId) return
     checkedFor = userId
     deps.restoreFlow.checking()
-    enqueue(() => checkBackup(deps.checkAccountBackup))
+    enqueue(() =>
+      checkBackup(sendConfirmedFor === userId ? deps.confirmCarnetSend : deps.checkAccountBackup),
+    )
   }
 
   function onComeback(): void {
@@ -120,6 +124,7 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
     restorePhotos({ visible: true })
   })
   const stopSendConfirmed = deps.restoreFlow.onSendConfirmed(() => {
+    sendConfirmedFor = deps.userId()
     enqueue(() => checkBackup(deps.confirmCarnetSend))
   })
   const stopRetry = deps.restoreFlow.onRetryCheck(() => {
@@ -141,6 +146,7 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
       const previous = before ? before.userId : userId
       if (userId !== previous) {
         checkedFor = null
+        sendConfirmedFor = null
         deps.restoreFlow.reset()
         if (previous !== null) {
           const forgotten = forgetPreviousAccount(deps.outbox)

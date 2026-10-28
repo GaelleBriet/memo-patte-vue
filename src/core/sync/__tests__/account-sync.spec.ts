@@ -416,13 +416,10 @@ describe('installSync', () => {
       stop()
     })
 
-    it('« Envoyer » hors ligne ne programme rien et repart d’un contrôle complet', async () => {
-      const { deps, userId, active, runCycle, restoreFlow, confirmCarnetSend } = accountSetup({
-        kind: 'confirm-send',
-        animalCount: 1,
-        firstName: 'Milo',
-      })
-      confirmCarnetSend.mockResolvedValue({ kind: 'unreachable' })
+    it('« Envoyer » hors ligne : rien ne part, puis le retour du réseau rejoue l’envoi confirmé sans reposer la question', async () => {
+      const { deps, userId, active, runCycle, restoreFlow, checkAccountBackup, confirmCarnetSend } =
+        accountSetup({ kind: 'confirm-send', animalCount: 1, firstName: 'Milo' })
+      confirmCarnetSend.mockResolvedValueOnce({ kind: 'unreachable' })
       userId.value = 'user-1'
       active.value = true
       const stop = await installSync(deps)
@@ -436,9 +433,37 @@ describe('installSync', () => {
 
       expect(restoreFlow.unreachable).toHaveBeenCalled()
       expect(runCycle).not.toHaveBeenCalled()
+
       restoreFlow.retry()
       await vi.advanceTimersByTimeAsync(0)
-      expect(restoreFlow.askSend).toHaveBeenCalledTimes(2)
+      await runDebounce()
+
+      expect(confirmCarnetSend).toHaveBeenCalledTimes(2)
+      expect(checkAccountBackup).toHaveBeenCalledOnce()
+      expect(restoreFlow.askSend).toHaveBeenCalledOnce()
+      expect(runCycle).toHaveBeenCalled()
+      stop()
+    })
+
+    it('« Envoyer » hors ligne, puis changement de compte : la nouvelle personne revoit la question', async () => {
+      const { deps, userId, active, restoreFlow, confirmCarnetSend, checkAccountBackup } =
+        accountSetup({ kind: 'confirm-send', animalCount: 1, firstName: 'Milo' })
+      confirmCarnetSend.mockResolvedValue({ kind: 'unreachable' })
+      userId.value = 'user-1'
+      active.value = true
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(0)
+      restoreFlow.confirm()
+      await vi.advanceTimersByTimeAsync(0)
+
+      userId.value = null
+      active.value = false
+      userId.value = 'user-2'
+      active.value = true
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(checkAccountBackup).toHaveBeenCalledTimes(2)
+      expect(confirmCarnetSend).toHaveBeenCalledOnce()
       stop()
     })
 
