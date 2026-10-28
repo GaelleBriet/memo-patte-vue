@@ -32,6 +32,7 @@ import type {
 } from '../repository/treatments.repository'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { track } from '@/core/analytics'
+import { treatmentWriteQueue } from '@/core/write-queue/treatment-write-queue'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { useAnimalScopedList } from '@/shared/composables/use-animal-scoped-list'
 import { recordUsageSignal } from '@/core/usage/usage-signals'
@@ -112,6 +113,7 @@ export const useTreatmentsStore = defineStore('treatments', () => {
     return createTreatmentRemovalService({
       treatments: repository,
       reminders: () => remindersProvider(),
+      queue: treatmentWriteQueue,
     })
   }
 
