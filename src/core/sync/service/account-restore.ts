@@ -2,6 +2,7 @@ import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import type { RestoreMode } from '../repository/sync-state.repository'
 import type { LocalSyncOutbox } from './local-sync-outbox'
 import { normalizeSyncTimestamps } from './normalize-sync-timestamps'
+import { remotePages } from './remote-pages'
 import type { RestoreChoiceSnapshot } from './restore-choice-snapshot'
 import {
   syncField,
@@ -11,7 +12,6 @@ import {
 } from './syncable-table'
 
 const PAGE_SIZE = 500
-const EPOCH = '1970-01-01T00:00:00.000Z'
 const KEPT_ON_REPLACE = 'device'
 
 export type { RestoreMode }
@@ -75,20 +75,12 @@ export function createAccountRestore(deps: AccountRestoreDependencies) {
     const downloaded: DownloadedTable[] = []
     for (const table of deps.tables) {
       const rows: SyncRow[] = []
-      let since = EPOCH
-      let afterId: string | undefined
       let cursor: string | null = null
-      for (;;) {
-        const page = await table.pullPage(userId, since, PAGE_SIZE, afterId)
-        const lastRow = page.rows.at(-1)
-        if (!lastRow || page.cursor === null) break
+      for await (const page of remotePages(table, userId, PAGE_SIZE)) {
         rows.push(...page.rows.map(normalizeSyncTimestamps))
         cursor = page.cursor
         done += page.rows.length
         report({ done, total: Math.max(total, done) })
-        if (page.rows.length < PAGE_SIZE) break
-        since = page.cursor
-        afterId = lastRow.id
       }
       downloaded.push({ table, rows, cursor })
     }

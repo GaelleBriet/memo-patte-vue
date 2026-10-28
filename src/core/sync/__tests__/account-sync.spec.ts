@@ -97,6 +97,7 @@ const withoutSession = {
   restoreMissingPhotos: vi.fn<(userId: string, options?: { visible?: boolean }) => Promise<void>>(
     async () => {},
   ),
+  sweepCloudPhotos: vi.fn<(userId: string) => Promise<void>>(async () => {}),
   sessionActive: () => false,
   checkAccountBackup: vi.fn<() => Promise<AccountBackupCheck>>(async () => ({ kind: 'active' })),
   confirmCarnetSend: vi.fn<() => Promise<AccountBackupCheck>>(async () => ({ kind: 'active' })),
@@ -326,6 +327,7 @@ describe('installSync', () => {
       const restoreMissingPhotos = vi.fn<
         (userId: string, options?: { visible?: boolean }) => Promise<void>
       >(async () => {})
+      const sweepCloudPhotos = vi.fn<(userId: string) => Promise<void>>(async () => {})
       const deps: SyncDependencies = {
         outbox,
         runCycle,
@@ -335,6 +337,7 @@ describe('installSync', () => {
         confirmCarnetSend,
         restoreFlow,
         restoreMissingPhotos,
+        sweepCloudPhotos,
       }
       return {
         deps,
@@ -347,6 +350,7 @@ describe('installSync', () => {
         runCycle,
         restoreFlow,
         restoreMissingPhotos,
+        sweepCloudPhotos,
       }
     }
 
@@ -659,6 +663,56 @@ describe('installSync', () => {
       await vi.advanceTimersByTimeAsync(0)
 
       expect(restoreMissingPhotos).not.toHaveBeenCalled()
+      stop()
+    })
+
+    it('au lancement d’un carnet déjà lié au compte, fait le ménage des photos du cloud', async () => {
+      const { deps, userId, active, sweepCloudPhotos } = accountSetup({ kind: 'active' })
+      userId.value = 'user-1'
+      active.value = true
+
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(sweepCloudPhotos).toHaveBeenCalledExactlyOnceWith('user-1')
+      stop()
+    })
+
+    it('un ménage qui ne répond jamais ne retient pas le contrôle suivant', async () => {
+      const { deps, userId, active, restoreFlow, checkAccountBackup, sweepCloudPhotos } =
+        accountSetup({ kind: 'active' })
+      sweepCloudPhotos.mockImplementation(() => new Promise<never>(() => {}))
+      userId.value = 'user-1'
+      active.value = true
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(0)
+
+      restoreFlow.retry()
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(checkAccountBackup).toHaveBeenCalledTimes(2)
+      stop()
+    })
+
+    it.each<AccountBackupCheck>([
+      {
+        kind: 'backup-found',
+        summary: { animalCount: 1, lastBackupAt: '2026-10-20T19:04:00.000Z' },
+      },
+      { kind: 'seeded' },
+      { kind: 'unreachable' },
+      { kind: 'signed-out' },
+      { kind: 'restore-pending', mode: 'merge' },
+      { kind: 'confirm-send', animalCount: 2, firstName: 'Milo' },
+    ])('aucun ménage des photos du cloud hors d’un carnet déjà lié ($kind)', async (outcome) => {
+      const { deps, userId, active, sweepCloudPhotos } = accountSetup(outcome)
+      userId.value = 'user-1'
+      active.value = true
+
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(sweepCloudPhotos).not.toHaveBeenCalled()
       stop()
     })
 

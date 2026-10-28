@@ -462,6 +462,22 @@ derrière la même garde que la synchro (Plus actif, décision du 2026-10-22) : 
 la ligne figée du cloud désigne encore l'ancienne photo, qui n'est effacée qu'à la réactivation,
 après l'envoi de la ligne et de la nouvelle photo.
 
+Ménage du dossier (#1355, décision du 2026-10-28) : la file se perd à la déconnexion
+(`forgetAccount`), et une photo remplacée hors connexion ou sur un autre appareil n'y entre jamais.
+Après le contrôle de la sauvegarde d'un carnet déjà lié (`active`), au plus une fois par lancement
+et par jour (heure du dernier passage dans le `localStorage`), `core/sync/service/cloud-photo-sweep.ts`
+liste le dossier du compte (`core/supabase/animal-photo-list.ts`, la RLS `animal_photos_select` ne
+laisse lire que `<uid>/`) et efface au plus 20 fichiers, les plus anciens d'abord, par le même
+`PhotoDeletePort`. Un fichier n'est effacé que s'il porte un nom de photo du carnet
+(`isPhotoFileName`), qu'aucune ligne `animal` du cloud ni du téléphone ne le porte (tombstones
+compris), qu'aucune entrée `animal_photo` ne le désigne, et que sa dernière écriture sur le serveur
+(`created_at`, `updated_at` de `storage.objects`) date d'au moins `PHOTO_CLOUD_GRACE_MS` avant la
+date serveur la plus récente lue pendant le passage (`server_updated_at` des lignes, dates des
+fichiers) : l'horloge du téléphone n'entre pas dans l'âge. Une entrée `animal` en file, avant ou
+après les lectures, une lecture ou un effacement en échec, une table `animal` du cloud lue vide (la
+RLS rend vide, sans erreur, une lecture sans session), la fin de Plus ou un changement de compte
+arrêtent le passage sans rien effacer de plus.
+
 RLS `storage.objects`, pour les quatre opérations :
 `(storage.foldername(name))[1] = (select auth.uid())::text`, plus `has_active_plus()` pour envoyer
 et remplacer : la lecture reste ouverte sans Plus, pour restaurer (PL-16), et la suppression aussi,

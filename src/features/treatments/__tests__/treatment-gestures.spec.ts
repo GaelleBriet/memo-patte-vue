@@ -350,9 +350,9 @@ describe('doseActionTexts — « Supprimer ce décalage » (V31 quater)', () => 
     )
   })
 
-  it('hors d’un rythme en semaines, la prochaine dose ; sans elle, le geste seul', () => {
+  it('hors d’un rythme en semaines, la reprise des doses suivantes ; sans elle, le geste seul', () => {
     expect(done({ nextOn: '2026-10-22', weekly: false })).toBe(
-      'Décalage supprimé. Prochaine dose le 22 oct.',
+      'Décalage supprimé. Les doses suivantes reprennent le 22 oct.',
     )
     expect(done(null)).toBe('Décalage supprimé')
   })
@@ -362,6 +362,9 @@ describe('doseActionTexts — « Supprimer ce décalage » (V31 quater)', () => 
 
     expect(done({ nextOn: '2026-10-23', weekly: true })).toBe(
       'Move deleted. The following doses go back to Friday.',
+    )
+    expect(done({ nextOn: '2026-10-22', weekly: false })).toBe(
+      'Move deleted. The following doses resume on Oct 22.',
     )
   })
 })

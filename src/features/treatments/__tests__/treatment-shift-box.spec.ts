@@ -14,6 +14,7 @@ import {
 import { shiftHelpText } from '../logic/treatment-shift-help'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import i18n, { applyLocale } from '@/core/i18n'
+import { applied, play, treatmentView } from '@/shared/domain/dose-calendar'
 
 const t = i18n.global.t
 
@@ -438,6 +439,24 @@ describe('restoredSuiteFor — le toast de « Supprimer ce décalage » (V31 qua
       weekly: true,
     })
     expect(restoredSuiteFor(book, { kind: 'remove', lineId: '2026-10-09' })).toBeNull()
+  })
+
+  it('la date dite est celle des doses suivantes sur la fiche, après le report qui garde sa place', () => {
+    const withPeriods = treatment(
+      [VENDREDI],
+      [...PIXEL.doses, shifted('2026-10-16', '2026-10-19'), postponed('2026-10-16', '2026-10-19')],
+    )
+    const book = carnet(withPeriods, '2026-10-15')
+    const action = { kind: 'remove' as const, lineId: 'décalage 2026-10-16' }
+    const result = play(book.reading.input, action)
+    if ('refusal' in result) throw new Error('refus inattendu')
+    const upcoming = treatmentView(applied(book.reading.input, result.changes)).upcoming({
+      from: '2026-10-15',
+      limit: 2,
+    })
+
+    expect(upcoming.map(({ dueOn }) => dueOn)).toEqual(['2026-10-19', '2026-10-23'])
+    expect(restoredSuiteFor(book, action)?.nextOn).toBe(upcoming[1]!.dueOn)
   })
 })
 

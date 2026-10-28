@@ -683,7 +683,7 @@
         "undoMoveChange": "Undo the postponement date change",
         "shiftRemoved": "Move deleted",
         "shiftRemovedWeekday": "Move deleted. The following doses go back to {weekday}.",
-        "shiftRemovedOn": "Move deleted. Next dose on {date}.",
+        "shiftRemovedOn": "Move deleted. The following doses resume on {date}.",
         "undoShiftRemoved": "Undo deleting the move",
         "notDueRemoved": "Answer on {date} deleted",
         "undoNotDueRemoved": "Undo deleting the answer on {date}"
