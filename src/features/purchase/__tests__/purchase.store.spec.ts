@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BillingError, billingService, type BillingService } from '../service/billing.service'
 import { NO_PLUS, type PlusStatus } from '../logic/plus-status'
+import { PLUS_ENDED_AT_STORAGE_KEY } from '../logic/plus-pause-storage'
 import {
   NO_STORED_PLUS,
   readStoredPlusStatus,
@@ -580,6 +581,104 @@ describe('usePurchaseStore › sauvegarde en pause', () => {
     expect(store.backupPause).toBeNull()
     setActivePinia(createPinia())
     expect(usePurchaseStore().backupPause).toBeNull()
+  })
+
+  describe('fin constatée pendant que l’app tourne', () => {
+    const ENDED = new Date(2026, 8, 14, 10)
+    const MONTHLY_ENDING: PlusStatus = { plan: 'monthly', expiresAt: ENDED.toISOString() }
+
+    beforeEach(() => {
+      vi.setSystemTime(new Date(2026, 8, 13, 10))
+    })
+
+    it('date la fin de l’échéance passée, pas du jour où l’app s’en aperçoit', async () => {
+      writeStoredPlusStatus(MONTHLY_ENDING)
+      service.fetchStatus.mockResolvedValueOnce(NO_PLUS)
+      const store = usePurchaseStore()
+      vi.setSystemTime(new Date(2026, 8, 17, 10))
+
+      await store.verifyKnownStatus()
+
+      expect(store.backupPause).toEqual({ keptUntil: '2027-09-14' })
+      expect(readStoredPlusStatus().subscriptionEndedAt).toBe(MONTHLY_ENDING.expiresAt)
+    })
+
+    it('compte les 30 jours de souvenir depuis la même fin que la pause', async () => {
+      writeStoredPlusStatus(MONTHLY_ENDING)
+      service.fetchStatus.mockResolvedValue(NO_PLUS)
+      const store = usePurchaseStore()
+      vi.setSystemTime(new Date(2026, 8, 17, 10))
+      await store.verifyKnownStatus()
+
+      vi.setSystemTime(new Date(2026, 9, 13, 11))
+      setActivePinia(createPinia())
+      expect(usePurchaseStore().expiredPlan).toBe('monthly')
+
+      vi.setSystemTime(new Date(2026, 9, 14, 11))
+      setActivePinia(createPinia())
+      const relance = usePurchaseStore()
+      expect(relance.expiredPlan).toBeNull()
+      expect(relance.backupPause).toEqual({ keptUntil: '2027-09-14' })
+    })
+
+    it('date la fin du constat quand l’accès est retiré avant son échéance', async () => {
+      writeStoredPlusStatus({ plan: 'annual', expiresAt: new Date(2027, 8, 1, 10).toISOString() })
+      service.fetchStatus.mockResolvedValueOnce(NO_PLUS)
+      const store = usePurchaseStore()
+      vi.setSystemTime(new Date(2026, 8, 17, 10))
+
+      await store.verifyKnownStatus()
+
+      expect(store.backupPause).toEqual({ keptUntil: '2027-09-17' })
+      expect(readStoredPlusStatus().subscriptionEndedAt).toBe(
+        new Date(2026, 8, 17, 10).toISOString(),
+      )
+    })
+
+    it('suit un abonnement de test de 5 minutes, échu app ouverte, rouverte, puis racheté', async () => {
+      const bought = new Date(2026, 9, 28, 14)
+      const testEnd = new Date(2026, 9, 28, 14, 5)
+      const TEST_MONTHLY: PlusStatus = { plan: 'monthly', expiresAt: testEnd.toISOString() }
+      vi.setSystemTime(bought)
+      service.purchase.mockResolvedValueOnce({ kind: 'purchased', status: TEST_MONTHLY })
+      service.fetchStatus.mockResolvedValue(NO_PLUS)
+      const store = usePurchaseStore()
+      await store.purchase('monthly')
+
+      vi.setSystemTime(new Date(2026, 9, 28, 14, 7))
+      await store.verifyKnownStatus()
+
+      expect(store.expiredPlan).toBe('monthly')
+      expect(store.backupPause).toEqual({ keptUntil: '2027-10-28' })
+      expect(readStoredPlusStatus().subscriptionEndedAt).toBe(TEST_MONTHLY.expiresAt)
+
+      vi.setSystemTime(new Date(2026, 9, 30, 14))
+      setActivePinia(createPinia())
+      const relance = usePurchaseStore()
+      await relance.verifyKnownStatus()
+
+      expect(relance.expiredPlan).toBe('monthly')
+      expect(relance.backupPause).toEqual({ keptUntil: '2027-10-28' })
+      expect(readStoredPlusStatus().subscriptionEndedAt).toBe(TEST_MONTHLY.expiresAt)
+
+      const rebought: PlusStatus = {
+        plan: 'monthly',
+        expiresAt: new Date(2026, 9, 30, 14, 5).toISOString(),
+      }
+      service.purchase.mockResolvedValueOnce({ kind: 'purchased', status: rebought })
+      await relance.purchase('monthly')
+
+      expect(relance.expiredPlan).toBeNull()
+      expect(relance.backupPause).toBeNull()
+      expect(readStoredPlusStatus()).toEqual(stored(rebought, 'monthly'))
+      expect(localStorage.getItem(PLUS_ENDED_AT_STORAGE_KEY)).toBeNull()
+
+      vi.setSystemTime(new Date(2026, 9, 30, 14, 20))
+      await relance.verifyKnownStatus()
+
+      expect(relance.backupPause).toEqual({ keptUntil: '2027-10-30' })
+      expect(localStorage.getItem(PLUS_ENDED_AT_STORAGE_KEY)).toBe(rebought.expiresAt)
+    })
   })
 
   it('ne lègue pas la pause du compte quitté', async () => {

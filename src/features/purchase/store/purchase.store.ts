@@ -8,6 +8,7 @@ import {
   type PurchaseOutcome,
 } from '../service/billing.service'
 import {
+  lapsedAt,
   NO_PLUS,
   subscriptionOf,
   type PlusStatus,
@@ -32,7 +33,9 @@ function remember(next: PlusStatus, previous: StoredPlusStatus): StoredPlusStatu
     ...next,
     lastSubscription,
     subscriptionEndedAt:
-      lastSubscription === null ? null : (subscriptionEndedAt ?? new Date().toISOString()),
+      lastSubscription === null
+        ? null
+        : (subscriptionEndedAt ?? lapsedAt(previous, Date.now()) ?? new Date().toISOString()),
   }
 }
 
@@ -43,7 +46,7 @@ export const usePurchaseStore = defineStore('purchase', () => {
   /** Une échéance passée se lit « aucun » ; le stocké reste, pour retrouver un renouvellement. */
   const status = computed<PlusStatus>(() => {
     const { plan, expiresAt, offered } = stored.value
-    if (expiresAt !== null && Date.parse(expiresAt) <= now.value) return NO_PLUS
+    if (lapsedAt(stored.value, now.value) !== null) return NO_PLUS
     return offered ? { plan, expiresAt, offered } : { plan, expiresAt }
   })
   /** Abonnement échu, que `status` lit déjà « aucun » : de quoi écrire « expiré ». */
