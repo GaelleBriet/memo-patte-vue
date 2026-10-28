@@ -25,6 +25,7 @@ vi.mock('../repository/auth.repository', () => ({
     restoreSession: vi.fn<AuthRepository['restoreSession']>(),
     refreshSession: vi.fn<AuthRepository['refreshSession']>(),
     onSessionChange: vi.fn<AuthRepository['onSessionChange']>(),
+    onSessionUnreadable: vi.fn<AuthRepository['onSessionUnreadable']>(),
   },
 }))
 vi.mock('../service/google-sign-in.service', () => ({

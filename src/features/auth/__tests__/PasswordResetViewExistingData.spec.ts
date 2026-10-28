@@ -17,6 +17,7 @@ vi.mock('../repository/auth.repository', () => ({
   authRepository: {
     sendPasswordResetCode: vi.fn<AuthRepository['sendPasswordResetCode']>(async () => {}),
     onSessionChange: vi.fn<AuthRepository['onSessionChange']>(),
+    onSessionUnreadable: vi.fn<AuthRepository['onSessionUnreadable']>(),
   },
 }))
 
