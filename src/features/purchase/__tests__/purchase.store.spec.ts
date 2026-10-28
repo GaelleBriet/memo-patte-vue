@@ -720,6 +720,35 @@ describe('usePurchaseStore › droit offert', () => {
 
     expect(store.status).toEqual(NO_PLUS)
     expect(store.expiredPlan).toBe('monthly')
+    expect(store.expiredOffered).toBe(true)
     expect(store.backupPause).toEqual({ keptUntil: '2027-10-01' })
+    setActivePinia(createPinia())
+    expect(usePurchaseStore().expiredOffered).toBe(true)
+  })
+
+  it('ne dit pas offert un abonnement payé qui a pris fin', async () => {
+    writeStoredPlusStatus({ ...MOIS_OFFERT, offered: undefined })
+    service.fetchStatus.mockResolvedValue(NO_PLUS)
+    vi.setSystemTime(new Date(2026, 9, 3, 9))
+    const store = usePurchaseStore()
+
+    await store.verifyKnownStatus()
+
+    expect(store.expiredPlan).toBe('monthly')
+    expect(store.expiredOffered).toBe(false)
+  })
+
+  it('oublie le droit offert fini dès qu’un abonnement payé reprend', async () => {
+    writeStoredPlusStatus(MOIS_OFFERT)
+    service.fetchStatus.mockResolvedValueOnce(NO_PLUS)
+    service.restore.mockResolvedValueOnce(ANNUAL)
+    vi.setSystemTime(new Date(2026, 9, 3, 9))
+    const store = usePurchaseStore()
+    await store.verifyKnownStatus()
+
+    await store.restore()
+
+    expect(store.expiredOffered).toBe(false)
+    expect(readStoredPlusStatus()).not.toHaveProperty('lastSubscriptionOffered')
   })
 })

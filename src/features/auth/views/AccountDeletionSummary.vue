@@ -44,7 +44,7 @@ const { t } = useI18n()
           <v-icon icon="ms:check_circle" size="20" aria-hidden="true" />
           <span>{{ t('settings.account.delete.kept.carnet') }}</span>
         </li>
-        <li class="account-deletion-summary__item">
+        <li v-if="purchase.keepsPurchaseHistory" class="account-deletion-summary__item">
           <v-icon icon="ms:check_circle" size="20" aria-hidden="true" />
           <span>{{ t('settings.account.delete.kept.purchases') }}</span>
         </li>

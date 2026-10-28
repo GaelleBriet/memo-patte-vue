@@ -1928,7 +1928,8 @@
         "expiredMonthly": "Monthly Plus — expired",
         "expiredAnnual": "Annual Plus — expired",
         "offered": "Plus, complimentary until {date}",
-        "offeredNoEnd": "Plus, complimentary, no end date"
+        "offeredNoEnd": "Plus, complimentary, no end date",
+        "offeredEnded": "Plus, complimentary — ended"
       },
       "paused": {
         "body": "Your cloud backup is paused. Your health records stay on your phone.",

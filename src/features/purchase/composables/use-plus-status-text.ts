@@ -17,7 +17,11 @@ function useLabelText(labelOf: () => PlusStatusLabel | null): ComputedRef<string
 /** « Plus annuel jusqu'au 14/09/2027 », « Plus mensuel — expiré »… ; `null` sans Plus, passé ou présent. */
 export function usePlusStatusText(): ComputedRef<string | null> {
   const purchase = usePurchaseStore()
-  return useLabelText(() => plusStatusLabel(purchase.status, purchase.expiredPlan))
+  return useLabelText(() =>
+    plusStatusLabel(purchase.status, purchase.expiredPlan, {
+      expiredOffered: purchase.expiredOffered,
+    }),
+  )
 }
 
 /** « Abonnement annuel actif. », « Plus offert, sans date de fin »… */

@@ -47,7 +47,9 @@ describe('plusStatusLabel, droit offert', () => {
   it('donne la fin d’un mois offert', () => {
     const fin = new Date(2026, 10, 29, 9).toISOString()
 
-    expect(plusStatusLabel({ plan: 'monthly', expiresAt: fin, offered: true }, null, NOW)).toEqual({
+    expect(
+      plusStatusLabel({ plan: 'monthly', expiresAt: fin, offered: true }, null, { now: NOW }),
+    ).toEqual({
       key: 'plus.settings.status.offered',
       expiresAt: fin,
     })
@@ -56,7 +58,9 @@ describe('plusStatusLabel, droit offert', () => {
   it('tait une fin à plus de 50 ans', () => {
     const fin = new Date(2226, 9, 29, 9).toISOString()
 
-    expect(plusStatusLabel({ plan: 'annual', expiresAt: fin, offered: true }, null, NOW)).toEqual({
+    expect(
+      plusStatusLabel({ plan: 'annual', expiresAt: fin, offered: true }, null, { now: NOW }),
+    ).toEqual({
       key: 'plus.settings.status.offeredNoEnd',
       expiresAt: null,
     })
@@ -65,15 +69,24 @@ describe('plusStatusLabel, droit offert', () => {
   it('donne encore la fin à 50 ans tout juste', () => {
     const fin = new Date(2076, 9, 29, 9).toISOString()
 
-    expect(plusStatusLabel({ plan: 'annual', expiresAt: fin, offered: true }, null, NOW)?.key).toBe(
-      'plus.settings.status.offered',
-    )
+    expect(
+      plusStatusLabel({ plan: 'annual', expiresAt: fin, offered: true }, null, { now: NOW })?.key,
+    ).toBe('plus.settings.status.offered')
   })
 
   it('dit sans date de fin un droit offert que RevenueCat ne date pas', () => {
     expect(
-      plusStatusLabel({ plan: 'lifetime', expiresAt: null, offered: true }, null, NOW),
+      plusStatusLabel({ plan: 'lifetime', expiresAt: null, offered: true }, null, { now: NOW }),
     ).toEqual({ key: 'plus.settings.status.offeredNoEnd', expiresAt: null })
+  })
+})
+
+describe('plusStatusLabel, droit offert terminé', () => {
+  it('dit le droit offert terminé', () => {
+    expect(plusStatusLabel(NO_PLUS, 'monthly', { expiredOffered: true, now: NOW })).toEqual({
+      key: 'plus.settings.status.offeredEnded',
+      expiresAt: null,
+    })
   })
 })
 

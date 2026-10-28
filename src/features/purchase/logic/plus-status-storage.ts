@@ -19,6 +19,8 @@ const SUBSCRIPTION_MEMORY_DAYS = 30
 export type StoredPlusStatus = PlusStatus & {
   /** Dernier abonnement payant connu : Google Play dira « aucun droit » une fois échu. */
   lastSubscription: SubscriptionPlan | null
+  /** Ce dernier abonnement était un droit offert : écrit seulement quand c'est le cas. */
+  lastSubscriptionOffered?: boolean
   /** Fin de cet abonnement, ISO 8601, d'où court le délai d'oubli. */
   subscriptionEndedAt: string | null
 }
@@ -36,16 +38,25 @@ const storedPlusStatusSchema = z.object({
   expiresAt: z.iso.datetime({ offset: true }).nullable(),
   offered: z.boolean().optional(),
   lastSubscription: z.enum(['monthly', 'annual']).nullable().optional(),
+  lastSubscriptionOffered: z.boolean().optional(),
   subscriptionEndedAt: z.iso.datetime({ offset: true }).nullable().optional(),
 })
 
+export function offeredMemory(offered: boolean | undefined): { lastSubscriptionOffered?: true } {
+  return offered ? { lastSubscriptionOffered: true } : {}
+}
+
 function complete(status: WritablePlusStatus): StoredPlusStatus {
   const lastSubscription = status.lastSubscription ?? subscriptionOf(status)
+  const lastOffered =
+    lastSubscription !== null &&
+    (status.lastSubscriptionOffered ?? (subscriptionOf(status) !== null && status.offered))
   return {
     plan: status.plan,
     expiresAt: status.expiresAt,
     ...(status.offered ? { offered: true } : {}),
     lastSubscription,
+    ...offeredMemory(lastOffered),
     subscriptionEndedAt:
       lastSubscription === null
         ? null
@@ -58,7 +69,14 @@ function forgetLapsedMemory(status: StoredPlusStatus): StoredPlusStatus {
   if (subscriptionEndedAt === null) return status
   if (differenceInDays(new Date(), parseISO(subscriptionEndedAt)) < SUBSCRIPTION_MEMORY_DAYS)
     return status
-  return { ...status, lastSubscription: null, subscriptionEndedAt: null }
+  const { plan, expiresAt, offered } = status
+  return {
+    plan,
+    expiresAt,
+    ...(offered ? { offered } : {}),
+    lastSubscription: null,
+    subscriptionEndedAt: null,
+  }
 }
 
 function keepEnd(status: StoredPlusStatus): StoredPlusStatus {

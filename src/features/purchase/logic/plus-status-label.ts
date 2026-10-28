@@ -9,9 +9,10 @@ export type PlusStatusLabel = { key: string; expiresAt: string | null }
 export function plusStatusLabel(
   status: PlusStatus,
   expiredPlan: SubscriptionPlan | null,
-  now: Date = new Date(),
+  { expiredOffered = false, now = new Date() }: { expiredOffered?: boolean; now?: Date } = {},
 ): PlusStatusLabel | null {
   if (expiredPlan !== null) {
+    if (expiredOffered) return { key: 'plus.settings.status.offeredEnded', expiresAt: null }
     const key =
       expiredPlan === 'monthly'
         ? 'plus.settings.status.expiredMonthly'

@@ -9,6 +9,7 @@ const SUBSCRIPTION = {
     finalConfirm: 'settings.account.delete.finalConfirm.subscription',
   },
   managesInGooglePlay: true,
+  keepsPurchaseHistory: true,
 }
 
 describe('accountDeletionPurchase', () => {
@@ -27,6 +28,7 @@ describe('accountDeletionPurchase', () => {
         finalConfirm: 'settings.account.delete.lifetime',
       },
       managesInGooglePlay: false,
+      keepsPurchaseHistory: true,
     })
   })
 
@@ -37,6 +39,14 @@ describe('accountDeletionPurchase', () => {
         expiresAt: '2026-11-29T09:00:00Z',
         offered: true,
       }),
-    ).toEqual({ note: null, managesInGooglePlay: false })
+    ).toEqual({ note: null, managesInGooglePlay: false, keepsPurchaseHistory: false })
+  })
+
+  it('ne parle pas d’abonnement après un droit offert terminé', () => {
+    expect(accountDeletionPurchase({ plan: 'none', expiresAt: null }, true)).toEqual({
+      note: null,
+      managesInGooglePlay: false,
+      keepsPurchaseHistory: false,
+    })
   })
 })

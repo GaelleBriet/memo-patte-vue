@@ -468,10 +468,22 @@ describe('PlusSection — droit offert', () => {
     }
   })
 
-  it('passe en pause à sa fin, comme un abonnement fini', async () => {
+  it('passe en pause à sa fin, comme un abonnement fini, et dit le droit offert terminé', async () => {
     writeStoredPlusStatus({ ...MOIS_OFFERT, expiresAt: '2026-09-01T10:00:00Z' })
     const wrapper = await monter()
 
     expect(wrapper.find('.plus-paused').exists()).toBe(true)
+    expect(statut(wrapper)).toContain('Plus offert — terminé')
+  })
+
+  it('dit le droit offert terminé en anglais aussi', async () => {
+    i18n.global.locale.value = 'en'
+    try {
+      writeStoredPlusStatus({ ...MOIS_OFFERT, expiresAt: '2026-09-01T10:00:00Z' })
+
+      expect(statut(await monter())).toContain('Plus, complimentary — ended')
+    } finally {
+      i18n.global.locale.value = 'fr'
+    }
   })
 })

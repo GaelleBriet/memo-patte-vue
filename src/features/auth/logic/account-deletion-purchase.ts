@@ -5,10 +5,15 @@ type PlusStatus = ReturnType<typeof usePurchaseStore>['status']
 export type AccountDeletionPurchase = {
   note: { summary: string; finalConfirm: string } | null
   managesInGooglePlay: boolean
+  keepsPurchaseHistory: boolean
 }
 
-export function accountDeletionPurchase(status: PlusStatus): AccountDeletionPurchase {
-  if (status.offered) return { note: null, managesInGooglePlay: false }
+export function accountDeletionPurchase(
+  status: PlusStatus,
+  offeredEnded = false,
+): AccountDeletionPurchase {
+  if (status.offered || offeredEnded)
+    return { note: null, managesInGooglePlay: false, keepsPurchaseHistory: false }
   if (status.plan === 'lifetime')
     return {
       note: {
@@ -16,6 +21,7 @@ export function accountDeletionPurchase(status: PlusStatus): AccountDeletionPurc
         finalConfirm: 'settings.account.delete.lifetime',
       },
       managesInGooglePlay: false,
+      keepsPurchaseHistory: true,
     }
   return {
     note: {
@@ -23,5 +29,6 @@ export function accountDeletionPurchase(status: PlusStatus): AccountDeletionPurc
       finalConfirm: 'settings.account.delete.finalConfirm.subscription',
     },
     managesInGooglePlay: true,
+    keepsPurchaseHistory: true,
   }
 }

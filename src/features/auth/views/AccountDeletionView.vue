@@ -33,7 +33,9 @@ const {
 
 const password = ref('')
 
-const deletionPurchase = computed(() => accountDeletionPurchase(purchase.status))
+const deletionPurchase = computed(() =>
+  accountDeletionPurchase(purchase.status, purchase.expiredOffered),
+)
 const isExplaining = computed(() => step.value === 'explain' || step.value === 'final-confirm')
 const isConfirmingIdentity = computed(() => step.value === 'confirm-identity')
 const isDeleted = computed(() => step.value === 'deleted')

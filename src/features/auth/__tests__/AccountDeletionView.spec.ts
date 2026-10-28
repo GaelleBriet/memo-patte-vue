@@ -399,11 +399,39 @@ describe('AccountDeletionView — ce que dit la suppression selon l’achat Plus
 
     expect(wrapper.find('.account-deletion-summary__subscription').exists()).toBe(false)
     expect(wrapper.find('.account-deletion-summary__manage').exists()).toBe(false)
+    expect(wrapper.get('.account-deletion-summary__panel--kept').text()).not.toContain(
+      'Google Play',
+    )
 
     await toucher('.account-deletion__continue')
     await wrapper.get('#account-deletion-password').setValue('secret-123')
     await toucher('.account-deletion__confirm')
 
     expect(dialogue()!.querySelector('.confirm-dialog__note')).toBeNull()
+  })
+
+  it('ne parle ni d’abonnement ni de Google Play après un droit offert terminé', async () => {
+    writeStoredPlusStatus({
+      plan: 'none',
+      expiresAt: null,
+      lastSubscription: 'monthly',
+      lastSubscriptionOffered: true,
+      subscriptionEndedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    })
+    const wrapper = await monter()
+
+    expect(wrapper.find('.account-deletion-summary__subscription').exists()).toBe(false)
+    expect(
+      wrapper.findAll('.account-deletion-summary__panel--kept li').map((item) => item.text()),
+    ).toEqual(['Le carnet sur ce téléphone'])
+  })
+
+  it('garde l’historique d’achat Google Play pour un achat à vie', async () => {
+    writeStoredPlusStatus({ plan: 'lifetime', expiresAt: null })
+    const wrapper = await monter()
+
+    expect(
+      wrapper.findAll('.account-deletion-summary__panel--kept li').map((item) => item.text()),
+    ).toEqual(['Le carnet sur ce téléphone', 'L’historique d’achat chez Google Play'])
   })
 })
