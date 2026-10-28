@@ -8,7 +8,7 @@ import {
   byStartDescending,
   isSeveralTimesADay,
   periodClosedBeforeFirstDue,
-  periodShownDays,
+  periodShownRange,
 } from '@/shared/domain/treatment-periods'
 import { nextDueAfterShift } from '@/shared/domain/treatment-shift-next'
 import { answeredOn } from '@/shared/domain/treatment-not-due-text'
@@ -151,11 +151,15 @@ function keyOf(event: Event): string {
     : `${event.dose.on} ${event.dose.time ?? ''}`
 }
 
+const SHIFT_WITHOUT_NEXT: ShiftLine = { kind: 'shift', next: null }
+
 // R11 : une ligne sans effet ne se regroupe avec aucune autre.
 function idleEvents(events: Event[]): Event[] {
   return events.map((event): Event => {
     if (event.kind === 'moved' || event.kind === 'not-due')
       return { kind: 'idle', key: keyOf(event), line: { kind: 'idle', line: event.line } }
+    if (event.kind === 'shift')
+      return { kind: 'idle', key: keyOf(event), line: { kind: 'idle', line: SHIFT_WITHOUT_NEXT } }
     if (event.kind !== 'given' && event.kind !== 'missed') return event
     const series: PdfDoseSeries = { kind: 'dates', doses: [event.dose] }
     return {
@@ -260,15 +264,14 @@ export function treatmentPeriods(state: TreatmentState): PdfTreatmentPeriod[] {
   const sorted = [...periods].sort(byStartDescending)
   return sorted.flatMap((period, index): PdfTreatmentPeriod[] => {
     const severalTimes = isSeveralTimesADay(period)
+    const own = lines.filter((dose) => dose.periodId === period.id)
     const events: Event[] = [
-      ...lines
-        .filter((dose) => dose.periodId === period.id)
-        .flatMap((dose) => {
-          const shiftNext = ({ dueOn, targetOn }: ShownDose) =>
-            nextDueAfterShift(view, period, { dueOn, targetOn })
-          const events = eventOf(dose, severalTimes, shiftNext)
-          return dose.idle ? idleEvents(events) : events
-        }),
+      ...own.flatMap((dose) => {
+        const shiftNext = ({ dueOn, targetOn }: ShownDose) =>
+          nextDueAfterShift(view, period, { dueOn, targetOn })
+        const events = eventOf(dose, severalTimes, shiftNext)
+        return dose.idle ? idleEvents(events) : events
+      }),
       ...view.unloggedDoses
         .filter((due) => due.settingId === period.id)
         .map((due): Event => ({
@@ -277,7 +280,7 @@ export function treatmentPeriods(state: TreatmentState): PdfTreatmentPeriod[] {
         })),
     ]
     if (events.length === 0 && periodClosedBeforeFirstDue(period, sorted[index - 1])) return []
-    const shown = periodShownDays(periods, period)
+    const shown = periodShownRange(periods, period, own)
     return [
       {
         from: shown.start,
