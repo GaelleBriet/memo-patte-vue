@@ -1734,7 +1734,13 @@
       "submit": "Sign in",
       "loading": "Signing in…",
       "toggle": "No account yet?",
-      "toggleAction": "Create an account"
+      "toggleAction": "Create an account",
+      "existingData": {
+        "title": "This phone already has a health record",
+        "body": "Signing in brings together this phone’s health record and the account’s: animals, care and reminders from both. Signing out afterwards will not separate them. Only sign in on your own phone.",
+        "cancel": "Cancel",
+        "continue": "Continue"
+      }
     },
     "signUp": {
       "title": "Create an account",

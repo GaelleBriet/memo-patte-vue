@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useCodeStepBack } from '../composables/use-code-step-back'
+import { useExistingDataWarning } from '../composables/use-existing-data-warning'
 import { usePasswordReset } from '../composables/use-password-reset'
 import { CODE_LENGTH } from '../logic/email-code'
 import { useSignedInExit } from '../composables/use-signed-in-exit'
@@ -15,10 +16,12 @@ import { passwordResetBackRoute } from '@/shared/utils/sign-in-route'
 import { showToast } from '@/shared/utils/toast'
 
 import EmailCodeStep from './EmailCodeStep.vue'
+import ExistingDataDialog from './ExistingDataDialog.vue'
 
 const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
+const existingData = useExistingDataWarning()
 
 const startEmail = router.options.history.state.email
 const isEmailLocked = router.options.history.state.emailLocked === true
@@ -55,7 +58,9 @@ function back(): void {
 }
 
 async function sendCode(): Promise<void> {
-  await reset.sendCode()
+  await existingData.guard(async () => {
+    await reset.sendCode()
+  })
 }
 
 async function resendCode(): Promise<void> {
@@ -196,6 +201,12 @@ async function submit(): Promise<void> {
       </div>
     </template>
   </PushedScreen>
+
+  <ExistingDataDialog
+    v-model="existingData.isOpen.value"
+    @confirm="existingData.continueSignIn"
+    @cancel="existingData.cancel"
+  />
 </template>
 
 <style scoped lang="scss">

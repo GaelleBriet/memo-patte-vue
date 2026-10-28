@@ -25,6 +25,7 @@ function act(action: PromptActionId): void {
 <template>
   <ConfirmDialog
     v-model="open"
+    :tone="prompt.actions.length > 0 ? 'primary' : 'danger'"
     :title="prompt.title"
     :text="prompt.text"
     :note="prompt.todayNote"
