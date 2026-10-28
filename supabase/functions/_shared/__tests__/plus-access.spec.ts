@@ -202,3 +202,43 @@ describe('plusAccessFrom', () => {
     })
   })
 })
+
+describe('plusAccessFrom, droit promotionnel', () => {
+  function promotional(duration: string, expires: string): RevenuecatSubscriber {
+    const product = `rc_promo_plus_${duration}`
+    return {
+      entitlements: {
+        plus: {
+          expires_date: expires,
+          product_identifier: product,
+          purchase_date: '2027-03-03T09:00:00Z',
+        },
+      },
+      subscriptions: {
+        [product]: {
+          expires_date: expires,
+          purchase_date: '2027-03-03T09:00:00Z',
+          store: 'promotional',
+        },
+      },
+    }
+  }
+
+  it('un mois offert donne Plus jusqu’à sa fin', () => {
+    expect(plusAccessFrom(promotional('monthly', '2027-04-03T09:00:00Z'), NOW)).toEqual({
+      active: true,
+      productType: 'monthly',
+      expiresAt: '2027-04-03T09:00:00.000Z',
+    })
+  })
+
+  it('un droit offert « à vie », que RevenueCat date de deux siècles, donne Plus', () => {
+    const access = plusAccessFrom(promotional('lifetime', '2227-03-03T09:00:00Z'), NOW)
+
+    expect(access).toMatchObject({ active: true, expiresAt: '2227-03-03T09:00:00.000Z' })
+  })
+
+  it('un droit offert échu ne donne plus Plus', () => {
+    expect(plusAccessFrom(promotional('monthly', '2027-03-08T09:00:00Z'), NOW)?.active).toBe(false)
+  })
+})

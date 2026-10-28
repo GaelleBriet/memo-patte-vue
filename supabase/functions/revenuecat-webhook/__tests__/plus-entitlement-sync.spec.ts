@@ -251,3 +251,39 @@ describe('syncPlusEntitlements', () => {
     expect(fake.saved).toEqual([])
   })
 })
+
+describe('syncPlusEntitlements, droit promotionnel accordé dans RevenueCat', () => {
+  const PROMOTIONAL: RevenuecatSubscriber = {
+    entitlements: {
+      plus: {
+        expires_date: '2027-04-10T12:00:00Z',
+        product_identifier: 'rc_promo_plus_monthly',
+        purchase_date: '2027-03-10T12:00:00Z',
+      },
+    },
+    subscriptions: {
+      rc_promo_plus_monthly: {
+        expires_date: '2027-04-10T12:00:00Z',
+        purchase_date: '2027-03-10T12:00:00Z',
+        store: 'promotional',
+        is_sandbox: false,
+      },
+    },
+  }
+
+  it('un événement NON_RENEWING_PURCHASE du store PROMOTIONAL ouvre Plus jusqu’à la fin du droit', async () => {
+    const fake = fakePorts({ subscribers: { [SOPHIE]: PROMOTIONAL } })
+
+    await syncPlusEntitlements(
+      event({ type: 'NON_RENEWING_PURCHASE', store: 'PROMOTIONAL', app_user_id: SOPHIE }),
+      fake.ports,
+    )
+
+    expect(fake.saved).toEqual([
+      {
+        userId: SOPHIE,
+        access: { active: true, productType: 'monthly', expiresAt: '2027-04-10T12:00:00.000Z' },
+      },
+    ])
+  })
+})
