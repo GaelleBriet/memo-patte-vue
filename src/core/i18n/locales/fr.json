@@ -1740,6 +1740,12 @@
         "body": "En te connectant, le carnet de ce téléphone et celui du compte seront réunis : animaux, soins et rappels des deux. Se déconnecter ensuite ne les séparera pas. Ne te connecte que sur ton propre téléphone.",
         "cancel": "Annuler",
         "continue": "Continuer"
+      },
+      "sendLocal": {
+        "title": "Envoyer le carnet de ce téléphone dans ton compte ?",
+        "body": "Le carnet de {name} sera sauvegardé dans le cloud de ce compte. | Les carnets de tes {n} animaux seront sauvegardés dans le cloud de ce compte.",
+        "cancel": "Annuler",
+        "confirm": "Envoyer"
       }
     },
     "signUp": {

@@ -1740,6 +1740,12 @@
         "body": "Signing in brings together this phone’s health record and the account’s: animals, care and reminders from both. Signing out afterwards will not separate them. Only sign in on your own phone.",
         "cancel": "Cancel",
         "continue": "Continue"
+      },
+      "sendLocal": {
+        "title": "Send this phone’s health record to your account?",
+        "body": "{name}’s health record will be backed up in this account’s cloud. | Your {n} animals’ health records will be backed up in this account’s cloud.",
+        "cancel": "Cancel",
+        "confirm": "Send"
       }
     },
     "signUp": {
