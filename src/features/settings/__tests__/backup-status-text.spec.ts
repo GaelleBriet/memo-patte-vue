@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import type { BackupStatus, CloudBackupStatus } from '../logic/backup-status'
-import { backupSubtitle, cloudBackupText, refusedItemsHelpText } from '../logic/backup-status-text'
+import {
+  backupSubtitle,
+  cloudBackupText,
+  pausedBackupText,
+  refusedItemsHelpText,
+} from '../logic/backup-status-text'
 import i18n from '@/core/i18n'
 import type { Translate } from '@/core/i18n/translate'
 import { plain } from '@/shared/__tests__/plain'
@@ -170,5 +175,36 @@ describe('sous-titre de la rubrique Sauvegarde', () => {
     expect(sub({ kind: 'saved', at: local(23, 8, 25) })).toBe('Last backup: 5 min ago')
     expect(sub({ kind: 'saved', at: local(23, 8, 25) }, 1)).toBe('One item couldn’t be backed up')
     expect(sub({ kind: 'saved', at: local(23, 8, 25) }, 3)).toBe('3 items couldn’t be backed up')
+  })
+})
+
+describe('texte de la sauvegarde en pause', () => {
+  function paused(keptUntil: string | null) {
+    const { title, hint, risk, kept } = pausedBackupText(t, { keptUntil })
+    return { title, hint, risk, kept: kept === null ? null : plain(kept) }
+  }
+
+  it('dit la pause, ce qui reste sur le téléphone et jusqu’à quand la sauvegarde est conservée', () => {
+    expect(paused('2027-09-14')).toEqual({
+      title: 'Ta sauvegarde cloud est en pause',
+      hint: 'Tes carnets restent sur ton téléphone.',
+      risk: 'Depuis la pause, tes changements ne sont plus sauvegardés : si ce téléphone est perdu, ils peuvent l’être aussi.',
+      kept: 'Ta dernière sauvegarde est conservée jusqu’au 14 sept. 2027. Réactive Plus pour reprendre là où elle s’était arrêtée.',
+    })
+  })
+
+  it('se lit en anglais', () => {
+    i18n.global.locale.value = 'en'
+
+    expect(paused('2027-09-14')).toEqual({
+      title: 'Your cloud backup is paused',
+      hint: 'Your health records stay on your phone.',
+      risk: 'Since the pause, your changes are no longer backed up: if this phone is lost, they may be too.',
+      kept: 'Your last backup is kept until Sep 14, 2027. Reactivate Plus to pick up where it left off.',
+    })
+  })
+
+  it('ne dit pas jusqu’à quand quand la fin de Plus est inconnue', () => {
+    expect(paused(null).kept).toBeNull()
   })
 })

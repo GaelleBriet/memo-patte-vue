@@ -132,6 +132,7 @@ import lastPage from '@material-symbols/svg-400/outlined/last_page.svg?raw'
 import menu from '@material-symbols/svg-400/outlined/menu.svg?raw'
 import palette from '@material-symbols/svg-400/outlined/palette.svg?raw'
 import pause from '@material-symbols/svg-400/outlined/pause.svg?raw'
+import pauseCircle from '@material-symbols/svg-400/outlined/pause_circle.svg?raw'
 import playArrow from '@material-symbols/svg-400/outlined/play_arrow.svg?raw'
 import radioButtonChecked from '@material-symbols/svg-400/outlined/radio_button_checked.svg?raw'
 import radioButtonUnchecked from '@material-symbols/svg-400/outlined/radio_button_unchecked.svg?raw'
@@ -258,6 +259,7 @@ export const msIcons = {
   palette,
   password,
   pause,
+  pause_circle: pauseCircle,
   person_off: personOff,
   pest_control: pestControl,
   pending_actions: pendingActions,

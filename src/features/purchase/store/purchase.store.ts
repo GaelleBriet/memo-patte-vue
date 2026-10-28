@@ -13,6 +13,8 @@ import {
   type PlusStatus,
   type SubscriptionPlan,
 } from '../logic/plus-status'
+import { pausedBackupOf, type BackupPause } from '../logic/plus-pause'
+import { clearPlusEndedAt, readPlusEndedAt } from '../logic/plus-pause-storage'
 import {
   NO_STORED_PLUS,
   readStoredPlusStatus,
@@ -47,6 +49,16 @@ export const usePurchaseStore = defineStore('purchase', () => {
   const expiredPlan = computed<SubscriptionPlan | null>(() =>
     status.value.plan === 'none' ? stored.value.lastSubscription : null,
   )
+  const endedAt = ref<string | null>(readPlusEndedAt())
+  /** Plus arrêté et sauvegarde cloud encore conservée : 12 mois, là où `expiredPlan` n'en tient que 1. */
+  const backupPause = computed<BackupPause | null>(() =>
+    pausedBackupOf({
+      status: status.value,
+      expiredPlan: expiredPlan.value,
+      endedAt: endedAt.value,
+      now: now.value,
+    }),
+  )
   const available = billingService.isAvailable()
   const offers = ref<PlusOffer[]>([])
   /** Échec du dernier chargement des offres : les autres actions lèvent. */
@@ -62,12 +74,14 @@ export const usePurchaseStore = defineStore('purchase', () => {
     generation += 1
     stored.value = remember(next, previous)
     writeStoredPlusStatus(stored.value)
+    endedAt.value = readPlusEndedAt()
     return next
   }
 
   return {
     status,
     expiredPlan,
+    backupPause,
     available,
     offers,
     error,
@@ -154,6 +168,8 @@ export const usePurchaseStore = defineStore('purchase', () => {
       pendingCheckout.value = null
       pendingRestore = false
       record(NO_PLUS, NO_STORED_PLUS)
+      endedAt.value = null
+      clearPlusEndedAt()
     },
 
     /**
