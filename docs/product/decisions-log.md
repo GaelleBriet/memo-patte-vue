@@ -4420,10 +4420,11 @@ Décisions de Gaelle du 2026-10-26 (questions D1 à D4 de l'audit de #89).
   faible, mais fabricable exprès).
 - **Comparaison sans tenir compte de la casse, dans les deux sens (#1335, décision de Gaelle du
   2026-10-28)** : `Bearer ABC…` contient `abc…`, et un secret `ABC…x` contient l'en-tête `abc…`. —
-  Raison : un secret recopié dans une autre casse (un hexadécimal tout en majuscules, par exemple)
-  se retrouve en quelques essais depuis l'en-tête qui fuit. — Alternative écartée : comparaison sensible à la casse, qui laissait passer un
-  secret recopié dans l'autre casse. Le recouvrement partiel (quelques caractères communs) n'est pas
-  traité ici : ticket d'après la sortie.
+  Raison (analyse de la relecture) : un secret recopié dans une autre casse (un hexadécimal tout en
+  majuscules, par exemple) se retrouve en quelques essais depuis l'en-tête qui fuit. — Alternative
+  écartée : comparaison sensible à la casse, qui laissait passer un secret recopié dans l'autre
+  casse. Le recouvrement partiel (quelques caractères communs) n'est pas traité ici : ticket d'après
+  la sortie.
 - Choix de lecture de Claude, d'après la documentation de RevenueCat lue le 2026-10-26 (« Rotate
   secret » invalide l'ancien secret aussitôt ; un seul `v1` documenté) : l'en-tête doit porter
   exactement un `t` et un `v1`, en minuscules, dans un ordre quelconque ; deux `v1`, un champ inconnu
