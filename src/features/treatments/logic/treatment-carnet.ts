@@ -3,6 +3,7 @@ import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.sche
 import { currentDoseText } from '@/shared/domain/current-dose'
 import { overdueDays } from '@/shared/domain/due-delay'
 import { reminderIcon, type ReminderCounts } from '@/shared/domain/reminders'
+import { isTreatmentFinished, isTreatmentOpen } from '@/shared/domain/treatment-finished'
 import { periodShownDays } from '@/shared/domain/treatment-periods'
 import type { TreatmentView } from '@/shared/domain/dose-calendar'
 import { formatClockTimes, formatDayMonthOrYear, formatPeriodRange } from '@/shared/utils/format'
@@ -33,10 +34,6 @@ export type CarnetTreatments = {
 }
 
 type Read = { treatment: TreatmentWithPeriods; view: TreatmentView | null }
-
-function isOpen(view: TreatmentView): boolean {
-  return view.phase !== 'ended' && view.phase !== 'stopped'
-}
 
 function endText(
   t: Translate,
@@ -102,7 +99,7 @@ function ongoingRow(t: Translate, read: Read, today: string): CarnetTreatmentRow
   }
   const count = view.unloggedDoses.length
   const unlogged = count === 0 ? null : t('treatments.unlogged.title', { n: count }, count)
-  if (!isOpen(view) || view.currentDoses.length === 0) {
+  if (!isTreatmentOpen(view) || view.currentDoses.length === 0) {
     return {
       ...base,
       detail: endText(t, { treatment, view }, today),
@@ -146,7 +143,7 @@ function finishedRow(
 function urgency({ view }: Read): string {
   if (view === null) return '2'
   const [due] = view.currentDoses
-  return isOpen(view) && due !== undefined ? `0 ${due.dueOn} ${due.dueTime ?? ''}` : '1'
+  return isTreatmentOpen(view) && due !== undefined ? `0 ${due.dueOn} ${due.dueTime ?? ''}` : '1'
 }
 
 function endDay({ view }: Read & { view: TreatmentView }): string {
@@ -199,12 +196,12 @@ export function carnetTreatments(
     view: views.read(treatment, today),
   }))
   const isFinished = (read: Read): read is Read & { view: TreatmentView } =>
-    read.view !== null && (read.view.finished || (!followed && !isOpen(read.view)))
+    read.view !== null && isTreatmentFinished(read.view, followed)
   const ongoing = reads
     .filter((read) => !isFinished(read))
     .sort((a, b) => compare(urgency(a), urgency(b)))
   const due = ongoing.filter(
-    ({ view }) => view !== null && isOpen(view) && view.currentDoses.length > 0,
+    ({ view }) => view !== null && isTreatmentOpen(view) && view.currentDoses.length > 0,
   )
 
   return {

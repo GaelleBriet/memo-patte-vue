@@ -196,7 +196,7 @@ describe('buildCarnetPdfContent', () => {
     expect(content.treatments[0]!.state).toBe('upToDate')
   })
 
-  it('montre un traitement arrêté avec sa date d’arrêt, sans échéance ni rappel, après les autres', () => {
+  it('range un traitement arrêté dans les terminés, une seule fois, avec sa date d’arrêt', () => {
     const data = carnetOf({
       ...SUMMARY,
       treatments: [
@@ -207,10 +207,25 @@ describe('buildCarnetPdfContent', () => {
 
     const content = buildCarnetPdfContent(data, ANIMAL_ID, TODAY)!
 
-    expect(content.treatments.map((row) => [row.name, row.due, row.state])).toEqual([
-      ['Milbémax', { kind: 'due', dueOn: '2026-09-01', dueTime: null, overdue: false }, 'upToDate'],
+    expect(content.treatments.map((row) => row.name)).toEqual(['Milbémax'])
+    expect(content.finishedTreatments.map((row) => [row.name, row.due, row.state])).toEqual([
       ['Drontal', { kind: 'stopped', on: '2026-06-20', beforeFirstDose: false }, 'none'],
     ])
+  })
+
+  it('classe les terminés du plus récemment fini au plus ancien', () => {
+    const base = SUMMARY.treatments[0]!
+    const data = carnetOf({
+      ...SUMMARY,
+      treatments: [
+        { ...base, id: 't-a', name: 'Ancien', stoppedOn: '2026-05-01' },
+        { ...base, id: 't-b', name: 'Récent', stoppedOn: '2026-06-20' },
+      ],
+    })
+
+    const content = buildCarnetPdfContent(data, ANIMAL_ID, TODAY)!
+
+    expect(content.finishedTreatments.map((row) => row.name)).toEqual(['Récent', 'Ancien'])
   })
 
   it('trie les échéances par date, les rappels absents en dernier', () => {
@@ -381,7 +396,8 @@ describe('buildCarnetPdfContent — historique', () => {
       ),
       treatmentDoses: doses.map(doseOf),
     }
-    return buildCarnetPdfContent(data, ANIMAL_ID, today)!.treatments[0]!
+    const content = buildCarnetPdfContent(data, ANIMAL_ID, today)!
+    return [...content.treatments, ...content.finishedTreatments][0]!
   }
 
   function given(periodId: string, ...days: string[]): DoseSpec[] {

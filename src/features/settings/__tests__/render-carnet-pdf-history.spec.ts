@@ -27,6 +27,7 @@ function carnet(fields: Partial<CarnetPdfContent>): CarnetPdfContent {
     generatedOn: '2026-09-15',
     vaccinations: [],
     treatments: [],
+    finishedTreatments: [],
     weightEntries: [],
     ...fields,
   }

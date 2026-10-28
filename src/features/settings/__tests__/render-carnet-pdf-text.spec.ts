@@ -54,6 +54,7 @@ function carnet(animal: Partial<CarnetPdfContent['animal']>, rows: string[]): Ca
     generatedOn: '2026-09-15',
     vaccinations: rows.map(vaccin),
     treatments: rows.map(traitement),
+    finishedTreatments: [],
     weightEntries: [],
   }
 }

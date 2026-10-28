@@ -107,7 +107,8 @@ function carnet(periods: ExportTreatmentPeriod[], doses: ExportTreatmentDose[]):
 }
 
 function treatmentRow(data: ExportData, today: string) {
-  return buildCarnetPdfContent(data, MILO, today)!.treatments[0]!
+  const content = buildCarnetPdfContent(data, MILO, today)!
+  return [...content.treatments, ...content.finishedTreatments][0]!
 }
 
 function csvNextDueDate(data: ExportData, today: string): string {
