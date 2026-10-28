@@ -4466,8 +4466,14 @@ Premier retour d'une utilisatrice, décision de Gaelle : les traitements sont pl
 - Sur le Carnet d'un animal, l'ordre est : traitements en cours, vaccins, poids, traitements terminés. Le bloc « Traitements terminés » garde son aspect (grisé, replié, avec son compteur) et passe tout en bas. Exemple (Milo) : Panacur, Drontal, Bravecto, puis CHPPi et Rage, puis la courbe de poids, puis « Traitements terminés 1 ».
 - Alternatives écartées : traitements en cours et terminés groupés au-dessus des vaccins (les vaccins descendent trop quand il y a beaucoup de terminés) ; ordre inchangé.
 - À l'accueil, « À faire » reste trié par urgence : en retard (le plus ancien d'abord), puis aujourd'hui, puis à venir dans les 30 jours ; à égalité, l'heure, puis le nom.
-- Ne change pas : le PDF et l'export CSV (vaccins avant traitements), à demander à Gaelle ; les captures du site et de la FAQ, qui montrent peut-être l'ancien ordre.
+- Ne change pas ici : le PDF et l'export CSV, alignés ensuite (voir « PDF et export CSV dans l'ordre du Carnet », 2026-10-28, #1385) ; les captures du site et de la FAQ, qui montrent peut-être l'ancien ordre.
 - Pour revenir dessus : l'ordre des sections est dans `CarnetView.vue` ; le bloc terminé est `FinishedTreatmentsSection.vue`, alimenté par l'événement `finished` de `TreatmentsSection`.
+
+## 2026-10-28 — PDF et export CSV dans l'ordre du Carnet (#1385)
+
+- Gaelle : « c'est lourd en travail ? si non fais-le, mets-le dans le même ordre ». Le PDF range ses sections traitements, vaccins, poids ; les fichiers du CSV suivent traitements, périodes, prises, vaccins, injections, poids.
+- Les traitements terminés ont leur propre section du PDF, comme dans le Carnet : ordre Traitements (en cours), Vaccins, Poids, Traitements terminés. Titre « Traitements terminés » / « Finished treatments », même mot que le Carnet ; section vide = pas de section. Un traitement terminé n'apparaît qu'une fois, la règle « terminé » est celle du Carnet. — Décision de Gaelle, 2026-10-28 (remplace la première version, où ils restaient dans « Traitements »). Le CSV ne change pas.
+- Pour revenir dessus : l'ordre est dans `render-carnet-pdf.ts` et `export-csv.ts` ; la règle « terminé » dans `shared/domain/treatment-finished.ts`.
 
 ## 2026-10-28 — Paramètres › Sauvegarde : « En pause » dure 12 mois après la fin de Plus (#1201)
 

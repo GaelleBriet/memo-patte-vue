@@ -37,11 +37,11 @@ function csvLocalTime(instant: string): string {
 
 export type CsvTables = {
   'animaux.csv': string
-  'vaccins.csv': string
-  'injections.csv': string
   'traitements.csv': string
   'periodes.csv': string
   'prises.csv': string
+  'vaccins.csv': string
+  'injections.csv': string
   'poids.csv': string
   'rappels.csv': string
 }
@@ -106,49 +106,6 @@ export function toCsvTables(
         animal.departureDate,
         csvLocalTime(animal.createdAt),
         csvLocalTime(animal.updatedAt),
-      ]),
-    ),
-    'vaccins.csv': csv(
-      [
-        'id',
-        'animalId',
-        'animalName',
-        'vaccinationName',
-        'plannedDueDate',
-        'lastInjectionDate',
-        'nextReminder',
-      ],
-      data.vaccinations.map((vaccination) => {
-        const head = injections.get(vaccination.id)
-        return [
-          vaccination.id,
-          vaccination.animalId,
-          animalName(vaccination.animalId),
-          vaccination.name,
-          vaccination.plannedDueDate,
-          head?.injectedOn ?? null,
-          head ? head.nextDueDate : vaccination.plannedDueDate,
-        ]
-      }),
-    ),
-    'injections.csv': csv(
-      [
-        'id',
-        'vaccinationId',
-        'vaccinationName',
-        'animalId',
-        'animalName',
-        'injectedOn',
-        'nextReminder',
-      ],
-      data.vaccinationInjections.map((injection) => [
-        injection.id,
-        injection.vaccinationId,
-        vaccinationName(injection.vaccinationId),
-        injection.animalId,
-        animalName(injection.animalId),
-        injection.injectedOn,
-        injection.nextDueDate,
       ]),
     ),
     'traitements.csv': csv(
@@ -227,6 +184,49 @@ export function toCsvTables(
         dose.givenOn,
         value(`doseStatus.${dose.status}`),
         dose.targetOn,
+      ]),
+    ),
+    'vaccins.csv': csv(
+      [
+        'id',
+        'animalId',
+        'animalName',
+        'vaccinationName',
+        'plannedDueDate',
+        'lastInjectionDate',
+        'nextReminder',
+      ],
+      data.vaccinations.map((vaccination) => {
+        const head = injections.get(vaccination.id)
+        return [
+          vaccination.id,
+          vaccination.animalId,
+          animalName(vaccination.animalId),
+          vaccination.name,
+          vaccination.plannedDueDate,
+          head?.injectedOn ?? null,
+          head ? head.nextDueDate : vaccination.plannedDueDate,
+        ]
+      }),
+    ),
+    'injections.csv': csv(
+      [
+        'id',
+        'vaccinationId',
+        'vaccinationName',
+        'animalId',
+        'animalName',
+        'injectedOn',
+        'nextReminder',
+      ],
+      data.vaccinationInjections.map((injection) => [
+        injection.id,
+        injection.vaccinationId,
+        vaccinationName(injection.vaccinationId),
+        injection.animalId,
+        animalName(injection.animalId),
+        injection.injectedOn,
+        injection.nextDueDate,
       ]),
     ),
     'poids.csv': csv(

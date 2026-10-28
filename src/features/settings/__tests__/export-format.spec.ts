@@ -329,11 +329,11 @@ describe('toCsvTables', () => {
   it('produit un fichier par table', () => {
     expect(Object.keys(tables)).toEqual([
       'animaux.csv',
-      'vaccins.csv',
-      'injections.csv',
       'traitements.csv',
       'periodes.csv',
       'prises.csv',
+      'vaccins.csv',
+      'injections.csv',
       'poids.csv',
       'rappels.csv',
     ])
