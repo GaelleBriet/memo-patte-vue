@@ -7,7 +7,7 @@ import { NO_PLUS, subscriptionOf, type PlusStatus, type SubscriptionPlan } from 
 
 export const PLUS_STATUS_STORAGE_KEY = 'memopatte.plus.status'
 
-/** Au-delà, l'app oublie l'abonnement échu : ni bandeau « en pause », ni appel au store. */
+/** Au-delà, l'app oublie l'abonnement échu : ni bandeau « en pause » sur l'écran Plus, ni appel au store. */
 const SUBSCRIPTION_MEMORY_DAYS = 30
 
 export type StoredPlusStatus = PlusStatus & {
@@ -57,7 +57,11 @@ function forgetLapsedMemory(status: StoredPlusStatus): StoredPlusStatus {
 function keepEnd(status: StoredPlusStatus): StoredPlusStatus {
   if (status.subscriptionEndedAt === null) {
     if (status.plan !== 'none') clearPlusEndedAt()
-  } else if (readPlusEndedAt() === null) writePlusEndedAt(status.subscriptionEndedAt)
+  } else {
+    const kept = readPlusEndedAt()
+    if (kept === null || Date.parse(status.subscriptionEndedAt) > Date.parse(kept))
+      writePlusEndedAt(status.subscriptionEndedAt)
+  }
   return status
 }
 
