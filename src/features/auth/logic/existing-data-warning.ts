@@ -2,8 +2,9 @@ export function mustWarnBeforeSignIn({
   animalCount,
   hasAccount,
 }: {
-  animalCount: number
+  animalCount: number | null
   hasAccount: boolean
 }): boolean {
-  return animalCount > 0 && !hasAccount
+  if (hasAccount) return false
+  return animalCount === null || animalCount > 0
 }

@@ -109,6 +109,7 @@ describe('ConfirmDialog', () => {
     wrapper = mount(ConfirmDialog, {
       props: {
         modelValue: true,
+        tone: 'primary',
         title: 'Arrêter Panacur ?',
         text: '25 doses ne sont pas renseignées.',
         cancelLabel: 'Annuler',
@@ -130,6 +131,30 @@ describe('ConfirmDialog', () => {
     expect(bouton('confirm').classList).toContain('text-primary')
     bouton('confirm').click()
     expect(wrapper.emitted('confirm')).toHaveLength(1)
+  })
+
+  it('garde la confirmation destructive en rouge quand des gestes sont ajoutés', async () => {
+    wrapper = mount(ConfirmDialog, {
+      props: {
+        modelValue: true,
+        title: 'Remplacer ?',
+        text: 'Rex sera effacé.',
+        cancelLabel: 'Annuler',
+        confirmLabel: 'Remplacer',
+      },
+      slots: { choices: '<button class="v-btn">Exporter une copie</button>' },
+      global: { plugins: [vuetify], stubs: { transition: false } },
+      attachTo: document.body,
+    })
+    await flushPromises()
+
+    expect(bouton('confirm').classList).toContain('text-error')
+  })
+
+  it('donne à la confirmation un bouton plein quand elle est l’action principale', async () => {
+    await monter({ stacked: true, tone: 'primary', solidConfirm: true })
+
+    expect(bouton('confirm').classList).toContain('bg-primary')
   })
 
   it('sur demande, place la confirmation destructive au-dessus de « Annuler »', async () => {

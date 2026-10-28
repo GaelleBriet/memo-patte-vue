@@ -23,6 +23,10 @@ describe('mustWarnBeforeSignIn', () => {
     expect(mustWarnBeforeSignIn({ animalCount: 0, hasAccount: false })).toBe(false)
   })
 
+  it('prévient quand le nombre d’animaux est inconnu', () => {
+    expect(mustWarnBeforeSignIn({ animalCount: null, hasAccount: false })).toBe(true)
+  })
+
   it('ne prévient pas quand un compte est déjà connecté', () => {
     expect(mustWarnBeforeSignIn({ animalCount: 3, hasAccount: true })).toBe(false)
   })
@@ -103,13 +107,14 @@ describe('useExistingDataWarning', () => {
     expect(proceed).toHaveBeenCalledOnce()
   })
 
-  it('laisse passer quand la liste des animaux ne se lit pas', async () => {
+  it('prévient quand la liste des animaux ne se lit pas', async () => {
     list.mockRejectedValue(new Error('base fermée'))
     const warning = useExistingDataWarning()
     const proceed = vi.fn<() => void>()
 
     await warning.guard(proceed)
 
-    expect(proceed).toHaveBeenCalledOnce()
+    expect(proceed).not.toHaveBeenCalled()
+    expect(warning.isOpen.value).toBe(true)
   })
 })

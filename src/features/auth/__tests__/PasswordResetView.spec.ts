@@ -5,6 +5,8 @@ import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
 import { AccountError } from '../logic/account-error'
 import { authRepository, type AuthRepository } from '../repository/auth.repository'
+import type { AnimalsRepository } from '@/features/animals/repository/animals.repository'
+import { provideAnimalsRepository } from '@/features/animals/store/animals.store'
 import { provideAuthRepository } from '../store/auth.store'
 import PasswordResetView from '../views/PasswordResetView.vue'
 import PasswordField from '@/shared/form/PasswordField.vue'
@@ -32,6 +34,7 @@ vi.mock('../repository/auth.repository', () => ({
 
 const repository = vi.mocked(authRepository)
 provideAuthRepository(() => authRepository)
+provideAnimalsRepository(() => ({ list: async () => [] }) as unknown as AnimalsRepository)
 const Vide = { render: () => null }
 const retours = vi.hoisted(() => [] as Array<() => void>)
 

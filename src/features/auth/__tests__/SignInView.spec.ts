@@ -6,6 +6,8 @@ import { createMemoryHistory, createRouter, createWebHistory, type Router } from
 import { AccountError } from '../logic/account-error'
 import { authRepository, type AuthRepository } from '../repository/auth.repository'
 import { signInWithGoogle } from '../service/google-sign-in.service'
+import type { AnimalsRepository } from '@/features/animals/repository/animals.repository'
+import { provideAnimalsRepository } from '@/features/animals/store/animals.store'
 import { provideAuthRepository } from '../store/auth.store'
 import SignInView from '../views/SignInView.vue'
 import PasswordField from '@/shared/form/PasswordField.vue'
@@ -59,6 +61,7 @@ vi.mock('../service/google-sign-in.service', () => ({
 const repository = vi.mocked(authRepository)
 const googleSignIn = vi.mocked(signInWithGoogle)
 provideAuthRepository(() => authRepository)
+provideAnimalsRepository(() => ({ list: async () => [] }) as unknown as AnimalsRepository)
 const Vide = { render: () => null }
 const ACHAT = '/sign-in?from=plus-account'
 const DEJA_PLUS = [

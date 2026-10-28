@@ -14,7 +14,7 @@ export function useExistingDataWarning() {
   async function guard(proceed: () => void | Promise<void>): Promise<void> {
     if (!animals.hasLoaded) await animals.load()
     const mustWarn = mustWarnBeforeSignIn({
-      animalCount: animals.animals.length,
+      animalCount: animals.error === null ? animals.animals.length : null,
       hasAccount: auth.hasPlusAccount,
     })
     if (!mustWarn) {

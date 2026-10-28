@@ -15,6 +15,7 @@ const { t } = useI18n()
   <ConfirmDialog
     v-model="open"
     tone="primary"
+    solid-confirm
     :title="t('auth.signIn.existingData.title')"
     :text="t('auth.signIn.existingData.body')"
     :cancel-label="t('auth.signIn.existingData.cancel')"
