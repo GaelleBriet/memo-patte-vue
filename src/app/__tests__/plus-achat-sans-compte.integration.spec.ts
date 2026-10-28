@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
+import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { createFakeSyncServer, type FakeSyncServer } from '@/core/sync/__tests__/fake-sync-server'
 import type { RestoreFlow } from '@/core/sync/service/restore-flow'
@@ -12,7 +13,12 @@ import { memoryStorage, USER_ID } from '@/features/auth/__tests__/auth-fixture'
 import { authRepository, type AuthRepository } from '@/features/auth/repository/auth.repository'
 import { provideAuthRepository, useAuthStore } from '@/features/auth/store/auth.store'
 import { NO_PLUS, type PlusStatus } from '@/features/purchase/logic/plus-status'
-import { billingService, type BillingService } from '@/features/purchase/service/billing.service'
+import { readStoredPlusStatus } from '@/features/purchase/logic/plus-status-storage'
+import {
+  billingService,
+  type BillingService,
+  type PurchaseOutcome,
+} from '@/features/purchase/service/billing.service'
 import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
 import {
   createPlusPhone,
@@ -160,21 +166,44 @@ describe('achat de Plus sans compte, le 29 octobre, carnet de Milo sur le télé
     expect(server.rows('animal')).toEqual([])
   })
 
-  it.fails(
-    'défaut : « Envoyer » touché avant la fin du paiement, Milo ne monte pas à l’activation de Plus sans autre geste',
-    async () => {
-      flow = await launch()
-      const checkout = phoneCheckout()
-      await checkout.checkout('annual')
-      await createAccount()
-      await letSyncRun()
-      flow.confirmSend()
-      await letSyncRun()
+  it('« Envoyer » touché avant la fin du paiement : Milo monte dès que Plus est actif, sans autre geste', async () => {
+    flow = await launch()
+    const checkout = phoneCheckout()
+    await checkout.checkout('annual')
+    await createAccount()
+    await letSyncRun()
+    flow.confirmSend()
+    await letSyncRun()
 
-      await checkout.checkout(checkout.resume()!.plan)
-      await letSyncRun()
+    await checkout.checkout(checkout.resume()!.plan)
+    await letSyncRun()
 
-      expect(server.rows('animal').map(({ name }) => name)).toEqual(['Milo'])
-    },
-  )
+    expect(server.rows('animal').map(({ name }) => name)).toEqual(['Milo'])
+  })
+
+  it('dialogue Google Play refermé avant l’enregistrement de l’achat : le cycle du retour n’envoie rien, celui de l’activation envoie Milo', async () => {
+    flow = await launch()
+    const checkout = phoneCheckout()
+    await checkout.checkout('annual')
+    await createAccount()
+    await letSyncRun()
+    flow.confirmSend()
+    await letSyncRun()
+    let paid: (outcome: PurchaseOutcome) => void = () => {}
+    billing.purchase.mockReturnValueOnce(new Promise((resolve) => (paid = resolve)))
+
+    const purchased = checkout.checkout(checkout.resume()!.plan)
+    await vi.waitFor(() => expect(billing.purchase).toHaveBeenCalledOnce())
+    simulateWebResume()
+    await letSyncRun()
+
+    expect(server.rows('animal')).toEqual([])
+
+    paid({ kind: 'purchased', status: ANNUAL })
+    await purchased
+    expect(readStoredPlusStatus().plan).toBe('annual')
+    await letSyncRun()
+
+    expect(server.rows('animal').map(({ name }) => name)).toEqual(['Milo'])
+  })
 })

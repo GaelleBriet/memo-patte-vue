@@ -1,9 +1,16 @@
 import { onAppResume } from '@/core/app-lifecycle/app-resume'
+import { onNetworkOnline } from '@/core/sync/service/network-status'
 import { usePurchaseStore } from '../store/purchase.store'
 
-/** Statut Plus revérifié au lancement puis à chaque retour au premier plan ; renvoie l'arrêt. */
+/** Statut Plus revérifié au lancement, au retour au premier plan et au retour du réseau ; renvoie l'arrêt. */
 export function installPlusStatusRefresh(): () => void {
   const purchase = usePurchaseStore()
-  void purchase.verifyKnownStatus()
-  return onAppResume(() => void purchase.verifyKnownStatus())
+  const verify = () => void purchase.verifyKnownStatus()
+  verify()
+  const stopResume = onAppResume(verify)
+  const stopNetwork = onNetworkOnline(verify)
+  return () => {
+    stopResume()
+    stopNetwork()
+  }
 }

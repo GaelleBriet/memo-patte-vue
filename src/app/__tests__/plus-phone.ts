@@ -94,6 +94,7 @@ export async function launchPlusApp(phone: PlusPhone) {
     userId: () => auth.userId,
     sessionActive: () => auth.sessionState === 'active',
     signInNeeded,
+    plusActive: isPlusActive,
     checkAccountBackup: () => phone.backup.check(),
     confirmCarnetSend: () => phone.backup.confirmSend(),
     restoreFlow: flow,
@@ -122,6 +123,10 @@ export function phoneCheckout() {
   )
 }
 
+function isPlusActive(): boolean {
+  return usePurchaseStore().status.plan !== 'none'
+}
+
 export function isPlusEligible(): boolean {
-  return useAuthStore().hasPlusAccount && usePurchaseStore().status.plan !== 'none'
+  return useAuthStore().hasPlusAccount && isPlusActive()
 }
