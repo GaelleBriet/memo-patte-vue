@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
+import { carnetPdfText } from '../logic/carnet-pdf-text'
 import { buildCarnetPdfContent, pdfExportFileName } from '../logic/pdf-content'
 import { BY_FIXTURE_DEVICE, carnetOf, periodOf, type CarnetSummary } from './export-fixture'
+import i18n from '@/core/i18n'
+import { plain } from '@/shared/__tests__/plain'
 import type {
   ExportAnimal,
   ExportTreatmentDose,
@@ -388,7 +391,7 @@ describe('buildCarnetPdfContent — historique', () => {
     }
   }
 
-  function treatmentRow(periods: PeriodSpec[], doses: DoseSpec[], today = TODAY) {
+  function contentOf(periods: PeriodSpec[], doses: DoseSpec[], today: string) {
     const data = {
       ...DATA,
       treatmentPeriods: periods.map((period) =>
@@ -396,7 +399,11 @@ describe('buildCarnetPdfContent — historique', () => {
       ),
       treatmentDoses: doses.map(doseOf),
     }
-    const content = buildCarnetPdfContent(data, ANIMAL_ID, today)!
+    return buildCarnetPdfContent(data, ANIMAL_ID, today)!
+  }
+
+  function treatmentRow(periods: PeriodSpec[], doses: DoseSpec[], today = TODAY) {
+    const content = contentOf(periods, doses, today)
     return [...content.treatments, ...content.finishedTreatments][0]!
   }
 
@@ -693,6 +700,97 @@ describe('buildCarnetPdfContent — historique', () => {
       { kind: 'moved', dueOn: '2026-10-16', to: '2026-10-19', advanced: false },
       { kind: 'shift', next: '2026-10-26' },
       { kind: 'given', series: { kind: 'dates', doses: [at('2026-10-09')] } },
+    ])
+  })
+
+  describe('#1421, Test G de Luna : le PDF lit la même ligne que la fiche (R12)', () => {
+    const MOVED_AT = { updatedAt: '2026-10-28T10:00:00.000Z' }
+    const periods: PeriodSpec[] = [
+      {
+        id: 'p1',
+        startsOn: '2026-10-26',
+        gridOriginOn: null,
+        frequency: { value: 1, unit: 'day' },
+      },
+      {
+        id: 'p2',
+        startsOn: '2026-10-28',
+        firstDueOn: '2026-11-07',
+        frequency: { value: 2, unit: 'week' },
+        createdAt: '2026-10-28T10:05:00.000Z',
+      },
+    ]
+    const doses: DoseSpec[] = [
+      ...given('p1', '2026-10-26', '2026-10-27'),
+      {
+        periodId: 'p1',
+        dueOn: '2026-10-28',
+        status: 'postponed',
+        targetOn: '2026-11-01',
+        dueRank: 1,
+        ...MOVED_AT,
+      },
+      { periodId: 'p1', dueOn: '2026-10-28', status: 'shift', targetOn: '2026-11-01', ...MOVED_AT },
+    ]
+
+    it('marque « · sans effet » le décalage que la fiche grise, et finit la période au report du 28', () => {
+      const row = treatmentRow(periods, doses, '2026-10-28')
+
+      expect(row.periods[1]).toMatchObject({
+        from: '2026-10-26',
+        to: '2026-10-28',
+        lines: [
+          { kind: 'moved', dueOn: '2026-10-28', to: '2026-11-01', advanced: false },
+          { kind: 'idle', line: { kind: 'shift', next: null } },
+          {
+            kind: 'given',
+            series: { kind: 'dates', doses: [at('2026-10-27'), at('2026-10-26')] },
+          },
+        ],
+      })
+    })
+
+    it('écrit les mêmes textes que la fiche', () => {
+      const content = contentOf(periods, doses, '2026-10-28')
+      const texts = plain(carnetPdfText(content, i18n.global.t))
+        .treatments.details.flat()
+        .map(({ text }) => text)
+
+      expect(texts).toEqual([
+        'Dernière prise : 27/10/2026',
+        'Depuis le 28/10/2026 · Toutes les 2 semaines',
+        'Du 26/10/2026 au 28/10/2026 · Tous les jours',
+        'Reportée au 01/11/2026 (prévue le 28/10/2026)',
+        'Doses suivantes décalées · sans effet',
+        'Prises : 27/10/2026 · 26/10/2026',
+      ])
+    })
+  })
+
+  it('Q85, Milbémax : la période ne dépasse jamais son arrêt, même avec une dose donnée en avance', () => {
+    const content = contentOf(
+      [
+        {
+          id: 'p',
+          startsOn: '2026-03-01',
+          frequency: { value: 3, unit: 'month' },
+          stoppedOn: '2026-03-15',
+        },
+      ],
+      [
+        ...given('p', '2026-03-01'),
+        { periodId: 'p', dueOn: '2026-06-01', status: 'given', givenOn: '2026-03-10' },
+      ],
+      '2026-03-20',
+    )
+    const { rows, details } = plain(carnetPdfText(content, i18n.global.t)).finishedTreatments
+
+    expect(rows).toEqual([['Milbémax', 'Arrêté le 15/03/2026', 'Pas de rappel']])
+    expect(details.flat().map(({ text }) => text)).toEqual([
+      'Dernière prise : 10/03/2026',
+      'Du 01/03/2026 au 15/03/2026 · Tous les 3 mois',
+      'Prise : 10/03/2026 · sans effet',
+      'Prise : 01/03/2026',
     ])
   })
 
