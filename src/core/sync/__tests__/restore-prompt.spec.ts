@@ -27,6 +27,12 @@ describe('createRestorePrompt', () => {
     expect(prompt.shouldOpen('choice', () => home, null)).toBe(true)
   })
 
+  it('ouvre aussi quand le carnet du téléphone attend la confirmation de son envoi', () => {
+    const prompt = createRestorePrompt()
+
+    expect(prompt.shouldOpen('send-confirmation', () => home, null)).toBe(true)
+  })
+
   it('n’ouvre rien hors de l’accueil, ni devant une feuille', () => {
     const prompt = createRestorePrompt()
 

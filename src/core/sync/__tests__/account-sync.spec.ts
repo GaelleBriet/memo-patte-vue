@@ -53,11 +53,20 @@ function fakeOutbox(pending: number): SyncDependencies['outbox'] {
 function fakeRestoreFlow(resume: () => Promise<boolean> = async () => false) {
   const restored = new Set<() => void>()
   const retries = new Set<() => void>()
+  const sends = new Set<() => void>()
   return {
     state: shallowRef<RestoreFlowState>({ step: 'idle' }),
     checking: vi.fn<() => void>(),
     noAnswer: vi.fn<() => void>(),
     offer: vi.fn<SyncDependencies['restoreFlow']['offer']>(),
+    askSend: vi.fn<SyncDependencies['restoreFlow']['askSend']>(),
+    onSendConfirmed(listener: () => void) {
+      sends.add(listener)
+      return () => sends.delete(listener)
+    },
+    confirm() {
+      for (const listener of sends) listener()
+    },
     unreachable: vi.fn<() => void>(),
     reset: vi.fn<() => void>(),
     resume: vi.fn<() => Promise<boolean>>(async () => {
@@ -90,6 +99,7 @@ const withoutSession = {
   ),
   sessionActive: () => false,
   checkAccountBackup: vi.fn<() => Promise<AccountBackupCheck>>(async () => ({ kind: 'active' })),
+  confirmCarnetSend: vi.fn<() => Promise<AccountBackupCheck>>(async () => ({ kind: 'active' })),
   restoreFlow: fakeRestoreFlow(),
 }
 
@@ -305,6 +315,9 @@ describe('installSync', () => {
         steps.push(`check:${userId.value}`)
         return outcome
       })
+      const confirmCarnetSend = vi.fn<() => Promise<AccountBackupCheck>>(async () => ({
+        kind: 'seeded',
+      }))
       const runCycle = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
       const restoreFlow = fakeRestoreFlow(async () => {
         steps.push('restore')
@@ -319,6 +332,7 @@ describe('installSync', () => {
         userId: () => userId.value,
         sessionActive: () => active.value,
         checkAccountBackup,
+        confirmCarnetSend,
         restoreFlow,
         restoreMissingPhotos,
       }
@@ -329,11 +343,104 @@ describe('installSync', () => {
         active,
         steps,
         checkAccountBackup,
+        confirmCarnetSend,
         runCycle,
         restoreFlow,
         restoreMissingPhotos,
       }
     }
+
+    it('un compte sans sauvegarde pose la question : rien n’est amorcé ni programmé avant la réponse', async () => {
+      const { deps, userId, active, runCycle, restoreFlow, confirmCarnetSend } = accountSetup({
+        kind: 'confirm-send',
+        animalCount: 2,
+        firstName: 'Milo',
+      })
+      userId.value = 'user-1'
+      active.value = true
+      const stop = await installSync(deps)
+      await runDebounce()
+      runCycle.mockClear()
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(restoreFlow.askSend).toHaveBeenCalledWith({
+        kind: 'confirm-send',
+        animalCount: 2,
+        firstName: 'Milo',
+      })
+      expect(confirmCarnetSend).not.toHaveBeenCalled()
+      await runDebounce()
+      expect(runCycle).not.toHaveBeenCalled()
+      stop()
+    })
+
+    it('« Envoyer » relit la sauvegarde puis programme l’envoi du carnet', async () => {
+      const { deps, userId, active, runCycle, restoreFlow, confirmCarnetSend } = accountSetup({
+        kind: 'confirm-send',
+        animalCount: 1,
+        firstName: 'Milo',
+      })
+      userId.value = 'user-1'
+      active.value = true
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(0)
+      runCycle.mockClear()
+
+      restoreFlow.confirm()
+      await vi.advanceTimersByTimeAsync(0)
+      await runDebounce()
+
+      expect(confirmCarnetSend).toHaveBeenCalledOnce()
+      expect(restoreFlow.reset).toHaveBeenCalled()
+      expect(runCycle).toHaveBeenCalled()
+      stop()
+    })
+
+    it('« Envoyer » face à une sauvegarde apparue entre-temps propose le choix', async () => {
+      const { deps, userId, active, restoreFlow, confirmCarnetSend } = accountSetup({
+        kind: 'confirm-send',
+        animalCount: 1,
+        firstName: 'Milo',
+      })
+      const summary = { animalCount: 3, lastBackupAt: '2026-10-20T19:04:00.000Z' }
+      confirmCarnetSend.mockResolvedValue({ kind: 'backup-found', summary })
+      userId.value = 'user-1'
+      active.value = true
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(0)
+
+      restoreFlow.confirm()
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(restoreFlow.offer).toHaveBeenCalledWith(summary)
+      stop()
+    })
+
+    it('« Envoyer » hors ligne ne programme rien et repart d’un contrôle complet', async () => {
+      const { deps, userId, active, runCycle, restoreFlow, confirmCarnetSend } = accountSetup({
+        kind: 'confirm-send',
+        animalCount: 1,
+        firstName: 'Milo',
+      })
+      confirmCarnetSend.mockResolvedValue({ kind: 'unreachable' })
+      userId.value = 'user-1'
+      active.value = true
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(0)
+      await runDebounce()
+      runCycle.mockClear()
+
+      restoreFlow.confirm()
+      await vi.advanceTimersByTimeAsync(0)
+      await runDebounce()
+
+      expect(restoreFlow.unreachable).toHaveBeenCalled()
+      expect(runCycle).not.toHaveBeenCalled()
+      restoreFlow.retry()
+      await vi.advanceTimersByTimeAsync(0)
+      expect(restoreFlow.askSend).toHaveBeenCalledTimes(2)
+      stop()
+    })
 
     it('contrôle la sauvegarde dès que la session du compte est active, une fois par lancement', async () => {
       const { deps, userId, active, checkAccountBackup } = accountSetup()

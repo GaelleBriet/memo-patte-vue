@@ -36,7 +36,11 @@ function setup({
     tables: () => [animalTable],
     animals: () => ({
       list: async () =>
-        Array.from({ length: localAnimals }, (_, index) => ({ id: `a${index}` }) as Animal),
+        Array.from(
+          { length: localAnimals },
+          (_, index) =>
+            ({ id: `a${index}`, name: index === 0 ? 'Milo' : `Luna ${index}` }) as Animal,
+        ),
     }),
     restore: { pendingMode: async () => pending, start },
     userId: () => userId,
@@ -45,10 +49,71 @@ function setup({
 }
 
 describe('createAccountBackupService', () => {
-  it('sans sauvegarde, amorce l’envoi de tout le carnet du téléphone', async () => {
+  it('sans sauvegarde et avec un carnet sur le téléphone, demande confirmation sans rien mettre en file', async () => {
     const { service, enableAndQueueWholeCarnet } = setup({ remoteAnimals: 0, localAnimals: 2 })
 
+    await expect(service.check()).resolves.toEqual({
+      kind: 'confirm-send',
+      animalCount: 2,
+      firstName: 'Milo',
+    })
+    expect(enableAndQueueWholeCarnet).not.toHaveBeenCalled()
+  })
+
+  it('sans sauvegarde et sans animal sur le téléphone, active la synchro sans question', async () => {
+    const { service, enableAndQueueWholeCarnet } = setup({ remoteAnimals: 0, localAnimals: 0 })
+
     await expect(service.check()).resolves.toEqual({ kind: 'seeded' })
+    expect(enableAndQueueWholeCarnet).toHaveBeenCalledOnce()
+  })
+
+  it('après confirmation, amorce l’envoi de tout le carnet du téléphone', async () => {
+    const { service, enableAndQueueWholeCarnet } = setup({ remoteAnimals: 0, localAnimals: 2 })
+
+    await expect(service.confirmSend()).resolves.toEqual({ kind: 'seeded' })
+    expect(enableAndQueueWholeCarnet).toHaveBeenCalledOnce()
+  })
+
+  it('à la confirmation, une sauvegarde apparue entre-temps repasse par le choix sans rien envoyer', async () => {
+    const { service, enableAndQueueWholeCarnet } = setup({ remoteAnimals: 3, localAnimals: 2 })
+
+    await expect(service.confirmSend()).resolves.toMatchObject({ kind: 'backup-found' })
+    expect(enableAndQueueWholeCarnet).not.toHaveBeenCalled()
+  })
+
+  it('à la confirmation, un serveur injoignable n’envoie rien', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const { service, enableAndQueueWholeCarnet } = setup({ unreachable: true, localAnimals: 2 })
+
+    await expect(service.confirmSend()).resolves.toEqual({ kind: 'unreachable' })
+    expect(enableAndQueueWholeCarnet).not.toHaveBeenCalled()
+    warn.mockRestore()
+  })
+
+  it('à la confirmation, un compte parti pendant la question n’envoie rien', async () => {
+    const { service, enableAndQueueWholeCarnet } = setup({ userId: null, localAnimals: 2 })
+
+    await expect(service.confirmSend()).resolves.toEqual({ kind: 'signed-out' })
+    expect(enableAndQueueWholeCarnet).not.toHaveBeenCalled()
+  })
+
+  it('confirmé deux fois, n’envoie le carnet qu’une fois', async () => {
+    let enabled = false
+    const enableAndQueueWholeCarnet = vi.fn<() => Promise<void>>(async () => {
+      enabled = true
+    })
+    const service = createAccountBackupService({
+      outbox: () => ({ isEnabled: async () => enabled, enableAndQueueWholeCarnet }),
+      tables: () => [
+        { entity: 'animal', countRemoteRows: async () => 0, latestRemoteStamp: async () => null },
+      ],
+      animals: () => ({ list: async () => [{ id: 'a', name: 'Milo' } as Animal] }),
+      restore: { pendingMode: async () => null, start: async () => {} },
+      userId: () => USER_ID,
+    })
+
+    await service.confirmSend()
+    await expect(service.confirmSend()).resolves.toEqual({ kind: 'active' })
     expect(enableAndQueueWholeCarnet).toHaveBeenCalledOnce()
   })
 

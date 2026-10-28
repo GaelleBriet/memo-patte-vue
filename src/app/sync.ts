@@ -53,7 +53,7 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
       isOnline: isNetworkConnected,
     }),
   )
-  const restoreFlow = createRestoreFlow(restore, signInNeeded)
+  const restoreFlow = createRestoreFlow(restore, signInNeeded, () => useAuthStore().signOut())
   provideRestoreFlow(restoreFlow)
   const accountBackup = createAccountBackupService({
     outbox: () => outbox,
@@ -69,6 +69,7 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
     userId,
     sessionActive,
     checkAccountBackup: () => accountBackup.check(),
+    confirmCarnetSend: () => accountBackup.confirmSend(),
     restoreFlow,
     restoreMissingPhotos: (account, options) => photoRestore.restoreMissing(account, options),
   }
