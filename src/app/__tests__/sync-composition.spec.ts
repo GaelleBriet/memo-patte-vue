@@ -9,16 +9,22 @@ import {
   usePhotosDownloading,
 } from '@/core/sync/service/photo-restore-status'
 import type { useAuthStore } from '@/features/auth/store/auth.store'
+import type { usePurchaseStore } from '@/features/purchase/store/purchase.store'
 import { createDefaultSyncDependencies } from '../sync'
 
 const auth = vi.hoisted(() => ({
   sessionState: 'none' as ReturnType<typeof useAuthStore>['sessionState'],
+  hasPlusAccount: false,
+}))
+const purchase = vi.hoisted(() => ({
+  status: { plan: 'none' } as Pick<ReturnType<typeof usePurchaseStore>['status'], 'plan'>,
 }))
 
 const photos = vi.hoisted(() => ({ isRunning: { value: false } }))
 const photoSweep = vi.hoisted(() => ({ sweep: vi.fn<(userId: string) => Promise<void>>() }))
 
 vi.mock('@/features/auth/store/auth.store', () => ({ useAuthStore: () => auth }))
+vi.mock('@/features/purchase/store/purchase.store', () => ({ usePurchaseStore: () => purchase }))
 
 vi.mock('@/core/sync/service/local-sync-context', () => ({
   createLocalSyncContext: vi.fn<typeof createLocalSyncContext>(async () => {
@@ -135,5 +141,20 @@ describe('createDefaultSyncDependencies', () => {
     auth.sessionState = 'needs-refresh'
     sync.restoreFlow.unreachable()
     expect(sync.restoreFlow.state.value).toEqual({ step: 'waiting-network', chosen: false })
+  })
+
+  it('donne à la synchro le statut Plus de l’appareil, celui que lit aussi l’éligibilité du cycle', async () => {
+    const sync = await createDefaultSyncDependencies()
+
+    const [deps] = vi.mocked(createLocalSyncContext).mock.calls.at(-1) ?? []
+    auth.hasPlusAccount = true
+    purchase.status = { plan: 'none' }
+    expect(sync.plusActive()).toBe(false)
+    expect(deps?.isEligible()).toBe(false)
+    purchase.status = { plan: 'annual' }
+    expect(sync.plusActive()).toBe(true)
+    expect(deps?.isEligible()).toBe(true)
+    auth.hasPlusAccount = false
+    expect(deps?.isEligible()).toBe(false)
   })
 })

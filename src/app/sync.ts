@@ -37,8 +37,8 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
   const sessionActive = () => useAuthStore().sessionState === 'active'
   const signInNeeded = () => useAuthStore().sessionState === 'needs-sign-in'
   const sessionReset = () => useAuthStore().sessionUnreadable
-  const isEligible = () =>
-    useAuthStore().hasPlusAccount && usePurchaseStore().status.plan !== 'none'
+  const plusActive = () => usePurchaseStore().status.plan !== 'none'
+  const isEligible = () => useAuthStore().hasPlusAccount && plusActive()
   const { outbox, cycle, restore, photoRestore, photoSweep } = await createLocalSyncContext({
     tables,
     cloudAnimals: animals,
@@ -73,6 +73,7 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
     userId,
     sessionActive,
     signInNeeded,
+    plusActive,
     checkAccountBackup: () => accountBackup.check(),
     confirmCarnetSend: () => accountBackup.confirmSend(),
     restoreFlow,
