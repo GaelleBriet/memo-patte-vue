@@ -12,7 +12,10 @@ import { provideAnimalsRepository } from '@/features/animals/store/animals.store
 import type { AnimalsRepository } from '@/features/animals/repository/animals.repository'
 
 vi.mock('../repository/auth.repository', () => ({
-  authRepository: { onSessionChange: vi.fn<AuthRepository['onSessionChange']>() },
+  authRepository: {
+    onSessionChange: vi.fn<AuthRepository['onSessionChange']>(),
+    onSessionUnreadable: vi.fn<AuthRepository['onSessionUnreadable']>(),
+  },
 }))
 
 describe('mustWarnBeforeSignIn', () => {
