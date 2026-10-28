@@ -1031,7 +1031,7 @@ describe('BackupSettingsView', () => {
   })
 
   describe('Plus arrêté', () => {
-    function arrêterPlus(expiresAt = '2026-09-14T10:00:00Z') {
+    function arrêterPlus(expiresAt = new Date(2026, 8, 14, 10).toISOString()) {
       vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 28, 9, 0) })
       writeStoredPlusStatus({ plan: 'monthly', expiresAt })
       withFreshPinia()
@@ -1085,7 +1085,7 @@ describe('BackupSettingsView', () => {
     })
 
     it('redevient l’écran d’un gratuit une fois la date de conservation passée', async () => {
-      arrêterPlus('2025-09-01T10:00:00Z')
+      arrêterPlus(new Date(2025, 8, 1, 10).toISOString())
       const wrapper = await monter()
 
       expect(wrapper.find('.backup-settings__paused').exists()).toBe(false)

@@ -549,13 +549,13 @@ describe('usePurchaseStore — offre en attente d’un compte', () => {
 })
 
 describe('usePurchaseStore › sauvegarde en pause', () => {
-  const LAPSED: PlusStatus = { plan: 'monthly', expiresAt: '2026-09-01T10:00:00Z' }
+  const LAPSED: PlusStatus = { plan: 'monthly', expiresAt: new Date(2026, 8, 1, 10).toISOString() }
 
   it('garde la date de fin 12 mois quand le souvenir de 30 jours est oublié', async () => {
     writeStoredPlusStatus(LAPSED)
     service.fetchStatus.mockResolvedValue(NO_PLUS)
     await usePurchaseStore().verifyKnownStatus()
-    vi.setSystemTime(new Date('2026-11-15T10:00:00Z'))
+    vi.setSystemTime(new Date(2026, 10, 15, 10))
 
     setActivePinia(createPinia())
     const relance = usePurchaseStore()

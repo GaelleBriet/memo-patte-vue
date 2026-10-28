@@ -11,7 +11,11 @@ import {
 } from '../logic/plus-pause-storage'
 import { memoryStorage } from './billing-fixture'
 
-const ENDED_AT = '2026-09-14T10:00:00Z'
+function local(year: number, month: number, day: number, hours = 10): string {
+  return new Date(year, month - 1, day, hours).toISOString()
+}
+
+const ENDED_AT = local(2026, 9, 14)
 const AT = (iso: string) => Date.parse(iso)
 
 describe('backupKeptUntil', () => {
@@ -20,7 +24,7 @@ describe('backupKeptUntil', () => {
   })
 
   it('ramène le 29 février au dernier jour de février', () => {
-    expect(backupKeptUntil('2028-02-29T10:00:00Z')).toBe('2029-02-28')
+    expect(backupKeptUntil(local(2028, 2, 29))).toBe('2029-02-28')
   })
 })
 
@@ -29,7 +33,7 @@ describe('pausedBackupOf', () => {
     status: NO_PLUS,
     expiredPlan: null,
     endedAt: ENDED_AT,
-    now: AT('2026-10-28T10:00:00Z'),
+    now: AT(local(2026, 10, 28)),
   }
 
   it('annonce la date de conservation d’un Plus arrêté', () => {
@@ -37,17 +41,17 @@ describe('pausedBackupOf', () => {
   })
 
   it('reste en pause le jour même de la date de conservation', () => {
-    expect(pausedBackupOf({ ...base, now: AT('2027-09-14T08:00:00Z') })).toEqual({
+    expect(pausedBackupOf({ ...base, now: AT(local(2027, 9, 14, 8)) })).toEqual({
       keptUntil: '2027-09-14',
     })
   })
 
   it('redevient un gratuit le lendemain de la date de conservation', () => {
-    expect(pausedBackupOf({ ...base, now: AT('2027-09-15T10:00:00Z') })).toBeNull()
+    expect(pausedBackupOf({ ...base, now: AT(local(2027, 9, 15)) })).toBeNull()
   })
 
   it('n’est jamais en pause tant que Plus est actif', () => {
-    const active = { plan: 'annual', expiresAt: '2027-01-01T10:00:00Z' } as const
+    const active = { plan: 'annual', expiresAt: local(2027, 1, 1) } as const
     expect(pausedBackupOf({ ...base, status: active })).toBeNull()
   })
 
