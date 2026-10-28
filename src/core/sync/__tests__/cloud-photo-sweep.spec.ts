@@ -327,7 +327,7 @@ describe('createCloudPhotoSweep', () => {
       ['le dossier du cloud', 'list'],
     ] as const)('%s', async (_label, failing) => {
       const { sweep, storage, outbox, cloudAnimals, localKeptPhotos } = setup({
-        objects: [object(P1, daysAgo(30))],
+        objects: [object(P1, daysAgo(30)), object(P2, daysAgo(0))],
       })
       const failure = new Error('réseau coupé')
       if (failing === 'outbox') vi.spyOn(outbox, 'listPending').mockRejectedValue(failure)
