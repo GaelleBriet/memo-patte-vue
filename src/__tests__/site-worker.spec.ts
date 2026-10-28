@@ -91,4 +91,33 @@ describe('site/_worker.js', () => {
       expect(res.status).toBe(304)
     })
   })
+
+  describe('politique de contenu en mode rapport', () => {
+    const urls = [
+      'https://memopatte.app/',
+      'https://memopatte.app/en/help/',
+      'https://www.memopatte.app/aide/',
+    ]
+
+    it.each(urls)('pose un rapport seul sur %s, sans report-uri ni report-to', async (url) => {
+      const { response } = serve(url)
+      const policy = (await response).headers.get('content-security-policy-report-only')
+      expect(policy).toContain("default-src 'self'")
+      expect(policy).toContain("script-src 'self'")
+      expect(policy).toContain("object-src 'none'")
+      expect(policy).not.toMatch(/report-(uri|to)/)
+      expect(policy).not.toMatch(/https?:/)
+    })
+
+    it.each(urls)('ne rend bloquante que frame-ancestors sur %s', async (url) => {
+      const { response } = serve(url)
+      expect((await response).headers.get('content-security-policy')).toBe("frame-ancestors 'none'")
+    })
+
+    it('la pose aussi sur une 404', async () => {
+      const assets = { fetch: async () => new Response('absent', { status: 404 }) }
+      const res = await worker.fetch(new Request('https://memopatte.app/nope'), { ASSETS: assets })
+      expect(res.headers.get('content-security-policy-report-only')).toContain("default-src 'self'")
+    })
+  })
 })
