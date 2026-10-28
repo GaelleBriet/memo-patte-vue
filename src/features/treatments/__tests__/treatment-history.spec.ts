@@ -744,6 +744,26 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
     shifted('2026-10-16', '2026-10-19'),
     postponed('2026-10-16', '2026-10-19'),
   ]
+  // Tous les jours dès le 26 oct. ; le 28, la dose reportée au 1er nov. avec la suite, puis toutes les deux semaines dès le 7.
+  const MOVED_AT = { updatedAt: '2026-10-28T10:00:00.000Z' }
+  const TEST_G = treatment(
+    [
+      period({ startsOn: '2026-10-26', firstDueOn: '2026-10-26', gridOriginOn: null }),
+      period({
+        id: 'p-2',
+        startsOn: '2026-10-28',
+        firstDueOn: '2026-11-07',
+        frequency: { value: 2, unit: 'week' },
+        createdAt: '2026-10-28T10:05:00.000Z',
+      }),
+    ],
+    [
+      dose('2026-10-26', '2026-10-27'),
+      dose('2026-10-27', '2026-10-28'),
+      postponed('2026-10-28', '2026-11-01', { ...MOVED_AT, dueRank: 1 }),
+      shifted('2026-10-28', '2026-11-01', MOVED_AT),
+    ],
+  )
 
   function line(book: TreatmentWithPeriods, today: string, kind: string) {
     return history(book, today).periods[0]!.lines.find((other) => other.kind === kind)!
@@ -853,6 +873,26 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
     expect(refused(book, '2026-10-21', 'move')).toEqual({
       'remove-move': 'Une dose plus lointaine est déjà notée.',
     })
+  })
+
+  it('#1421, Test G de Luna : décalage grisé « · sans effet », période jusqu’au report du 28 oct.', () => {
+    expect(
+      history(TEST_G, '2026-10-28').periods.map(({ head, lines }) => ({
+        head: head?.title,
+        lines: lines.map(({ kind, title }) => [kind, title]),
+      })),
+    ).toEqual([
+      { head: 'Depuis le 28 oct. 2026', lines: [] },
+      {
+        head: 'Du 26 oct. au 28 oct. 2026',
+        lines: [
+          ['move', 'Reportée au 1er nov. 2026 (prévue le 28 oct.)'],
+          ['idle', 'Doses suivantes décalées · sans effet'],
+          ['given', '27 oct. 2026'],
+          ['given', '26 oct. 2026'],
+        ],
+      },
+    ])
   })
 })
 

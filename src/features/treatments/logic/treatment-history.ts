@@ -12,7 +12,7 @@ import {
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
-import { byStartDescending, periodShownDays } from '@/shared/domain/treatment-periods'
+import { byStartDescending, periodShownRange } from '@/shared/domain/treatment-periods'
 import { historyEntries, type TreatmentReading } from '@/shared/domain/treatment-reading'
 import { formatLongDate, formatDayMonthOrYear } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
@@ -54,17 +54,9 @@ function rangeDates(from: string, to: string): { from: string; to: string } {
   return { from: formatDayMonthOrYear(from, to), to: formatLongDate(to) }
 }
 
-function lastDoseDay(entries: Entry[]): string | null {
-  const days = entries
-    .filter(({ dose }) => dose.status !== 'shift' && dose.status !== 'not-due')
-    .map(({ dose }) => dose.dueOn)
-  return days.length === 0 ? null : days.reduce((a, b) => (a > b ? a : b))
-}
-
 function headTitle(t: Translate, periods: Period[], period: Period, entries: Entry[]): string {
-  const { start, lastDay } = periodShownDays(periods, period)
-  const lastDose = lastDoseDay(entries)
-  const end = lastDay !== null && lastDose !== null && lastDose > lastDay ? lastDose : lastDay
+  const doses = entries.map(({ dose }) => dose)
+  const { start, lastDay: end } = periodShownRange(periods, period, doses)
   if (end === null) {
     return t('treatments.history.period.since', { date: formatLongDate(start) })
   }

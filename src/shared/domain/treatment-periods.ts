@@ -1,5 +1,5 @@
 import { previousDay } from './calendar-day'
-import type { Setting } from './dose-calendar'
+import type { Line, Setting } from './dose-calendar'
 
 type Ordered = Pick<Setting, 'id' | 'startsOn' | 'createdAt'>
 
@@ -47,6 +47,30 @@ export function periodShownDays(
   return {
     start: shownStartOf(period, index < 0 ? undefined : sorted[index + 1]),
     lastDay: periodLastDay(period, nextStart),
+  }
+}
+
+type DoseDay = Pick<Line, 'status' | 'dueOn'>
+
+/**
+ * R12 : les jours de l'étiquette d'une période, sur la fiche comme sur le PDF ; sa fin va jusqu'à
+ * l'échéance de sa dernière ligne, hors décalage et « pas à donner ». `lines` : ses lignes de l'historique.
+ */
+export function periodShownRange(
+  periods: readonly Shown[],
+  period: Shown,
+  lines: readonly DoseDay[],
+): { start: string; lastDay: string | null } {
+  const { start, lastDay } = periodShownDays(periods, period)
+  const lastDose = lines
+    .filter(({ status }) => status !== 'shift' && status !== 'not-due')
+    .reduce<string | null>(
+      (last, { dueOn }) => (last === null || dueOn > last ? dueOn : last),
+      null,
+    )
+  return {
+    start,
+    lastDay: lastDay !== null && lastDose !== null && lastDose > lastDay ? lastDose : lastDay,
   }
 }
 
