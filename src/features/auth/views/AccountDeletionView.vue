@@ -4,9 +4,11 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import { useAccountDeletion } from '../composables/use-account-deletion'
+import { accountDeletionPurchaseNote } from '../logic/account-deletion-purchase-note'
 import { leaveDeletedAccount } from '../logic/leave-deleted-account'
 import AccountDeletionSummary from './AccountDeletionSummary.vue'
 import GoogleSignInButton from './GoogleSignInButton.vue'
+import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import PasswordField from '@/shared/form/PasswordField.vue'
@@ -14,6 +16,7 @@ import { returnTo } from '@/shared/utils/return-to'
 
 const { t } = useI18n()
 const router = useRouter()
+const purchase = usePurchaseStore()
 const {
   step,
   method,
@@ -30,6 +33,7 @@ const {
 
 const password = ref('')
 
+const purchaseNote = computed(() => accountDeletionPurchaseNote(purchase.status))
 const isExplaining = computed(() => step.value === 'explain' || step.value === 'final-confirm')
 const isConfirmingIdentity = computed(() => step.value === 'confirm-identity')
 const isDeleted = computed(() => step.value === 'deleted')
@@ -93,7 +97,7 @@ async function submitPassword(): Promise<void> {
     @back="goBack"
   >
     <div v-if="isExplaining" class="account-deletion__content">
-      <AccountDeletionSummary />
+      <AccountDeletionSummary :purchase-note="purchaseNote ? t(purchaseNote.summary) : null" />
     </div>
 
     <div v-else-if="isConfirmingIdentity" class="account-deletion__content">
@@ -226,7 +230,7 @@ async function submitPassword(): Promise<void> {
     v-model="isFinalConfirmOpen"
     :title="t('settings.account.delete.finalConfirm.title')"
     :text="t('settings.account.delete.finalConfirm.text')"
-    :note="t('settings.account.delete.finalConfirm.subscription')"
+    :note="purchaseNote ? t(purchaseNote.finalConfirm) : null"
     :cancel-label="t('settings.account.delete.cancel')"
     :confirm-label="t('settings.account.delete.finalConfirm.delete')"
     :confirm-aria-label="t('settings.account.delete.finalConfirm.deleteLabel')"

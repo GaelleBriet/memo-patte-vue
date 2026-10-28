@@ -1286,6 +1286,7 @@
           "purchases": "L’historique d’achat chez Google Play"
         },
         "subscription": "Supprimer ton compte ne résilie pas ton abonnement Google Play.",
+        "lifetime": "Supprimer ton compte ne rembourse pas ton achat à vie.",
         "continue": "Continuer",
         "cancel": "Annuler",
         "identity": {

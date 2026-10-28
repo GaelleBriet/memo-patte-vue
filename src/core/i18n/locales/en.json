@@ -1286,6 +1286,7 @@
           "purchases": "Purchase history with Google Play"
         },
         "subscription": "Deleting your account doesn’t cancel your Google Play subscription.",
+        "lifetime": "Deleting your account does not refund your lifetime purchase.",
         "continue": "Continue",
         "cancel": "Cancel",
         "identity": {

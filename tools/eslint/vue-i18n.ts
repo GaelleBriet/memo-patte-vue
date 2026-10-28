@@ -65,6 +65,7 @@ const DYNAMIC_I18N_KEYS = [
   '/^auth\\.form\\.errors\\.(emailRequired|emailInvalid|passwordRequired|passwordTooShort)$/',
   '/^auth\\.password\\.mismatch$/',
   '/^settings\\.account\\.delete\\.identity\\.(wrongPassword|otherGoogleAccount)$/',
+  '/^settings\\.account\\.delete\\.(subscription|lifetime|finalConfirm\\.subscription)$/',
   '/^auth\\.errors\\.(emailTaken|invalidCredentials|weakPassword|samePassword|offline|noGoogleAccount|googleUnavailable|unknown)$/',
   '/^auth\\.code\\.(wait|errors\\.(incorrect|expired))$/',
 ]
