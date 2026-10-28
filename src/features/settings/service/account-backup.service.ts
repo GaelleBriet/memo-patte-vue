@@ -14,7 +14,7 @@ type Provider<T> = () => T | Promise<T>
 export type { BackupSummary }
 
 export type AccountBackupDependencies = {
-  outbox: Provider<Pick<LocalSyncOutbox, 'isEnabled' | 'enableAndQueueWholeCarnet'>>
+  outbox: Provider<Pick<LocalSyncOutbox, 'isEnabled' | 'enableAndQueueLiveCarnet'>>
   tables: Provider<BackupSummaryTable[]>
   animals: Provider<Pick<AnimalsRepository, 'list'>>
   restore: Pick<AccountRestore, 'pendingMode' | 'start'>
@@ -50,7 +50,7 @@ export function createAccountBackupService({
       if (local.length > 0 && !confirmed) {
         return { kind: 'confirm-send', animalCount: local.length, firstName: local[0]!.name }
       }
-      await queue.enableAndQueueWholeCarnet()
+      await queue.enableAndQueueLiveCarnet()
       return { kind: 'seeded' }
     }
     if (local.length > 0) return { kind: 'backup-found', summary }
