@@ -27,6 +27,8 @@ export interface SyncDependencies {
   runCycle: () => Promise<void>
   userId: () => string | null
   sessionActive: () => boolean
+  /** Session expirée : seule une reconnexion la rend, pas le retour du réseau. */
+  signInNeeded: () => boolean
   checkAccountBackup: () => Promise<AccountBackupCheck>
   confirmCarnetSend: () => Promise<AccountBackupCheck>
   restoreFlow: Pick<
@@ -78,7 +80,7 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
   }
 
   async function runRestore(): Promise<void> {
-    if (!deps.sessionActive()) return
+    if (deps.signInNeeded()) return
     await deps.restoreFlow.resume()
   }
 
