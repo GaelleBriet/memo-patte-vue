@@ -29,6 +29,8 @@ export interface SyncDependencies {
   sessionActive: () => boolean
   /** Session expirée : seule une reconnexion la rend, pas le retour du réseau. */
   signInNeeded: () => boolean
+  /** Statut Plus enregistré sur l'appareil : son passage à vrai déclenche un cycle. */
+  plusActive: () => boolean
   checkAccountBackup: () => Promise<AccountBackupCheck>
   confirmCarnetSend: () => Promise<AccountBackupCheck>
   restoreFlow: Pick<
@@ -52,9 +54,9 @@ export interface SyncDependencies {
 }
 
 /**
- * Branche la synchro sur le lancement, le premier plan, le réseau et le changement de compte, et le
- * contrôle de la sauvegarde une fois par compte et par lancement ; renvoie le débranchement. Le
- * debounce après écriture vient des triggers SQLite, pas d'ici.
+ * Branche la synchro sur le lancement, le premier plan, le réseau, le changement de compte et
+ * l'activation de Plus, et le contrôle de la sauvegarde une fois par compte et par lancement ;
+ * renvoie le débranchement. Le debounce après écriture vient des triggers SQLite, pas d'ici.
  */
 export async function installSync(deps: SyncDependencies): Promise<() => void> {
   const scheduler = createSyncScheduler({ runCycle: deps.runCycle })
@@ -170,6 +172,9 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
     },
     { flush: 'sync', immediate: true },
   )
+  const stopPlusWatch = watch(deps.plusActive, (active) => {
+    if (active) scheduler.notifyChange()
+  })
 
   await resumePendingSync(deps.outbox, scheduler)
   scheduler.notifyChange()
@@ -182,6 +187,7 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
     stopResume()
     stopNetwork()
     stopAccountWatch()
+    stopPlusWatch()
   }
 }
 

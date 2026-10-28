@@ -100,6 +100,7 @@ const withoutSession = {
   sweepCloudPhotos: vi.fn<(userId: string) => Promise<void>>(async () => {}),
   sessionActive: () => false,
   signInNeeded: () => false,
+  plusActive: () => false,
   checkAccountBackup: vi.fn<() => Promise<AccountBackupCheck>>(async () => ({ kind: 'active' })),
   confirmCarnetSend: vi.fn<() => Promise<AccountBackupCheck>>(async () => ({ kind: 'active' })),
   restoreFlow: fakeRestoreFlow(),
@@ -233,6 +234,75 @@ describe('installSync', () => {
     stop()
   })
 
+  describe('Plus qui change d’état, app ouverte', () => {
+    async function installWithPlus(plus: { plan: string; expiresAt: string | null }) {
+      const runCycle = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
+      const status = ref(plus)
+      const stop = await installSync({
+        outbox: fakeOutbox(0),
+        runCycle,
+        userId: () => 'user-1',
+        ...withoutSession,
+        plusActive: () => status.value.plan !== 'none',
+      })
+      await runDebounce()
+      runCycle.mockClear()
+      return { runCycle, status, stop }
+    }
+
+    it('déclenche un seul cycle quand Plus passe à actif', async () => {
+      const { runCycle, status, stop } = await installWithPlus({ plan: 'none', expiresAt: null })
+
+      status.value = { plan: 'annual', expiresAt: '2027-10-30T17:02:00.000Z' }
+      await nextTick()
+      await runDebounce()
+
+      expect(runCycle).toHaveBeenCalledOnce()
+      stop()
+    })
+
+    it('ne déclenche rien quand le statut relu reste actif', async () => {
+      const { runCycle, status, stop } = await installWithPlus({
+        plan: 'monthly',
+        expiresAt: '2026-10-29T08:30:00.000Z',
+      })
+
+      status.value = { plan: 'monthly', expiresAt: '2026-11-29T08:30:00.000Z' }
+      await nextTick()
+      status.value = { plan: 'monthly', expiresAt: '2026-11-29T08:30:00.000Z' }
+      await nextTick()
+      await runDebounce()
+
+      expect(runCycle).not.toHaveBeenCalled()
+      stop()
+    })
+
+    it('ne déclenche rien quand Plus s’arrête', async () => {
+      const { runCycle, status, stop } = await installWithPlus({
+        plan: 'monthly',
+        expiresAt: '2026-10-29T08:30:00.000Z',
+      })
+
+      status.value = { plan: 'none', expiresAt: null }
+      await nextTick()
+      await runDebounce()
+
+      expect(runCycle).not.toHaveBeenCalled()
+      stop()
+    })
+
+    it('ne déclenche plus rien une fois désinstallé', async () => {
+      const { runCycle, status, stop } = await installWithPlus({ plan: 'none', expiresAt: null })
+
+      stop()
+      status.value = { plan: 'annual', expiresAt: '2027-10-30T17:02:00.000Z' }
+      await nextTick()
+      await runDebounce()
+
+      expect(runCycle).not.toHaveBeenCalled()
+    })
+  })
+
   describe('déconnexion explicite', () => {
     it('désactive la synchro et oublie la file et les curseurs dès que le compte disparaît', async () => {
       const outbox = fakeOutbox(2)
@@ -335,6 +405,7 @@ describe('installSync', () => {
         userId: () => userId.value,
         sessionActive: () => active.value,
         signInNeeded: () => false,
+        plusActive: () => false,
         checkAccountBackup,
         confirmCarnetSend,
         restoreFlow,
