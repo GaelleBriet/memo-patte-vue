@@ -1,6 +1,7 @@
 import type { AuthError, Session, SupabaseClient } from '@supabase/supabase-js'
 
 import type { AppLocale } from '@/core/i18n'
+import { onSessionUnreadable } from '@/core/supabase/auth-storage'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 
 import { AccountError } from '../logic/account-error'
@@ -43,6 +44,10 @@ export type AuthRepository = {
   signOut(): Promise<void>
   /** Comme `signOut`, sans fermer les autres appareils du compte. Ne lève pas. */
   discardSession(): Promise<void>
+  /** Efface la session et ses clés PKCE de l'appareil, sans rien envoyer à Supabase. Ne lève pas. */
+  forgetSession(): Promise<void>
+  /** Le coffre de l'appareil n'a pas pu rendre la session : elle est oubliée, la personne est déconnectée. */
+  onSessionUnreadable(listener: () => void): void
   restoreSession(): Promise<SessionCheck>
   refreshSession(): Promise<SessionCheck>
   /** Lit la session de l'appareil ; `null` sans session. */
@@ -224,6 +229,8 @@ export function createAuthRepository({
     signOut: revocation.signOut,
 
     discardSession: revocation.discardSession,
+    forgetSession: revocation.forgetSession,
+    onSessionUnreadable,
 
     async restoreSession() {
       const { data, error } = await (await client()).auth.getSession()

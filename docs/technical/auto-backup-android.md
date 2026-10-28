@@ -26,8 +26,9 @@ d'un nouveau téléphone avec le même compte Google. Ticket : #82 (0.4).
 |---|---|---|---|
 | `database` | `.` (tout `databases/`) | **inclus** | La base SQLite de `@capacitor-community/sqlite` : animaux, vaccins, traitements, poids, rappels. Quelques centaines de Ko pour un usage normal. |
 | `file` | `photos/` | exclu | Convention : les photos d'animaux vivent dans `files/photos/` (Capacitor Filesystem, `Directory.Data`). Une seule photo peut peser plus que toute la base ; avec 25 Mo de plafond, les inclure ferait sauter la sauvegarde entière. Les photos sont dans Plus. |
-| `root` | `app_webview/` | exclu | Stockage du WebView : localStorage, dont la session Supabase et le drapeau « cet appareil a un compte Plus » (ticket 1.2). Un autre appareil ne doit hériter ni d'une session ni du drapeau. |
+| `root` | `app_webview/` | exclu | Stockage du WebView : localStorage, dont (avant #1402) la session Supabase, et le drapeau « cet appareil a un compte Plus » (ticket 1.2). Un autre appareil ne doit hériter ni d'une session ni du drapeau. |
 | `sharedpref` | `CapacitorStorage.xml` | exclu | Préférences Capacitor, inutilisées aujourd'hui : exclues pour qu'une préférence propre à l'appareil ne soit jamais restaurée ailleurs. |
+| `sharedpref` | `WSSecureStorageSharedPreferences.xml` | exclu | Session Supabase chiffrée par le Keystore (#1402). La clé AES reste dans le Keystore de l'appareil et n'est jamais sauvegardée : le texte chiffré restauré ailleurs serait illisible. |
 
 Avec un `<include>` présent, Android ne sauvegarde **que** ce qui est inclus ;
 les `<exclude>` sont là pour rendre l'intention lisible.

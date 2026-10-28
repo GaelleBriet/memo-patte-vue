@@ -179,6 +179,7 @@ describe('SettingsView', () => {
       const SAVED: BackupFacts = {
         eligible: true,
         signInNeeded: false,
+        sessionReset: false,
         online: true,
         syncEnabled: true,
         lastSyncedAt: new Date(2026, 8, 15, 11, 55).toISOString(),

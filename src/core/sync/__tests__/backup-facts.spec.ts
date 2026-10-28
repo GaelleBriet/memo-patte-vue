@@ -21,6 +21,7 @@ function dependencies(overrides: Partial<BackupFactsDependencies> = {}): BackupF
     },
     isEligible: () => true,
     signInNeeded: () => false,
+    sessionReset: () => false,
     isOnline: async () => true,
     ...overrides,
   }
@@ -60,6 +61,7 @@ describe('createBackupFactsReader', () => {
     await expect(read()).resolves.toEqual({
       eligible: true,
       signInNeeded: false,
+      sessionReset: false,
       online: true,
       syncEnabled: true,
       lastSyncedAt: OCTOBER_23,
@@ -80,6 +82,14 @@ describe('createBackupFactsReader', () => {
     online = false
 
     await expect(read()).resolves.toMatchObject({ online: false, signInNeeded: true })
+  })
+})
+
+describe('session illisible', () => {
+  it('rapporte la session illisible', async () => {
+    const read = createBackupFactsReader(dependencies({ sessionReset: () => true }))
+
+    await expect(read()).resolves.toMatchObject({ sessionReset: true })
   })
 })
 

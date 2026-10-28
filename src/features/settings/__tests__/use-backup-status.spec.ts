@@ -38,6 +38,7 @@ vi.mock('@/core/sync/service/network-status', () => ({
 const FIRST_BACKUP: BackupFacts = {
   eligible: true,
   signInNeeded: false,
+  sessionReset: false,
   online: true,
   syncEnabled: true,
   lastSyncedAt: null,

@@ -17,7 +17,10 @@ import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
 import { provideAnimalsRepository } from '@/features/animals/store/animals.store'
 
 vi.mock('../repository/auth.repository', () => ({
-  authRepository: { onSessionChange: vi.fn<AuthRepository['onSessionChange']>() },
+  authRepository: {
+    onSessionChange: vi.fn<AuthRepository['onSessionChange']>(),
+    onSessionUnreadable: vi.fn<AuthRepository['onSessionUnreadable']>(),
+  },
 }))
 vi.mock('../service/google-sign-in.service', () => ({
   signInWithGoogle: vi.fn<typeof signInWithGoogle>(),

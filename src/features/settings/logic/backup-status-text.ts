@@ -65,8 +65,9 @@ export function cloudBackupText(
     case 'interrupted':
       return {
         title: t('settings.backup.cloud.interrupted.title'),
-        hint:
-          status.since === null
+        hint: status.sessionReset
+          ? t('settings.backup.cloud.interrupted.hintSessionReset')
+          : status.since === null
             ? null
             : t('settings.backup.cloud.interrupted.hint', {
                 when: lastBackupWhen(t, status.since, toDay(now)),

@@ -10,6 +10,7 @@ import {
   type AnimalsRepository,
 } from '@/features/animals/repository/animals.repository'
 import {
+  forgetDeviceSession,
   isSignedInOnDevice,
   signOutDevice,
 } from '@/features/auth/service/device-account-state.service'
@@ -36,6 +37,7 @@ export type DeviceEraseDependencies = {
   tables: Provider<{ eraseAllStatement(): SqlStatement }>[]
   syncOutbox: Provider<Pick<LocalSyncOutbox, 'listPending' | 'countRefused' | 'eraseAllStatements'>>
   account: { isSignedIn(): boolean; signOut(): Promise<void> }
+  session: { forget(): Promise<void> }
   notifications: { cancelAll(): Promise<void>; rebuild(): Promise<void> }
   photos: { deleteAll(): Promise<void> }
   analytics: { optOut(): Promise<void> }
@@ -48,6 +50,7 @@ export function createDeviceEraseService({
   tables,
   syncOutbox,
   account,
+  session,
   notifications,
   photos,
   analytics,
@@ -94,6 +97,7 @@ export function createDeviceEraseService({
      */
     async erase(): Promise<void> {
       if (account.isSignedIn()) await account.signOut()
+      await attempt('session', session.forget)
       await notifications.cancelAll()
       try {
         await eraseDatabase()
@@ -125,6 +129,7 @@ export const deviceEraseService = createDeviceEraseService({
   ],
   syncOutbox: getLocalSyncOutbox,
   account: { isSignedIn: isSignedInOnDevice, signOut: signOutDevice },
+  session: { forget: forgetDeviceSession },
   notifications: {
     cancelAll: () => cancelAllDueReminders({ cancelAllNotifications }),
     rebuild: syncAllReminders,
