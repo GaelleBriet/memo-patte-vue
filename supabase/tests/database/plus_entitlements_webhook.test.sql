@@ -29,6 +29,8 @@ select is(
    where has_table_privilege('service_role', 'public.plus_entitlements', privilege)),
   array['INSERT', 'SELECT', 'UPDATE'],
   'le webhook lit, crée et met à jour les droits Plus');
+select ok(not has_table_privilege('service_role', 'public.plus_entitlements', 'DELETE'),
+  'le webhook ne supprime aucune ligne : seule la suppression du compte les efface');
 
 select lives_ok($$
   insert into public.plus_entitlements (user_id, active, product_type, expires_at, updated_at)
