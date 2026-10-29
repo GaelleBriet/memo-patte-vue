@@ -103,4 +103,189 @@ describe('installPlusStatusRefresh', () => {
 
     expect(service.fetchStatus).toHaveBeenCalledOnce()
   })
+
+  describe('app restée ouverte au passage de l’échéance', () => {
+    const MINUTE = 60_000
+    const DAY = 24 * 60 * MINUTE
+    const LONGEST_TIMEOUT = 2_147_483_647
+    const MONTHLY: PlusStatus = { plan: 'monthly', expiresAt: '2026-09-15T10:05:00Z' }
+    const RENEWED: PlusStatus = { plan: 'monthly', expiresAt: '2026-10-15T10:05:00Z' }
+    const ANNUAL: PlusStatus = { plan: 'annual', expiresAt: '2027-09-15T10:00:00Z' }
+    const LIFETIME: PlusStatus = { plan: 'lifetime', expiresAt: null }
+
+    function launchWith(status: PlusStatus): ReturnType<typeof usePurchaseStore> {
+      writeStoredPlusStatus(status)
+      uninstall = installPlusStatusRefresh()
+      return usePurchaseStore()
+    }
+
+    beforeEach(() => {
+      service.fetchStatus.mockReset()
+      vi.useRealTimers()
+      vi.useFakeTimers({
+        toFake: ['Date', 'setTimeout', 'clearTimeout'],
+        now: new Date('2026-09-15T10:00:00Z'),
+      })
+    })
+
+    it('relit le statut juste après l’échéance, et l’écran passe à « expiré » sans autre événement', async () => {
+      service.fetchStatus.mockResolvedValueOnce(MONTHLY).mockResolvedValueOnce(NO_PLUS)
+      const store = launchWith(MONTHLY)
+      await vi.advanceTimersByTimeAsync(0)
+      expect(service.fetchStatus).toHaveBeenCalledOnce()
+
+      await vi.advanceTimersByTimeAsync(5 * MINUTE)
+      expect(store.status).toEqual(MONTHLY)
+
+      await vi.advanceTimersByTimeAsync(5 * MINUTE)
+      expect(service.fetchStatus).toHaveBeenCalledTimes(2)
+      expect(store.status).toEqual(NO_PLUS)
+      expect(store.expiredPlan).toBe('monthly')
+    })
+
+    it('passe à « expiré » même quand RevenueCat rend encore la même échéance, avec un seul réessai espacé', async () => {
+      service.fetchStatus.mockResolvedValue(MONTHLY)
+      const store = launchWith(MONTHLY)
+
+      await vi.advanceTimersByTimeAsync(10 * MINUTE)
+      expect(service.fetchStatus).toHaveBeenCalledTimes(2)
+      expect(store.status).toEqual(NO_PLUS)
+
+      await vi.advanceTimersByTimeAsync(DAY)
+      expect(service.fetchStatus).toHaveBeenCalledTimes(3)
+      expect(store.status).toEqual(NO_PLUS)
+      expect(vi.getTimerCount()).toBe(0)
+    })
+
+    it('passe à « expiré » hors connexion, avec un seul réessai espacé', async () => {
+      service.fetchStatus.mockResolvedValueOnce(MONTHLY).mockRejectedValue(new Error('offline'))
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const store = launchWith(MONTHLY)
+
+      await vi.advanceTimersByTimeAsync(10 * MINUTE)
+      expect(store.status).toEqual(NO_PLUS)
+
+      await vi.advanceTimersByTimeAsync(DAY)
+      expect(service.fetchStatus).toHaveBeenCalledTimes(3)
+    })
+
+    it('retrouve un renouvellement au réessai, et attend sa nouvelle échéance', async () => {
+      service.fetchStatus
+        .mockResolvedValueOnce(MONTHLY)
+        .mockResolvedValueOnce(MONTHLY)
+        .mockResolvedValueOnce(RENEWED)
+      const store = launchWith(MONTHLY)
+
+      await vi.advanceTimersByTimeAsync(DAY)
+      expect(service.fetchStatus).toHaveBeenCalledTimes(3)
+      expect(store.status).toEqual(RENEWED)
+
+      await vi.advanceTimersByTimeAsync(20 * DAY)
+      expect(service.fetchStatus).toHaveBeenCalledTimes(3)
+    })
+
+    it('réarme la minuterie sur l’échéance d’un renouvellement', async () => {
+      service.fetchStatus
+        .mockResolvedValueOnce(MONTHLY)
+        .mockResolvedValueOnce(RENEWED)
+        .mockResolvedValueOnce(NO_PLUS)
+      const store = launchWith(MONTHLY)
+
+      await vi.advanceTimersByTimeAsync(10 * MINUTE)
+      expect(store.status).toEqual(RENEWED)
+
+      await vi.advanceTimersByTimeAsync(29 * DAY)
+      expect(service.fetchStatus).toHaveBeenCalledTimes(2)
+
+      await vi.advanceTimersByTimeAsync(DAY)
+      expect(service.fetchStatus).toHaveBeenCalledTimes(3)
+      expect(store.status).toEqual(NO_PLUS)
+    })
+
+    it('ne dépasse jamais le plus long délai d’une minuterie pour une échéance lointaine', async () => {
+      const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout')
+      service.fetchStatus.mockResolvedValueOnce(ANNUAL).mockResolvedValueOnce(NO_PLUS)
+      const store = launchWith(ANNUAL)
+
+      await vi.advanceTimersByTimeAsync(MINUTE)
+      expect(service.fetchStatus).toHaveBeenCalledOnce()
+
+      await vi.advanceTimersByTimeAsync(364 * DAY)
+      expect(service.fetchStatus).toHaveBeenCalledOnce()
+      expect(store.status).toEqual(ANNUAL)
+
+      await vi.advanceTimersByTimeAsync(DAY)
+      expect(service.fetchStatus).toHaveBeenCalledTimes(2)
+      expect(store.status).toEqual(NO_PLUS)
+      const delays = setTimeoutSpy.mock.calls.map(([, delay]) => delay ?? 0)
+      expect(Math.max(...delays)).toBeLessThanOrEqual(LONGEST_TIMEOUT)
+    })
+
+    it('n’arme aucune minuterie pour Plus à vie', async () => {
+      service.fetchStatus.mockResolvedValue(LIFETIME)
+      launchWith(LIFETIME)
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(vi.getTimerCount()).toBe(0)
+    })
+
+    it('ne relit plus le statut à l’échéance une fois désinstallé', async () => {
+      service.fetchStatus.mockResolvedValue(MONTHLY)
+      launchWith(MONTHLY)
+      await vi.advanceTimersByTimeAsync(0)
+
+      uninstall()
+
+      expect(vi.getTimerCount()).toBe(0)
+      await vi.advanceTimersByTimeAsync(DAY)
+      expect(service.fetchStatus).toHaveBeenCalledOnce()
+    })
+
+    it('n’arme pas de réessai quand l’arrêt arrive pendant la relecture de l’échéance', async () => {
+      let answer: (status: PlusStatus) => void = () => {}
+      service.fetchStatus
+        .mockResolvedValueOnce(MONTHLY)
+        .mockReturnValueOnce(new Promise<PlusStatus>((resolve) => (answer = resolve)))
+      launchWith(MONTHLY)
+      await vi.advanceTimersByTimeAsync(6 * MINUTE)
+      expect(service.fetchStatus).toHaveBeenCalledTimes(2)
+
+      uninstall()
+      answer(MONTHLY)
+
+      await vi.advanceTimersByTimeAsync(DAY)
+      expect(service.fetchStatus).toHaveBeenCalledTimes(2)
+    })
+
+    it('coupe le réessai quand le statut n’est plus échu', async () => {
+      service.fetchStatus
+        .mockResolvedValueOnce(MONTHLY)
+        .mockResolvedValueOnce(MONTHLY)
+        .mockResolvedValueOnce(LIFETIME)
+      const store = launchWith(MONTHLY)
+      await vi.advanceTimersByTimeAsync(6 * MINUTE)
+      expect(service.fetchStatus).toHaveBeenCalledTimes(2)
+
+      await vi.advanceTimersByTimeAsync(6 * MINUTE)
+      simulateWebResume()
+      await vi.advanceTimersByTimeAsync(0)
+      expect(store.status).toEqual(LIFETIME)
+      expect(service.fetchStatus).toHaveBeenCalledTimes(3)
+
+      await vi.advanceTimersByTimeAsync(DAY)
+      expect(service.fetchStatus).toHaveBeenCalledTimes(3)
+    })
+
+    it('abandonne le réessai une fois désinstallé', async () => {
+      service.fetchStatus.mockResolvedValue(MONTHLY)
+      launchWith(MONTHLY)
+      await vi.advanceTimersByTimeAsync(10 * MINUTE)
+      expect(service.fetchStatus).toHaveBeenCalledTimes(2)
+
+      uninstall()
+
+      await vi.advanceTimersByTimeAsync(DAY)
+      expect(service.fetchStatus).toHaveBeenCalledTimes(2)
+    })
+  })
 })
