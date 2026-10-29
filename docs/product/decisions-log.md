@@ -4559,3 +4559,10 @@ Décision de la session d'analyse du moteur (Q73), pour appliquer la planche V21
 
 - Le test fermé se fait avec le compte organisation. Les adresses des testeurs sont saisies à la main dans une liste d'e-mails de la Play Console ; pas de Google Group.
 - Pour revenir dessus : la piste de test fermé de la Play Console.
+
+## 2026-10-29 — Journaux des fonctions serveur : le détail d'erreur est gardé
+
+- Le webhook RevenueCat et la suppression de compte écrivent dans leurs journaux le message, le code, le détail et l'indice d'une erreur. Ils peuvent citer l'identifiant de compte et l'état de l'abonnement, jamais une adresse e-mail ni une donnée de carnet ; conservés 7 jours en Pro. Nuance consignée dans `docs/technical/conformite-play-store-rgpd.md` (§2.3).
+- Raison : sans le détail, la cause d'un 500 en production reste introuvable (le journal disait « [object Object] » le 29 octobre).
+- Alternative écartée : ne pas écrire le détail, plus sûr mais le plus souvent sans information utile.
+- Pour revenir dessus : `supabase/functions/_shared/readable-error.ts` (liste des champs gardés), #1444.

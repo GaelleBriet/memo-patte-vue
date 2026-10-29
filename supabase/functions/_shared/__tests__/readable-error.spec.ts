@@ -54,7 +54,7 @@ describe('readableError', () => {
     expect(readableError(cause)).toBe(expected)
   })
 
-  it('rend un objet sans champ connu par String, sans le détailler', () => {
+  it('rend un objet sans champ connu par son étiquette [object …], sans le détailler', () => {
     expect(readableError({ secret: 'sb_secret_abc' })).toBe('[object Object]')
   })
 

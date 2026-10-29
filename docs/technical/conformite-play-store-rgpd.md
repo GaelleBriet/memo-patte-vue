@@ -279,7 +279,7 @@ Mesures MémoPatte à documenter dans le registre :
 - Mots de passe : politique de longueur minimale Supabase Auth ; option Google Sign-In. La protection contre les mots de passe fuités (HaveIBeenPwned, « Prevent the use of leaked passwords ») n'existe qu'à partir de l'offre Pro de Supabase : indisponible tant que le projet est en Free, à activer au passage en Pro (relevé du 2026-10-22, §1.5).
 - Sauvegardes : celles de la plateforme Supabase (documenter le plan) ; Auto Backup Android chiffré de bout en bout sur Android 9+ (« end-to-end encrypted on devices running Android 9 or higher using the device's PIN, pattern, or password »).
 - Journalisation : logs Supabase (Auth/API) ; pas de logs applicatifs contenant des données personnelles, à la nuance suivante près.
-- Journaux techniques des fonctions serveur (webhook RevenueCat, suppression de compte) : un message d'erreur peut citer l'identifiant pseudonyme d'un compte, jamais une adresse e-mail ni une donnée de carnet ; conservés 7 jours (offre Pro de Supabase, décision du 2026-10-29).
+- Journaux techniques des fonctions serveur (webhook RevenueCat, suppression de compte) : un message d'erreur peut citer l'identifiant de compte (UUID Supabase, donnée personnelle au §2.2) et, le cas échéant, l'état de son abonnement, jamais une adresse e-mail ni une donnée de carnet ; conservés 7 jours (offre Pro de Supabase, décision du 2026-10-29).
 - Minimisation : ne synchroniser que les tables nécessaires ; pas de collecte de contacts, localisation, etc.
 - Dépôt public GitHub : **aucun secret** dans le code (clé secrète Supabase, DSN, etc.), scan de secrets activé.
 
