@@ -65,6 +65,20 @@ describe('createBoundedFetch', () => {
     expect(await bounded(`${PROJECT}/rest/v1/animal`, { method: 'GET' })).toBe(answer)
   })
 
+  it('borne aussi la lecture du corps : l’annulation part au bout du délai, en-têtes reçus ou non', async () => {
+    const base = vi.fn<typeof fetch>(async () => new Response('[]', { status: 200 }))
+    const bounded = createBoundedFetch(base)
+    await bounded(`${PROJECT}/rest/v1/animal`, { method: 'GET' })
+    const signal = base.mock.calls[0]![1]!.signal!
+
+    await vi.advanceTimersByTimeAsync(SUPABASE_REQUEST_TIMEOUT_MS - 1)
+    expect(signal.aborted).toBe(false)
+    // Le minuteur n'est pas effacé à l'arrivée des en-têtes : fetch lit le corps sous ce même signal.
+    await vi.advanceTimersByTimeAsync(1)
+
+    expect(signal.aborted).toBe(true)
+  })
+
   it('laisse les photos à leurs propres délais', async () => {
     const base = silentFetch()
     const bounded = createBoundedFetch(base)
