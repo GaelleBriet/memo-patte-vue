@@ -171,6 +171,28 @@ describe('installSync', () => {
     stop()
   })
 
+  it('au retour au premier plan, l’attente accumulée par les refus d’avant ne compte plus', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    const runCycle = vi.fn<() => Promise<void>>().mockRejectedValue(new Error('refus'))
+    const stop = await installSync({
+      outbox: fakeOutbox(0),
+      runCycle,
+      userId: () => 'user-1',
+      ...withoutSession,
+    })
+    await runDebounce()
+    for (const step of SYNC_BACKOFF_STEPS_MS.slice(0, 4)) await vi.advanceTimersByTimeAsync(step)
+    runCycle.mockClear()
+
+    simulateWebResume()
+    await runDebounce()
+    expect(runCycle).toHaveBeenCalledOnce()
+    await vi.advanceTimersByTimeAsync(SYNC_BACKOFF_STEPS_MS[0]!)
+
+    expect(runCycle).toHaveBeenCalledTimes(2)
+    stop()
+  })
+
   it('déclenche un cycle au retour du réseau', async () => {
     let emit!: NetworkListener
     addNetworkListener.mockImplementation(async (_event, listener) => {
@@ -288,6 +310,40 @@ describe('installSync', () => {
       await runDebounce()
 
       expect(runCycle).not.toHaveBeenCalled()
+      stop()
+    })
+
+    it('rachat après des refus, serveur prévenu 10 s après l’appareil : le carnet part dans la minute', async () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0)
+      let serverHasPlus = false
+      let acceptedAt: number | null = null
+      const runCycle = vi.fn<() => Promise<void>>(async () => {
+        if (!serverHasPlus) throw new Error('refus 42501')
+        acceptedAt ??= Date.now()
+      })
+      const status = ref({ plan: 'none', expiresAt: null as string | null })
+      const stop = await installSync({
+        outbox: fakeOutbox(0),
+        runCycle,
+        userId: () => 'user-1',
+        ...withoutSession,
+        plusActive: () => status.value.plan !== 'none',
+      })
+      await runDebounce()
+      for (const step of SYNC_BACKOFF_STEPS_MS.slice(0, 3)) await vi.advanceTimersByTimeAsync(step)
+      expect(runCycle).toHaveBeenCalledTimes(4)
+
+      status.value = { plan: 'monthly', expiresAt: '2026-10-29T17:33:00.000Z' }
+      await nextTick()
+      await runDebounce()
+      expect(runCycle).toHaveBeenCalledTimes(5)
+      await vi.advanceTimersByTimeAsync(10_000 - SYNC_DEBOUNCE_MS)
+      serverHasPlus = true
+      const webhookAt = Date.now()
+      await vi.advanceTimersByTimeAsync(60_000)
+
+      expect(acceptedAt).not.toBeNull()
+      expect(acceptedAt! - webhookAt).toBeLessThan(60_000)
       stop()
     })
 

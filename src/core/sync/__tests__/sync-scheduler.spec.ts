@@ -140,6 +140,78 @@ describe('createSyncScheduler — backoff', () => {
   })
 })
 
+async function failCycles(count: number): Promise<void> {
+  await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS)
+  for (const step of SYNC_BACKOFF_STEPS_MS.slice(0, count - 1)) {
+    await vi.advanceTimersByTimeAsync(step)
+  }
+}
+
+describe('createSyncScheduler — Plus qui vient de s’activer', () => {
+  it('rachat après quatre refus, serveur prévenu 10 s après l’appareil : un cycle passe dans la minute', async () => {
+    let serverHasPlus = false
+    let acceptedAt: number | null = null
+    const runCycle = vi.fn<() => Promise<void>>(async () => {
+      if (!serverHasPlus) throw new Error('refus 42501')
+      acceptedAt ??= Date.now()
+    })
+    const scheduler = createSyncScheduler({ runCycle, random: NO_JITTER })
+    scheduler.notifyChange()
+    await failCycles(4)
+    expect(runCycle).toHaveBeenCalledTimes(4)
+
+    scheduler.notifyPlusActivated()
+    await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS)
+    expect(runCycle).toHaveBeenCalledTimes(5)
+    await vi.advanceTimersByTimeAsync(10_000 - SYNC_DEBOUNCE_MS)
+    serverHasPlus = true
+    const webhookAt = Date.now()
+    await vi.advanceTimersByTimeAsync(60_000)
+
+    expect(acceptedAt).not.toBeNull()
+    expect(acceptedAt! - webhookAt).toBeLessThan(60_000)
+  })
+
+  it('réessaie à 2, 5, 10 puis 20 s pendant la première minute, puis reprend les paliers normaux', async () => {
+    const runCycle = vi.fn<() => Promise<void>>().mockRejectedValue(new Error('refus'))
+    const scheduler = createSyncScheduler({ runCycle, random: NO_JITTER })
+    scheduler.notifyChange()
+    await failCycles(5)
+    runCycle.mockClear()
+
+    scheduler.notifyPlusActivated()
+    await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS)
+    expect(runCycle).toHaveBeenCalledTimes(1)
+
+    const sinceActivation = [4_000, 9_000, 19_000, 39_000, 59_000, 79_000, 84_000, 99_000]
+    let elapsed = SYNC_DEBOUNCE_MS
+    for (const [index, at] of sinceActivation.entries()) {
+      await vi.advanceTimersByTimeAsync(at - elapsed - 1)
+      expect(runCycle).toHaveBeenCalledTimes(index + 1)
+      await vi.advanceTimersByTimeAsync(1)
+      expect(runCycle).toHaveBeenCalledTimes(index + 2)
+      elapsed = at
+    }
+  })
+})
+
+describe('createSyncScheduler — retour au premier plan', () => {
+  it('après une série de refus, un refus au retour se retente au premier palier', async () => {
+    const runCycle = vi.fn<() => Promise<void>>().mockRejectedValue(new Error('refus'))
+    const scheduler = createSyncScheduler({ runCycle, random: NO_JITTER })
+    scheduler.notifyChange()
+    await failCycles(5)
+    runCycle.mockClear()
+
+    scheduler.notifyComeback()
+    await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS)
+    expect(runCycle).toHaveBeenCalledTimes(1)
+
+    await vi.advanceTimersByTimeAsync(FIRST_BACKOFF_STEP_MS)
+    expect(runCycle).toHaveBeenCalledTimes(2)
+  })
+})
+
 describe('createSyncScheduler — sérialisation', () => {
   it('attend la fin du premier cycle avant de lancer le suivant', async () => {
     const first = deferred<void>()
