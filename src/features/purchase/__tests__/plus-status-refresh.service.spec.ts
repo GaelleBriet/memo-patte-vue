@@ -257,6 +257,25 @@ describe('installPlusStatusRefresh', () => {
       expect(service.fetchStatus).toHaveBeenCalledTimes(2)
     })
 
+    it('coupe le réessai quand le statut n’est plus échu', async () => {
+      service.fetchStatus
+        .mockResolvedValueOnce(MONTHLY)
+        .mockResolvedValueOnce(MONTHLY)
+        .mockResolvedValueOnce(LIFETIME)
+      const store = launchWith(MONTHLY)
+      await vi.advanceTimersByTimeAsync(6 * MINUTE)
+      expect(service.fetchStatus).toHaveBeenCalledTimes(2)
+
+      await vi.advanceTimersByTimeAsync(6 * MINUTE)
+      simulateWebResume()
+      await vi.advanceTimersByTimeAsync(0)
+      expect(store.status).toEqual(LIFETIME)
+      expect(service.fetchStatus).toHaveBeenCalledTimes(3)
+
+      await vi.advanceTimersByTimeAsync(DAY)
+      expect(service.fetchStatus).toHaveBeenCalledTimes(3)
+    })
+
     it('abandonne le réessai une fois désinstallé', async () => {
       service.fetchStatus.mockResolvedValue(MONTHLY)
       launchWith(MONTHLY)

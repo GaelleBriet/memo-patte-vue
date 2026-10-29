@@ -48,11 +48,18 @@ export function installPlusStatusRefresh(): () => void {
     },
     { immediate: true },
   )
+  const stopRetry = watch(
+    () => purchase.expiredPlan,
+    (expiredPlan) => {
+      if (expiredPlan === null) clearTimeout(retryTimer)
+    },
+  )
   const stopResume = onAppResume(verify)
   const stopNetwork = onNetworkOnline(verify)
   return () => {
     stopped = true
     stopExpiry()
+    stopRetry()
     clearTimeout(expiryTimer)
     clearTimeout(retryTimer)
     stopResume()
