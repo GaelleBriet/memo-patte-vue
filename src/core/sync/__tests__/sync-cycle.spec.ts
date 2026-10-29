@@ -635,6 +635,54 @@ describe('createSyncCycle', () => {
       expect(outbox.cursor('animal')).toBe(T_ROW)
     })
 
+    describe('requête restée sans réponse', () => {
+      const NO_ANSWER = {
+        code: '',
+        message: 'AbortError: Requête Supabase sans réponse après 30 s.',
+      }
+
+      it('arrête l’envoi à la première ligne, garde les suivantes en file et ne tire pas', async () => {
+        const animal = refusingAnimal(() => NO_ANSWER)
+        const outbox = createFakeOutbox([entry('animal', 'a1'), entry('animal', 'a2')])
+
+        await expect(cycleWith(outbox, [animal]).runCycle()).rejects.toBe(NO_ANSWER)
+
+        expect(animal.pushed).toEqual([])
+        expect(outbox.entries()).toEqual([
+          { ...entry('animal', 'a1'), attempts: 1 },
+          entry('animal', 'a2'),
+        ])
+        expect(animal.pullCalls).toEqual([])
+        expect(outbox.lastSyncedAt()).toBeNull()
+      })
+
+      it('ne tire pas quand l’envoi ne s’ouvre pas', async () => {
+        const animal = fakeTable('animal', [page([row('a9', T_ROW, 'Oscar')], T_ROW)])
+        animal.localRows.set('a1', row('a1', T_ROW, 'Milo'))
+        const outbox = createFakeOutbox([entry('animal', 'a1')])
+        pushes.open = vi.fn<typeof pushes.open>().mockRejectedValue(NO_ANSWER)
+
+        await expect(cycleWith(outbox, [animal]).runCycle()).rejects.toBe(NO_ANSWER)
+
+        expect(animal.pullCalls).toEqual([])
+        expect(outbox.entries()).toEqual([entry('animal', 'a1')])
+      })
+
+      it('un refus du serveur plus tôt dans l’envoi n’empêche pas l’arrêt', async () => {
+        const animal = fakeTable('animal', [page([row('a9', T_ROW, 'Oscar')], T_ROW)])
+        for (const id of ['a1', 'a2', 'a3']) animal.localRows.set(id, row(id, T_ROW, id))
+        animal.pushRow = async (_userId, sent) => {
+          throw sent.id === 'a1' ? CHECK_REFUSAL : NO_ANSWER
+        }
+        const outbox = createFakeOutbox(['a1', 'a2', 'a3'].map((id) => entry('animal', id)))
+
+        await expect(cycleWith(outbox, [animal]).runCycle()).rejects.toBe(NO_ANSWER)
+
+        expect(outbox.entries().map(({ attempts }) => attempts)).toEqual([1, 1, 0])
+        expect(animal.pullCalls).toEqual([])
+      })
+    })
+
     it('marque refusée une ligne refusée trois fois par le même CHECK, sans faire échouer le cycle', async () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
       const animal = refusingAnimal(() => CHECK_REFUSAL)

@@ -1,4 +1,5 @@
 import { ANIMAL_PHOTO_ENTITY } from '@/core/db/schema-statements'
+import { isTransportFailure } from '@/core/supabase/transport-failure'
 import { errorSummary } from '@/shared/utils/error-summary'
 import type { SyncOutboxEntry } from '../repository/sync-outbox.repository'
 import { normalizeSyncTimestamps } from './normalize-sync-timestamps'
@@ -17,7 +18,8 @@ export interface KeptRow {
 
 export interface PushOutcome {
   keptRows: KeptRow[]
-  failure: { cause: unknown } | null
+  /** `interrupted` : une requête est restée sans réponse, le reste de la file attend le cycle suivant. */
+  failure: { cause: unknown; interrupted?: true } | null
 }
 
 export interface PushCycle {
@@ -62,9 +64,10 @@ export function createPushCycle(
   }
 
   /**
-   * Une ligne qui échoue reste en file sans retenir les suivantes ; le premier échec est rendu pour
-   * être levé après le pull. Les lignes gardées par le serveur autrement qu'envoyées restent en file
-   * d'ici leur reprise.
+   * Une ligne refusée reste en file sans retenir les suivantes ; le premier échec est rendu pour
+   * être levé après le pull. Une requête restée sans réponse arrête l'envoi : les suivantes
+   * attendraient chacune le délai. Les lignes gardées par le serveur autrement qu'envoyées restent en
+   * file d'ici leur reprise.
    */
   async function push(userId: string): Promise<PushOutcome> {
     const keptRows: KeptRow[] = []
@@ -80,6 +83,7 @@ export function createPushCycle(
       try {
         envoi ??= await deps.pushes.open(userId, now().toISOString())
       } catch (cause) {
+        if (isTransportFailure(cause)) return { keptRows, failure: { cause, interrupted: true } }
         return { keptRows, failure: failure ?? { cause } }
       }
 
@@ -89,7 +93,9 @@ export function createPushCycle(
           await pushEntry(userId, entry, envoi, keptRows)
           refusals.forget(entry)
         } catch (cause) {
-          if (await refusals.recordFailure(entry, cause)) failure ??= { cause }
+          const retried = await refusals.recordFailure(entry, cause)
+          if (isTransportFailure(cause)) return { keptRows, failure: { cause, interrupted: true } }
+          if (retried) failure ??= { cause }
         }
       }
 
