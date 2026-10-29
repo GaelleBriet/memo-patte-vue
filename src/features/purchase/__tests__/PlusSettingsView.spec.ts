@@ -45,6 +45,10 @@ async function monter() {
 }
 
 describe('PlusSettingsView', () => {
+  let uninstall: () => void = () => {}
+
+  afterEach(() => uninstall())
+
   it('s’intitule « MémoPatte Plus », sans redire le titre sur la carte, et revient à la liste', async () => {
     const wrapper = await monter()
 
@@ -128,7 +132,7 @@ describe('PlusSettingsView', () => {
     }
     writeStoredPlusStatus(monthly)
     vi.spyOn(billingService, 'fetchStatus').mockResolvedValue(monthly)
-    const uninstall = installPlusStatusRefresh()
+    uninstall = installPlusStatusRefresh()
     const wrapper = await monter()
     expect(wrapper.get('.settings-row--plus-status').text()).toContain(
       'Plus mensuel jusqu’au 15/09/2026',
@@ -138,6 +142,5 @@ describe('PlusSettingsView', () => {
     await flushPromises()
 
     expect(wrapper.get('.settings-row--plus-status').text()).toContain('Plus mensuel — expiré')
-    uninstall()
   })
 })
