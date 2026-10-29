@@ -1,3 +1,5 @@
+import { errorSummary } from '@/shared/utils/error-summary'
+
 export const SYNC_DEBOUNCE_MS = 2_000
 export const SYNC_MAX_WAIT_MS = 30_000
 export const SYNC_BACKOFF_STEPS_MS = [5_000, 15_000, 60_000, 300_000, 900_000]
@@ -45,7 +47,8 @@ export function createSyncScheduler({
       try {
         await runCycle()
         backoffAttempts = 0
-      } catch {
+      } catch (cause) {
+        console.warn('Cycle de synchro en échec :', errorSummary(cause))
         scheduleBackoff()
       }
     })

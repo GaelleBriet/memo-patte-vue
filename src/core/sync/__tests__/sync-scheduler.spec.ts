@@ -264,6 +264,27 @@ describe('createSyncScheduler — serveur muet', () => {
   })
 })
 
+describe('createSyncScheduler — journal', () => {
+  it('journalise chaque cycle en échec par son résumé, sans le message du serveur', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const refusal = Object.assign(new Error('new row violates row-level security for Milo'), {
+      name: 'PostgrestError',
+      code: '42501',
+      status: 403,
+    })
+    const runCycle = vi.fn<() => Promise<void>>().mockRejectedValue(refusal)
+    const scheduler = createSyncScheduler({ runCycle, random: NO_JITTER })
+
+    scheduler.notifyChange()
+    await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS + FIRST_BACKOFF_STEP_MS)
+
+    expect(warn).toHaveBeenCalledTimes(2)
+    expect(warn).toHaveBeenLastCalledWith('Cycle de synchro en échec :', 'PostgrestError 42501 403')
+    expect(JSON.stringify(warn.mock.calls)).not.toContain('Milo')
+    warn.mockRestore()
+  })
+})
+
 describe('resumePendingSync', () => {
   it('programme un cycle si la base contient déjà des entrées en attente au redémarrage', async () => {
     const db = await createSyncTestDb()
