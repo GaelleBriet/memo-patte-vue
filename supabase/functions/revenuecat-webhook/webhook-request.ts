@@ -1,3 +1,4 @@
+import { readableError } from '../_shared/readable-error.ts'
 import { isSharedSecret } from '../_shared/shared-secret.ts'
 import { isSignedByRevenuecat, SIGNATURE_HEADER } from './webhook-signature.ts'
 
@@ -38,10 +39,6 @@ function eventOf(bytes: Uint8Array): RevenuecatEvent | null {
   return body.event as RevenuecatEvent
 }
 
-function errorMessage(cause: unknown): string {
-  return cause instanceof Error ? cause.message : String(cause)
-}
-
 export async function handleRevenuecatWebhook(
   request: Request,
   ports: WebhookPorts,
@@ -78,7 +75,7 @@ export async function handleRevenuecatWebhook(
   try {
     await ports.processEvent(event)
   } catch (cause) {
-    console.error('Événement RevenueCat non traité :', event.id, event.type, errorMessage(cause))
+    console.error('Événement RevenueCat non traité :', event.id, event.type, readableError(cause))
     return json(500, { error: 'processing-failed' })
   }
   return json(200, { status: 'processed' })
