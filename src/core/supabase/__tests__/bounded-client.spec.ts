@@ -40,4 +40,23 @@ describe('client Supabase borné, serveur muet', () => {
     await vi.advanceTimersByTimeAsync(10 * SUPABASE_REQUEST_TIMEOUT_MS)
     expect(server).toHaveBeenCalledTimes(1)
   })
+
+  it('l’ouverture d’un envoi rend son erreur au bout du délai, et la suivante repart', async () => {
+    const server = silentServer()
+    const supabase = clientOver(server)
+    const open = () =>
+      supabase
+        .from('sync_push')
+        .insert({ user_id: 'user-1', id: 'envoi-1', sent_at: '2026-10-29T17:28:01.000Z' })
+    const settled = vi.fn<(outcome: { error: unknown }) => void>()
+    void open().then(settled)
+
+    await vi.advanceTimersByTimeAsync(SUPABASE_REQUEST_TIMEOUT_MS)
+    expect(settled).toHaveBeenCalledTimes(1)
+    expect(settled.mock.calls[0]![0].error).toMatchObject({ code: '' })
+
+    void open().then(settled)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(server).toHaveBeenCalledTimes(2)
+  })
 })

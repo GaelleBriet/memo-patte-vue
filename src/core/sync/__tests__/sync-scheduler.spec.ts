@@ -1,9 +1,6 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createClient } from '@supabase/supabase-js'
-import { createBoundedFetch, SUPABASE_REQUEST_TIMEOUT_MS } from '@/core/supabase/request-timeout'
 import { createSyncOutboxRepository } from '../repository/sync-outbox.repository'
-import { createSyncPushRepository } from '../repository/sync-push.repository'
 import {
   createSyncScheduler,
   resumePendingSync,
@@ -238,29 +235,6 @@ describe('createSyncScheduler — sérialisation', () => {
     expect(runCycle).toHaveBeenCalledTimes(2)
 
     second.resolve()
-  })
-})
-
-describe('createSyncScheduler — serveur muet', () => {
-  it('un cycle dont l’envoi reste sans réponse est abandonné, et le suivant part', async () => {
-    const serverFetch = vi.fn<typeof fetch>(() => new Promise<Response>(() => {}))
-    const supabase = createClient('https://projet.supabase.co', 'sb_publishable_test', {
-      auth: { persistSession: false, autoRefreshToken: false },
-      global: { fetch: createBoundedFetch(serverFetch) },
-    })
-    const pushes = createSyncPushRepository(async () => supabase)
-    const runCycle = vi.fn<() => Promise<void>>(async () => {
-      await pushes.open('user-1', '2026-10-29T17:28:01.000Z')
-    })
-    const scheduler = createSyncScheduler({ runCycle, random: NO_JITTER })
-
-    scheduler.notifyChange()
-    await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS)
-    expect(serverFetch).toHaveBeenCalledTimes(1)
-    await vi.advanceTimersByTimeAsync(SUPABASE_REQUEST_TIMEOUT_MS + FIRST_BACKOFF_STEP_MS)
-
-    expect(runCycle).toHaveBeenCalledTimes(2)
-    expect(serverFetch).toHaveBeenCalledTimes(2)
   })
 })
 
