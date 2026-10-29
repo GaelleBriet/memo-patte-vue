@@ -3,11 +3,14 @@ export const SUPABASE_REQUEST_TIMEOUT_MS = 30_000
 /** Les photos ont leurs propres délais, plus longs : `storage-timeout.ts`. */
 const BOUNDED_PATHS = ['/rest/v1/', '/auth/v1/']
 
-/** Requête restée sans réponse : à réessayer au cycle suivant, comme une coupure du réseau. */
+/**
+ * Requête restée sans réponse : à réessayer au cycle suivant, comme une coupure du réseau.
+ * Nommée comme une annulation pour que postgrest-js ne la retente pas elle-même.
+ */
 export class SupabaseRequestTimeoutError extends Error {
   constructor(readonly timeoutMs: number) {
     super(`Requête Supabase sans réponse après ${timeoutMs / 1000} s.`)
-    this.name = 'TimeoutError'
+    this.name = 'AbortError'
   }
 }
 
