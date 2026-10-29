@@ -252,6 +252,7 @@ describe('plan du site', () => {
     ['exporter', 'export'],
     ['sauvegarde-android', 'android-backup'],
     ['plus', 'plus'],
+    ['telephone-d-un-autre', 'someone-elses-phone'],
     ['nouveau-telephone', 'new-phone'],
     ['effacer', 'erase'],
     ['ne-plus-suivre', 'stop-following'],
