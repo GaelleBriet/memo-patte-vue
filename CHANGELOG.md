@@ -5,6 +5,28 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.140](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.139...memo-patte-v0.1.140) (2026-10-29)
+
+
+### 🐛 Corrections
+
+* **plus:** couper le réessai quand le statut n'est plus échu ([c36ae49](https://github.com/GaelleBriet/memo-patte-vue/commit/c36ae49be2f27574e736b23dd7ae9800314bb1ad))
+* **plus:** pas de réessai armé après l'arrêt pendant la relecture de l'échéance ([62928d1](https://github.com/GaelleBriet/memo-patte-vue/commit/62928d14e4e3296356f742c10032a0ed6dfd86bc))
+* **plus:** relire le statut Plus juste après l'échéance, app restée ouverte ([24f0508](https://github.com/GaelleBriet/memo-patte-vue/commit/24f0508a14821d6b126d8840326739b39d0f3e0a))
+* **plus:** relire le statut Plus juste après l'échéance, app restée ouverte ([9028934](https://github.com/GaelleBriet/memo-patte-vue/commit/9028934c9f223ba2b78f7e07200ecb26e1331fcd))
+* **supabase:** droits explicites de service_role sur plus_entitlements ([b2c14ed](https://github.com/GaelleBriet/memo-patte-vue/commit/b2c14ed55eb2d77af98040a4e880a5f3ad4773c8))
+* **supabase:** droits explicites de service_role sur plus_entitlements ([b3e1ef8](https://github.com/GaelleBriet/memo-patte-vue/commit/b3e1ef8ddec83571c1589d8671426d3f1149aa63))
+* **supabase:** journaliser lisiblement les erreurs du webhook RevenueCat ([82f691f](https://github.com/GaelleBriet/memo-patte-vue/commit/82f691fe7d2117dd094976e02137203aa3a79ddd))
+* **supabase:** journaliser lisiblement les erreurs du webhook RevenueCat ([e48d360](https://github.com/GaelleBriet/memo-patte-vue/commit/e48d3604821f595e122e5885dd3bae590ed42ec2))
+* **supabase:** rendre lisible un objet d'erreur sans prototype ([bbd07a4](https://github.com/GaelleBriet/memo-patte-vue/commit/bbd07a44a1fd8503858c203a9fbe47a9d6cc1398))
+* **synchro:** arrêter l'envoi et le cycle à la première requête sans réponse ([e4ee4ce](https://github.com/GaelleBriet/memo-patte-vue/commit/e4ee4cece6b098b862bd311d67c1b3b4ddf6d364))
+* **synchro:** délai maximal de 30 s pour les requêtes de lignes et d'Auth ([335486b](https://github.com/GaelleBriet/memo-patte-vue/commit/335486b1abb8c496bb05dd4e58b7bfc2e84ba26c))
+* **synchro:** journaliser chaque cycle de synchro en échec ([7ed0fc4](https://github.com/GaelleBriet/memo-patte-vue/commit/7ed0fc43cf1eba1a45560d9277a984ff60fff124))
+* **synchro:** journaliser un délai dépassé ou une coupure réseau par leur nom ([fe9f607](https://github.com/GaelleBriet/memo-patte-vue/commit/fe9f6072b6e89678808b54b9ad6c7035b40a9829))
+* **synchro:** réessai rapproché après l'activation de Plus et au retour ([253bc96](https://github.com/GaelleBriet/memo-patte-vue/commit/253bc96f4daa47bc2ca906f025bcaf4985e5f31b))
+* **synchro:** réessai rapproché après le rachat de Plus, requêtes bornées, échecs journalisés ([084a08c](https://github.com/GaelleBriet/memo-patte-vue/commit/084a08c0c2fb3ec82185f5b3ba98b103f92ba090))
+* **synchro:** une lecture sans réponse expire en 30 s, sans réessai de postgrest-js ([91eef8b](https://github.com/GaelleBriet/memo-patte-vue/commit/91eef8b79f3c9693c2b9edb5e2f2915d984cf600))
+
 ## [0.1.139](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.138...memo-patte-v0.1.139) (2026-10-28)
 
 
