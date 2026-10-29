@@ -17,7 +17,7 @@ describe('readableError', () => {
     )
   })
 
-  it('rend le statut d’une erreur Auth sous forme d’objet', () => {
+  it('rend le message et le statut d’un objet d’erreur avec un statut', () => {
     expect(readableError({ message: 'User not found', status: 404 })).toBe(
       'message: User not found, status: 404',
     )
@@ -56,5 +56,9 @@ describe('readableError', () => {
 
   it('rend un objet sans champ connu par String, sans le détailler', () => {
     expect(readableError({ secret: 'sb_secret_abc' })).toBe('[object Object]')
+  })
+
+  it('rend un objet sans prototype sans lever', () => {
+    expect(readableError(Object.create(null))).toBe('[object Object]')
   })
 })

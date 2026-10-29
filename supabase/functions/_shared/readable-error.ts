@@ -9,5 +9,5 @@ export function readableError(cause: unknown): string {
     const printable = typeof value === 'string' ? value !== '' : typeof value === 'number'
     return printable ? [`${field}: ${value}`] : []
   })
-  return fields.length > 0 ? fields.join(', ') : String(cause)
+  return fields.length > 0 ? fields.join(', ') : Object.prototype.toString.call(cause)
 }
