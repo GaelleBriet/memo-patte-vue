@@ -502,6 +502,21 @@ describe('handleDeleteAccount', () => {
     expect(fake.calls.map((call) => call.kind)).not.toContain('record')
   })
 
+  it('journalise d’une erreur levée telle quelle ses seuls champs connus', async () => {
+    const fake = fakePorts()
+    fake.ports.deleteUser = () =>
+      Promise.reject({ message: 'Database error', status: 500, apikey: 'sb_secret_deTest' })
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const response = await handleDeleteAccount(request(), fake.ports)
+
+    expect(response.status).toBe(500)
+    expect(logged).toHaveBeenCalledWith(
+      'Suppression de compte en échec :',
+      'message: Database error, status: 500',
+    )
+  })
+
   it('ne touche qu’au dossier du compte du jeton', async () => {
     const fake = fakePorts({ photos: ['milo.jpg'] })
 

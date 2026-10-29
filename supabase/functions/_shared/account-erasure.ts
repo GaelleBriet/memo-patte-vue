@@ -1,3 +1,5 @@
+import { readableError } from './readable-error.ts'
+
 /** Une entrée de `storage.list()` : un sous-dossier n'a pas d'`id`. */
 export type StorageEntry = { name: string; id: string | null }
 
@@ -31,10 +33,6 @@ export type AccountErasurePorts = {
 export const PHOTO_PAGE_SIZE = 100
 export const MAX_FOLDER_DEPTH = 5
 
-export function errorMessage(cause: unknown): unknown {
-  return cause instanceof Error ? cause.message : cause
-}
-
 async function removeFolder(
   folder: string,
   depth: number,
@@ -66,7 +64,7 @@ async function recordDeletion(origin: DeletionOrigin, ports: AccountErasurePorts
   try {
     await ports.recordDeletion(origin)
   } catch (cause) {
-    console.error('Suppression de compte non journalisée :', errorMessage(cause))
+    console.error('Suppression de compte non journalisée :', readableError(cause))
   }
 }
 

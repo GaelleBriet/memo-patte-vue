@@ -186,6 +186,25 @@ describe('handleRevenuecatWebhook', () => {
       'base injoignable',
     )
   })
+
+  it('journalise lisiblement une erreur Postgrest levée telle quelle, pas « [object Object] »', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const fake = fakePorts()
+    const postgrest = { code: '42501', message: 'permission denied', details: null, hint: null }
+
+    const response = await handleRevenuecatWebhook(request(), {
+      ...fake.ports,
+      processEvent: () => Promise.reject(postgrest),
+    })
+
+    expect(response.status).toBe(500)
+    expect(error).toHaveBeenCalledWith(
+      'Événement RevenueCat non traité :',
+      'B9A1E1C4-2F3D-4E5A-8B6C-7D8E9F0A1B2C',
+      'RENEWAL',
+      'message: permission denied, code: 42501',
+    )
+  })
 })
 
 describe('handleRevenuecatWebhook, signature de RevenueCat', () => {

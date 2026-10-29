@@ -1,4 +1,5 @@
-import { ErasureNotConfiguredError, errorMessage } from '../_shared/account-erasure.ts'
+import { ErasureNotConfiguredError } from '../_shared/account-erasure.ts'
+import { readableError } from '../_shared/readable-error.ts'
 
 export const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -18,6 +19,6 @@ export function deletionFailed(cause: unknown): Response {
     console.error('Suppression de compte refusée :', cause.message)
     return json(503, { error: 'erasure-not-configured' })
   }
-  console.error('Suppression de compte en échec :', errorMessage(cause))
+  console.error('Suppression de compte en échec :', readableError(cause))
   return json(500, { error: 'deletion-failed' })
 }
