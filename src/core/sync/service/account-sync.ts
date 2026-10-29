@@ -131,7 +131,7 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
   function onComeback(): void {
     enqueue(runRestore)
     checkOnce()
-    scheduler.notifyChange()
+    scheduler.notifyComeback()
   }
 
   const stopRestored = deps.restoreFlow.onRestored(() => {
@@ -173,7 +173,7 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
     { flush: 'sync', immediate: true },
   )
   const stopPlusWatch = watch(deps.plusActive, (active) => {
-    if (active) scheduler.notifyChange()
+    if (active) scheduler.notifyPlusActivated()
   })
 
   await resumePendingSync(deps.outbox, scheduler)

@@ -83,6 +83,7 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
       try {
         const pushed = await pushCycle.push(userId)
         keptRows = pushed.keptRows
+        if (pushed.failure?.interrupted) throw pushed.failure.cause
         pushFailure = pushed.failure
         const photoFailure = photoPush ? await photoPush.push(userId) : null
         pushFailure ??= photoFailure
