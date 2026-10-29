@@ -3,6 +3,8 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 
 import { writeStoredPlusStatus } from '../logic/plus-status-storage'
+import { billingService } from '../service/billing.service'
+import { installPlusStatusRefresh } from '../service/plus-status-refresh.service'
 import PlusSettingsView from '../views/PlusSettingsView.vue'
 import { memoryStorage } from './billing-fixture'
 import i18n from '@/core/i18n'
@@ -43,6 +45,10 @@ async function monter() {
 }
 
 describe('PlusSettingsView', () => {
+  let uninstall: () => void = () => {}
+
+  afterEach(() => uninstall())
+
   it('s’intitule « MémoPatte Plus », sans redire le titre sur la carte, et revient à la liste', async () => {
     const wrapper = await monter()
 
@@ -112,5 +118,29 @@ describe('PlusSettingsView', () => {
 
     expect(wrapper.text()).toContain('subscription')
     expect(wrapper.text()).not.toMatch(/\bplan\b/i)
+  })
+
+  it('passe de lui-même à « expiré » quand l’échéance passe, app restée ouverte', async () => {
+    vi.useRealTimers()
+    vi.useFakeTimers({
+      toFake: ['Date', 'setTimeout', 'clearTimeout'],
+      now: new Date(2026, 8, 15, 10),
+    })
+    const monthly = {
+      plan: 'monthly' as const,
+      expiresAt: new Date(2026, 8, 15, 10, 5).toISOString(),
+    }
+    writeStoredPlusStatus(monthly)
+    vi.spyOn(billingService, 'fetchStatus').mockResolvedValue(monthly)
+    uninstall = installPlusStatusRefresh()
+    const wrapper = await monter()
+    expect(wrapper.get('.settings-row--plus-status').text()).toContain(
+      'Plus mensuel jusqu’au 15/09/2026',
+    )
+
+    await vi.advanceTimersByTimeAsync(10 * 60_000)
+    await flushPromises()
+
+    expect(wrapper.get('.settings-row--plus-status').text()).toContain('Plus mensuel — expiré')
   })
 })
