@@ -241,6 +241,22 @@ describe('installPlusStatusRefresh', () => {
       expect(service.fetchStatus).toHaveBeenCalledOnce()
     })
 
+    it('n’arme pas de réessai quand l’arrêt arrive pendant la relecture de l’échéance', async () => {
+      let answer: (status: PlusStatus) => void = () => {}
+      service.fetchStatus
+        .mockResolvedValueOnce(MONTHLY)
+        .mockReturnValueOnce(new Promise<PlusStatus>((resolve) => (answer = resolve)))
+      launchWith(MONTHLY)
+      await vi.advanceTimersByTimeAsync(6 * MINUTE)
+      expect(service.fetchStatus).toHaveBeenCalledTimes(2)
+
+      uninstall()
+      answer(MONTHLY)
+
+      await vi.advanceTimersByTimeAsync(DAY)
+      expect(service.fetchStatus).toHaveBeenCalledTimes(2)
+    })
+
     it('abandonne le réessai une fois désinstallé', async () => {
       service.fetchStatus.mockResolvedValue(MONTHLY)
       launchWith(MONTHLY)

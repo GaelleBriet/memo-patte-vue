@@ -18,6 +18,7 @@ export function installPlusStatusRefresh(): () => void {
 
   let expiryTimer: ReturnType<typeof setTimeout> | undefined
   let retryTimer: ReturnType<typeof setTimeout> | undefined
+  let stopped = false
 
   const verify = () => void purchase.verifyKnownStatus()
 
@@ -34,7 +35,8 @@ export function installPlusStatusRefresh(): () => void {
 
   async function verifyAfterExpiry(): Promise<void> {
     await purchase.verifyKnownStatus()
-    if (purchase.expiredPlan !== null) retryTimer = setTimeout(verify, RETRY_AFTER_EXPIRY_MS)
+    if (!stopped && purchase.expiredPlan !== null)
+      retryTimer = setTimeout(verify, RETRY_AFTER_EXPIRY_MS)
   }
 
   verify()
@@ -49,6 +51,7 @@ export function installPlusStatusRefresh(): () => void {
   const stopResume = onAppResume(verify)
   const stopNetwork = onNetworkOnline(verify)
   return () => {
+    stopped = true
     stopExpiry()
     clearTimeout(expiryTimer)
     clearTimeout(retryTimer)
