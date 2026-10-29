@@ -60,6 +60,19 @@ describe('errorSummary', () => {
   it('reste lisible quand l’erreur n’a aucun de ces champs', () => {
     expect(errorSummary({})).toBe('erreur sans nom')
   })
+
+  it('nomme une requête restée sans réponse par le préfixe de postgrest-js, sans recopier le message', () => {
+    const timeout = { message: 'AbortError: Requête sans réponse pour Milo', code: '', hint: '' }
+    const offline = { message: 'TypeError: Failed to fetch sophie.martin@example.com', code: '' }
+
+    expect(errorSummary(timeout)).toBe('délai dépassé')
+    expect(errorSummary(offline)).toBe('coupure réseau')
+  })
+
+  it('ne lit le préfixe qu’en tête du message, et seulement faute d’autre champ', () => {
+    expect(errorSummary({ message: 'Milo AbortError: x', code: '' })).toBe('erreur sans nom')
+    expect(errorSummary({ message: 'TypeError: x', code: '42501' })).toBe('42501')
+  })
 })
 
 describe('localErrorMessage', () => {

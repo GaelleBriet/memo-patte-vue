@@ -1,6 +1,9 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createClient } from '@supabase/supabase-js'
+import { createBoundedFetch, SUPABASE_REQUEST_TIMEOUT_MS } from '@/core/supabase/request-timeout'
 import { createSyncOutboxRepository } from '../repository/sync-outbox.repository'
+import { createSyncPushRepository } from '../repository/sync-push.repository'
 import {
   createSyncScheduler,
   resumePendingSync,
@@ -239,23 +242,56 @@ describe('createSyncScheduler — sérialisation', () => {
 })
 
 describe('createSyncScheduler — journal', () => {
-  it('journalise chaque cycle en échec par son résumé, sans le message du serveur', async () => {
+  async function loggedFailures(serverFetch: typeof fetch): Promise<unknown[][]> {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const refusal = Object.assign(new Error('new row violates row-level security for Milo'), {
-      name: 'PostgrestError',
-      code: '42501',
-      status: 403,
+    const supabase = createClient('https://projet.supabase.co', 'sb_publishable_test', {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: { fetch: createBoundedFetch(serverFetch) },
     })
-    const runCycle = vi.fn<() => Promise<void>>().mockRejectedValue(refusal)
+    const pushes = createSyncPushRepository(async () => supabase)
+    const runCycle = async () => {
+      await pushes.open('user-1', '2026-10-29T17:28:01.000Z')
+    }
     const scheduler = createSyncScheduler({ runCycle, random: NO_JITTER })
 
     scheduler.notifyChange()
-    await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS + FIRST_BACKOFF_STEP_MS)
+    await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS + SUPABASE_REQUEST_TIMEOUT_MS)
 
-    expect(warn).toHaveBeenCalledTimes(2)
-    expect(warn).toHaveBeenLastCalledWith('Cycle de synchro en échec :', 'PostgrestError 42501 403')
-    expect(JSON.stringify(warn.mock.calls)).not.toContain('Milo')
+    const calls = warn.mock.calls
     warn.mockRestore()
+    return calls
+  }
+
+  it('journalise un refus du serveur par son code, sans son message', async () => {
+    const calls = await loggedFailures(
+      async () =>
+        new Response(
+          JSON.stringify({
+            code: '42501',
+            message: 'new row violates row-level security policy for Milo',
+            details: null,
+            hint: null,
+          }),
+          { status: 403 },
+        ),
+    )
+
+    expect(calls[0]).toEqual(['Cycle de synchro en échec :', '42501'])
+    expect(JSON.stringify(calls)).not.toContain('Milo')
+  })
+
+  it('journalise un serveur muet comme un délai dépassé', async () => {
+    const calls = await loggedFailures(() => new Promise<Response>(() => {}))
+
+    expect(calls[0]).toEqual(['Cycle de synchro en échec :', 'délai dépassé'])
+  })
+
+  it('journalise un téléphone hors ligne comme une coupure réseau', async () => {
+    const calls = await loggedFailures(async () => {
+      throw new TypeError('Failed to fetch')
+    })
+
+    expect(calls[0]).toEqual(['Cycle de synchro en échec :', 'coupure réseau'])
   })
 })
 
