@@ -48,18 +48,17 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   const notDue = notDueArrivals(effects)
   const journey = journeys(input, effects)
   const { days, translated, left, rhythmFrom, replaced } = journey
+  const covering = [...lines.notes.filter((note) => !lines.released.has(note)), ...borrowed]
   const byDay = new Map<Day, Line[]>()
-  for (const note of [...lines.notes, ...borrowed]) {
+  for (const note of covering) {
     byDay.set(note.dueOn, [...(byDay.get(note.dueOn) ?? []), note])
   }
   const isBorrowed = new Set(borrowed)
-  const noted = new Set(
-    [...lines.notes, ...borrowed].map((note) => keyOf(note.dueOn, note.dueTime)),
-  )
+  const noted = new Set(covering.map((note) => keyOf(note.dueOn, note.dueTime)))
   const matched = new Set<Line>()
   const held = new Map<Line, string>()
   const { coveredOn, settle } = dayCoverage({
-    notes: [...lines.notes, ...borrowed],
+    notes: covering,
     borrowed,
     reports: lines.reports,
     translated,
@@ -106,6 +105,10 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
       const due = { settingId: journey.setting.id, dueOn: day, dueTime: hour }
       slots.push({ due, key: keyOf(day, hour), coveredBy: note, exact })
     }
+  }
+  // R4, R6 (#1373) : restée à l'ancien rythme, une prise donnée d'avance tient au jour où elle a été donnée.
+  for (const note of lines.released) {
+    if (note.status === 'given') held.set(note, keyOf(note.givenOn!, note.dueTime))
   }
   const unread = [...journey.skipped].filter((day) => !days.has(day) && !left.has(day))
   keepSkippedDays(lines.notes, new Set(unread), slots, held)

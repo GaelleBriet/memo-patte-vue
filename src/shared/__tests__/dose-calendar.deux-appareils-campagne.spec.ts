@@ -10,6 +10,7 @@ import {
   type Engine,
 } from '../../../scripts/dose-engine/two-devices-notes'
 import fork1753 from './fixtures/dose-calendar-deux-appareils-8710001753.json'
+import fork0428 from './fixtures/dose-calendar-deux-appareils-9530000428.json'
 
 // Campagne à deux téléphones (#867, #882, #883) : TW_FROM, TW_SEEDS, TW_STEPS, et TW_MAIN (moteur de
 // `main`, pour ne compter que ses écarts) posées devant la commande (`scripts/dose-engine/README.md`).
@@ -32,7 +33,12 @@ function campaignOf(env: Record<string, string | undefined>): Campaign {
 
 const campaign = campaignOf(process.env)
 
+// Fourche figée : la marche a changé (rythme compté depuis la prise réelle, #1373).
+const FROZEN: Record<string, Fork> = { '9530000428/15': fork0428 as unknown as Fork }
+
 function forkAt(seed: number, step: number): Fork {
+  const frozen = FROZEN[`${seed}/${step}`]
+  if (frozen !== undefined) return frozen
   let found: Fork | undefined
   forksOf(seed, step + 1, (fork) => {
     if (fork.step === step) found = fork

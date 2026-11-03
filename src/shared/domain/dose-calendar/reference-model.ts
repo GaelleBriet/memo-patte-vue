@@ -1,6 +1,13 @@
 import { calendarOf } from './reference-calendar'
 import { keyOf, longestStep, plusDays } from './reference-grid'
-import { episodesOf, isTaken, latestBy } from './reference-lines'
+import {
+  episodesOf,
+  isLiveIn,
+  isTaken,
+  latestBy,
+  oldRhythmLines,
+  settingsIn,
+} from './reference-lines'
 import type {
   ReferenceInput,
   ReferenceLine,
@@ -98,4 +105,21 @@ export function referenceReading({
     unlogged: [...unlogged, ...missed].sort(),
     upcoming: own.filter((key) => dayOf(key) >= today && dayOf(key) <= until),
   }
+}
+
+/** #1373 : les lignes restées à l'ancien rythme, toutes périodes confondues. */
+export function oldRhythmLinesOf(
+  settings: readonly ReferenceSetting[],
+  lines: readonly ReferenceLine[],
+): Set<ReferenceLine> {
+  const old = new Set<ReferenceLine>()
+  const settingOf = (id: string) => settings.find((setting) => setting.id === id)!
+  for (const episode of episodesOf(settings)) {
+    const live = episode.filter(isLiveIn(episode, lines))
+    const own = lines.filter((line) => episode.some(({ id }) => id === line.settingId))
+    oldRhythmLines(own, settingOf, live, settingsIn(live).settingAt).forEach((line) =>
+      old.add(line),
+    )
+  }
+  return old
 }

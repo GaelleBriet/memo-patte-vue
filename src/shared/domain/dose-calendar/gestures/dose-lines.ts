@@ -2,12 +2,18 @@ import { episodeLines } from '../lines'
 import { episodeIdsOf, episodeOf, spanOf } from '../settings'
 import type { Line, TreatmentViewInput } from '../types'
 import { buildView } from '../view'
+import { rhythmOf } from './changes'
 
 /** TR-25 : les décalages d'une journée, dans sa période, venus d'un appareil ou de l'autre. */
 export function shiftsOfDay(input: TreatmentViewInput, of: Line): Line[] {
   const period = episodeIdsOf(input.settings, of.settingId)
+  const inRhythm = rhythmOf(input, of)
   return input.lines.filter(
-    (line) => line.status === 'shift' && line.dueOn === of.dueOn && period.has(line.settingId),
+    (line) =>
+      line.status === 'shift' &&
+      line.dueOn === of.dueOn &&
+      period.has(line.settingId) &&
+      inRhythm(line),
   )
 }
 

@@ -11,7 +11,7 @@ import type {
   TreatmentViewInput,
 } from '../types'
 import { buildView, type TreatmentView } from '../view'
-import { applied, shiftOfDay, without } from './changes'
+import { applied, rhythmOf, shiftOfDay, without } from './changes'
 import { strandsNote } from './reports'
 
 export const reportsOf = (view: TreatmentView, episode: ReadonlySet<string>): Line[] =>
@@ -84,10 +84,12 @@ export function reportToRewrite(
   notedOn: (day: Day) => boolean,
   carried: boolean,
 ): Line | undefined {
+  const inRhythm = rhythmOf(input, due)
   const found = reportsOf(view, episode)
     .filter(
       (report) =>
-        (report.targetOn === due.dueOn && !notedOn(due.dueOn)) || report.dueOn === due.dueOn,
+        inRhythm(report) &&
+        ((report.targetOn === due.dueOn && !notedOn(due.dueOn)) || report.dueOn === due.dueOn),
     )
     .at(-1)
   if (found === undefined || carried) return found

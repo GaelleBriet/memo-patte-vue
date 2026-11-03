@@ -11,6 +11,7 @@ import {
 } from '../domain/dose-calendar'
 import { both, edited, moved, readings, rewrittenOn } from './dose-calendar.reglage-corrige.aides'
 import { DAY, keys, setting, WEEK } from './dose-calendar.v2.aides'
+import fork0373 from './fixtures/dose-calendar-deux-appareils-9050000373.json'
 import fork2324 from './fixtures/dose-calendar-deux-appareils-9050002324.json'
 import fork0270 from './fixtures/dose-calendar-deux-appareils-9140000270.json'
 import fork1597 from './fixtures/dose-calendar-deux-appareils-9140001597.json'
@@ -57,8 +58,10 @@ const states = (input: TreatmentViewInput, from: string, to: string) =>
     .map(({ due, state }) => `${due.dueOn} ${due.dueTime} ${state}`)
 
 // Fourches figées : 9050002324, la marche a changé (case jugée avec le décalage de la journée) ;
-// 9140001597, le tirage de la fourche au pas 17 a changé (retour au jour d'origine, Q59).
+// 9140001597, le tirage de la fourche au pas 17 a changé (retour au jour d'origine, Q59) ;
+// 9050000373, la marche a changé (rythme compté depuis la prise réelle, #1373).
 const FROZEN: Record<string, Fork> = {
+  '9050000373/8': fork0373 as unknown as Fork,
   '9050002324/18': fork2324 as unknown as Fork,
   '9140001597/17': fork1597 as unknown as Fork,
 }

@@ -1,7 +1,8 @@
-import { keyOf, sameFrequency, sameHours } from './grid'
+import { hoursOf, keyOf, sameFrequency, sameHours } from './grid'
 import { isMoreRecent, latestBy } from './latest'
+import { releasedLines } from './released'
 import type { Span } from './settings'
-import type { Day, IdleReason, Line, Setting } from './types'
+import type { Day, Hour, IdleReason, Line, Setting } from './types'
 
 export { isMoreRecent, latestBy } from './latest'
 
@@ -48,6 +49,10 @@ export type EpisodeLines = {
   homecomings: Line[]
   /** Une ligne de décalage par journée. */
   shifts: Line[]
+  /** R4, R6 (#1373) : lignes d'une journée avancée avec la case, restées à l'ancien rythme. */
+  released: ReadonlySet<Line>
+  /** #1373 : le report resté à l'ancien rythme, un par journée, hors de `reports`. */
+  releasedReports: Line[]
   idle: Map<string, IdleReason>
   doseKey: (line: Line) => string
   /** R4 : jour noté ou déplacé → réglage de sa ligne la plus récente (TR-25), dont il garde les heures. */
@@ -90,13 +95,14 @@ function touchedDays(
   reports: readonly Line[],
   chosenArrivals: ReadonlyMap<Line, Setting>,
   settingOf: (id: string) => Setting | undefined,
+  released: ReadonlySet<Line>,
 ) {
   const latest = new Map<Day, { line: Line; settingId: string }>()
   const touch = (day: Day, line: Line, settingId = line.settingId) => {
     const kept = latest.get(day)
     if (kept === undefined || isMoreRecent(line, kept.line)) latest.set(day, { line, settingId })
   }
-  notes.forEach((note) => touch(note.dueOn, note))
+  notes.filter((note) => !released.has(note)).forEach((note) => touch(note.dueOn, note))
   for (const report of reports) {
     // R4 : sa journée de départ se lit alors comme sans lui.
     if (!rewrittenAfter(report, settingOf(report.settingId))) touch(report.dueOn, report)
@@ -134,7 +140,9 @@ export function translatedDays(
 export function episodeLines(lines: readonly Line[], span: Span): EpisodeLines {
   const ids = new Set(span.episode.map(({ id }) => id))
   const own = lines.filter((line) => ids.has(line.settingId))
-  const doseKey = doseKeyOf
+  const released = releasedLines(own, span)
+  const doseKey = (line: Line) => (released.has(line) ? `${doseKeyOf(line)} @` : doseKeyOf(line))
+  const current = (line: Line) => !released.has(line)
   const kept = latestBy(own, doseKey)
   const idle = new Map<string, IdleReason>()
   const keptIds = new Set(kept.map(({ id }) => id))
@@ -145,7 +153,8 @@ export function episodeLines(lines: readonly Line[], span: Span): EpisodeLines {
     idle.set(line.id, 'back-to-date')
     return false
   })
-  const reports = reportsOf(moving)
+  const reports = reportsOf(moving.filter(current))
+  const releasedReports = reportsOf(moving.filter((line) => released.has(line)))
   const homecomings = latestBy(
     kept.filter(
       (line) =>
@@ -156,20 +165,24 @@ export function episodeLines(lines: readonly Line[], span: Span): EpisodeLines {
     (line) => line.dueOn,
   )
   const shifts = latestBy(
-    kept.filter((line) => line.status === 'shift' && line.targetOn !== null),
+    kept.filter((line) => line.status === 'shift' && line.targetOn !== null && current(line)),
     (line) => line.dueOn,
   )
   for (const line of kept) {
     if (line.status === 'shift' && line.targetOn === null) idle.set(line.id, 'outside')
+    if (line.status === 'shift' && !current(line)) idle.set(line.id, 'overtaken')
   }
+  const read = new Set([...reports, ...releasedReports, ...shifts])
   for (const line of [...moving, ...kept.filter((line) => line.status === 'shift')]) {
-    if (!idle.has(line.id) && !reports.includes(line) && !shifts.includes(line)) {
-      idle.set(line.id, 'superseded')
-    }
+    if (!idle.has(line.id) && !read.has(line)) idle.set(line.id, 'superseded')
   }
   // #873 : une prise l'emporte toujours sur la ligne « pas à donner » de sa dose ; #867 : un report plus
   // récent qu'elle sur sa dose de départ aussi.
-  const taken = new Set(kept.filter(isTaken).map(({ dueOn, dueTime }) => keyOf(dueOn, dueTime)))
+  const taken = new Set(
+    kept
+      .filter((line) => isTaken(line) && current(line))
+      .map((line) => keyOf(line.dueOn, line.dueTime)),
+  )
   const beaten = (note: Line) =>
     note.status === 'not-due' &&
     (taken.has(keyOf(note.dueOn, note.dueTime)) ||
@@ -183,17 +196,44 @@ export function episodeLines(lines: readonly Line[], span: Span): EpisodeLines {
   const notes = kept.filter((line) => isNote(line) && !beaten(line))
   const chosenArrivals = chosenArrivalsOf(reports, span)
   const settingOf = (id: string) => span.episode.find((setting) => setting.id === id)
-  const { touched, answered } = touchedDays(notes, reports, chosenArrivals, settingOf)
+  const { touched, answered } = touchedDays(notes, reports, chosenArrivals, settingOf, released)
   return {
     kept,
     notes,
     reports,
     homecomings,
     shifts,
+    released,
+    releasedReports,
     idle,
     doseKey,
     touched,
     answered,
     chosenArrivals,
+  }
+}
+
+/**
+ * R4, R7 (#1373) : resté à l'ancien rythme, le report qui a avancé une journée vers une prise y garde
+ * son arrivée, avec les heures de son réglage encore sans prise d'avance ; la journée du nouveau
+ * rythme, le même jour, ne perd rien.
+ */
+export function arriveReleased(
+  lines: EpisodeLines,
+  settingOf: (id: string) => Setting,
+  arrive: (report: Line, keys: string[], bringing: Hour[], source: Setting) => void,
+): void {
+  for (const report of lines.releasedReports) {
+    const written = settingOf(report.settingId)
+    const given = [...lines.released].filter(
+      ({ status, dueOn }) => status === 'given' && dueOn === report.dueOn,
+    )
+    const bringing = hoursOf(written.times).filter(
+      (hour) =>
+        (hour === null || hour >= (report.dueTime ?? '')) &&
+        !given.some(({ dueTime }) => dueTime === hour),
+    )
+    const keys = bringing.map((hour) => keyOf(report.dueOn, hour))
+    arrive(report, keys, bringing, written)
   }
 }

@@ -2,7 +2,7 @@ import { keyOf } from '../grid'
 import { episodeIdsOf } from '../settings'
 import type { Day, Due, Line, TreatmentViewInput } from '../types'
 import { buildView } from '../view'
-import { ownsDayShift, shiftOfDay } from './changes'
+import { ownsDayShift, rhythmOf, shiftOfDay } from './changes'
 import { linesAfter, movedAlone, shiftDayOf } from './outcome'
 
 /**
@@ -32,7 +32,7 @@ export function offersShiftFor(
   const sameDay = view.slots(due.dueOn, due.dueOn)
   if (sameDay.some(({ due: other, state }) => state === 'pending' && !sameKey(other))) return false
   const shiftDay = shiftDayOf(view, due)
-  const own = shiftOfDay(carnet.lines, shiftDay)
+  const own = shiftOfDay(carnet.lines.filter(rhythmOf(carnet, due)), shiftDay)
   if (own !== undefined && writtenByAnotherHour(carnet, due, own)) return false
   const later = linesAfter(carnet, due, new Set(own === undefined ? [] : [own.id]))
   if (later.notes.length > 0 || later.others.some(({ status }) => status === 'shift')) return false

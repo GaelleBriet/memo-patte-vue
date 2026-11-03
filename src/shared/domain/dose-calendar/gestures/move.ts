@@ -13,7 +13,7 @@ import type {
   TreatmentViewInput,
 } from '../types'
 import { buildView, type TreatmentView } from '../view'
-import { shiftOfDay, shiftWritten, without, written } from './changes'
+import { rhythmOf, shiftOfDay, shiftWritten, without, written } from './changes'
 import { linesAfter, livesOn, lostToEnd, outcome } from './outcome'
 import {
   arrivalOnGridDay,
@@ -104,8 +104,11 @@ function planOf(
   }
   const episode = episodesOf(input.settings).at(-1)!
   const ids = new Set(episode.map(({ id }) => id))
+  const inRhythm = rhythmOf(input, due)
   const notedOn = (day: Day) =>
-    input.lines.some((line) => isTaken(line) && ids.has(line.settingId) && line.dueOn === day)
+    input.lines.some(
+      (line) => isTaken(line) && ids.has(line.settingId) && line.dueOn === day && inRhythm(line),
+    )
   const found = reportToRewrite(input, view, ids, due, notedOn, carried)
   const arrival = found === undefined || carried ? null : arrivalOnGridDay(input, view, found, due)
   if (arrival !== null && 'refusal' in arrival) return arrival.refusal
@@ -128,7 +131,7 @@ function planOf(
   if (existing !== undefined && rewriteStrands(input, view, existing, moved)) {
     return { reason: 'later-dose' }
   }
-  const dayShift = shiftOfDay(input.lines, existing?.dueOn ?? moved.dueOn)
+  const dayShift = shiftOfDay(input.lines.filter(inRhythm), existing?.dueOn ?? moved.dueOn)
   const ignored = new Set(
     [existing?.id, follower?.id, dayShift?.id].filter((id) => id !== undefined),
   )
@@ -153,7 +156,12 @@ function planOf(
           line.status !== 'shift' &&
           ids.has(line.settingId),
       )
-      .flatMap((line) => [livesOn(line), ...(line.givenOn === null ? [] : [line.givenOn])]),
+      .flatMap((line) =>
+        // #1373 : restée à l'ancien rythme, une prise donnée d'avance a eu lieu le jour où elle a été donnée.
+        inRhythm(line) || line.givenOn === null
+          ? [livesOn(line), ...(line.givenOn === null ? [] : [line.givenOn])]
+          : [line.givenOn],
+      ),
   ].sort()
   const earliest = [input.today, setting.startsOn, plusDays(before.at(-1)!, 1)].sort().at(-1)!
   let latest = setting.endsOn
@@ -250,7 +258,7 @@ function reportLines(
           id: dayShift.id,
           line: { ...at, status: 'shift', givenOn: null, targetOn: to },
         }
-      : shiftWritten(input.lines, at, to)
+      : shiftWritten(input.lines.filter(rhythmOf(input, due)), at, to)
   return [report, ...follows, shift]
 }
 

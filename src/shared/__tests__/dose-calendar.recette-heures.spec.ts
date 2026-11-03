@@ -178,7 +178,7 @@ describe('R7 : 8 h du 3 donnée, 20 h du 3 reportée au 4', () => {
 })
 
 describe('R4, R10 : une prise couvre son échéance, un réglage du jour se remplace', () => {
-  it('#741 : tous les 3 mois à 6, 12, 18, 23 h ; 23 h reportée au 12, donnée le 5 ; chaque semaine le 12 : rien le 12, le 19', () => {
+  it('#741, #1373 : tous les 3 mois à 6, 12, 18, 23 h ; 23 h reportée au 12, donnée le 5 ; chaque semaine le 12 : rien le 12, le 17 (dernière prise réelle le 10)', () => {
     const T = ['06:00', '12:00', '18:00', '23:00']
     let c = carnet('2026-03-10', mois(3), T)
     for (const heure of T.slice(0, 3)) {
@@ -188,7 +188,7 @@ describe('R4, R10 : une prise couvre son échéance, un réglage du jour se remp
     c = donne(c, '2026-03-12', echeance(c, '2026-03-12', '23:00'), '2026-03-05')
     expect(journees(c, '2026-03-12', 1)).toEqual(['2026-06-05'])
     c = modifie(c, '2026-03-12', semaines(1), H)
-    expect(journees(c, '2026-03-12', 1)).toEqual(['2026-03-19'])
+    expect(journees(c, '2026-03-12', 1)).toEqual(['2026-03-17'])
   })
 
   it('#738 : 20 h du 3 donnée, posologie changée le 3, prise supprimée : 20 h du 3 revient', () => {

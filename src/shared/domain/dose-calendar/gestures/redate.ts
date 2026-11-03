@@ -8,7 +8,7 @@ import type {
   TreatmentViewInput,
 } from '../types'
 import { buildView } from '../view'
-import { ownsDayShift, shiftOfDay, shiftWritten, without } from './changes'
+import { ownsDayShift, rhythmOf, shiftOfDay, shiftWritten, without } from './changes'
 import { doseLines } from './dose-lines'
 import { checkPast, dueForDate, noteDose } from './note'
 import { lostToEnd, outcome, shiftDayOf, withFollowed } from './outcome'
@@ -108,19 +108,26 @@ function redateGiven(input: TreatmentViewInput, line: Line, gesture: RedateGestu
   const view = buildView(input)
   const due = { settingId: line.settingId, dueOn: line.dueOn, dueTime: line.dueTime }
   const shiftDay = shiftDayOf(view, due)
-  const own = shiftOfDay(input.lines, shiftDay)
-  if (givenOn === line.givenOn) return outcome(input, [], { offersShift: own !== undefined })
+  const inRhythm = rhythmOf(input, line)
+  const own = shiftOfDay(input.lines.filter(inRhythm), shiftDay)
+  // #1373 : restée à l'ancien rythme, la prise ne déplace plus le calendrier du nouveau.
+  const current = rhythmOf(input, due)(line)
+  if (givenOn === line.givenOn) {
+    return outcome(input, [], { offersShift: current && own !== undefined })
+  }
   const boundary = view.earliestGivenOn(due)
   if (boundary !== null && givenOn < boundary) {
     return { refusal: { reason: 'too-early', earliest: boundary } }
   }
   const owned = own !== undefined && ownsDayShift(input, line, own) ? own : undefined
-  const offered = offersShiftFor(
-    without(input, [line.id, ...(owned === undefined ? [] : [owned.id])]),
-    due,
-    givenOn,
-    owned !== undefined,
-  )
+  const offered =
+    current &&
+    offersShiftFor(
+      without(input, [line.id, ...(owned === undefined ? [] : [owned.id])]),
+      due,
+      givenOn,
+      owned !== undefined,
+    )
   const prise: LineChange = {
     action: 'rewrite',
     id: line.id,
@@ -129,12 +136,13 @@ function redateGiven(input: TreatmentViewInput, line: Line, gesture: RedateGestu
   // G18 : le décalage d'une dose avancée est celui de son report, ancré à son jour d'arrivée.
   const reportAnchor = shiftDay === line.dueOn ? null : line.dueOn
   const changesFor = (checked: boolean): LineChange[] => {
+    const lines = input.lines.filter(inRhythm)
     if (offered && checked)
-      return [prise, shiftWritten(input.lines, { ...due, dueOn: shiftDay }, givenOn)]
+      return [prise, shiftWritten(lines, { ...due, dueOn: shiftDay }, givenOn)]
     const drops = owned !== undefined && (offered || givenOn === line.dueOn)
     if (!drops) return [prise]
     if (reportAnchor === null) return [prise, { action: 'delete', id: owned.id }]
-    return [prise, shiftWritten(input.lines, owned, reportAnchor)]
+    return [prise, shiftWritten(lines, owned, reportAnchor)]
   }
   const changes = changesFor(shiftsFollowing)
   return withFollowed(input, changes, line.dueOn, {

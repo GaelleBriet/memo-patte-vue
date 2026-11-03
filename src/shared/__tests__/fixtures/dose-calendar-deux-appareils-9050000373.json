@@ -1,0 +1,436 @@
+{
+  "seed": 9050000373,
+  "step": 8,
+  "aFirst": false,
+  "gesture": {
+    "kind": "move",
+    "due": {
+      "settingId": "s3",
+      "dueOn": "2026-03-23",
+      "dueTime": "08:00"
+    },
+    "to": "2026-03-24",
+    "shiftsFollowing": false
+  },
+  "plan": {
+    "action": "rewrite",
+    "id": "s3",
+    "setting": {
+      "startsOn": "2026-03-11",
+      "firstDueOn": "2026-03-23",
+      "gridOriginOn": "2026-03-23",
+      "firstDueChosen": false,
+      "fallenDosesAnswer": "unasked",
+      "endsOn": "2026-04-04",
+      "frequency": {
+        "value": 2,
+        "unit": "day"
+      },
+      "times": ["20:00"]
+    }
+  },
+  "base": {
+    "settings": [
+      {
+        "id": "s1",
+        "startsOn": "2026-03-09",
+        "firstDueOn": "2026-03-09",
+        "gridOriginOn": "2026-03-09",
+        "firstDueChosen": true,
+        "fallenDosesAnswer": "unasked",
+        "endsOn": "2026-04-05",
+        "stoppedOn": null,
+        "frequency": {
+          "value": 1,
+          "unit": "week"
+        },
+        "times": ["08:00", "20:00"],
+        "createdAt": "2026-01-01T00:00:00.000Z",
+        "gridWrittenAt": "2026-01-01T00:00:02.000Z"
+      },
+      {
+        "startsOn": "2026-03-11",
+        "firstDueOn": "2026-03-23",
+        "gridOriginOn": "2026-03-23",
+        "firstDueChosen": true,
+        "fallenDosesAnswer": "unasked",
+        "endsOn": "2026-04-04",
+        "frequency": {
+          "value": 1,
+          "unit": "week"
+        },
+        "times": ["08:00", "20:00"],
+        "id": "s2",
+        "stoppedOn": null,
+        "createdAt": "2026-01-01T00:00:03.000Z",
+        "gridWrittenAt": "2026-01-01T00:00:03.000Z",
+        "gridBefore": {
+          "frequency": {
+            "value": 1,
+            "unit": "week"
+          },
+          "endsOn": "2026-04-05",
+          "writtenAt": "2026-01-01T00:00:01.000Z",
+          "runs": [["2026-03-16", "2026-03-30"]]
+        }
+      },
+      {
+        "startsOn": "2026-03-11",
+        "firstDueOn": "2026-03-23",
+        "gridOriginOn": "2026-03-23",
+        "firstDueChosen": false,
+        "fallenDosesAnswer": "unasked",
+        "endsOn": "2026-04-04",
+        "frequency": {
+          "value": 2,
+          "unit": "day"
+        },
+        "times": ["08:00", "20:00"],
+        "id": "s3",
+        "stoppedOn": null,
+        "createdAt": "2026-01-01T00:00:07.000Z",
+        "gridWrittenAt": "2026-01-01T00:00:07.000Z",
+        "gridBefore": {
+          "frequency": {
+            "value": 1,
+            "unit": "week"
+          },
+          "endsOn": "2026-04-04",
+          "writtenAt": "2026-01-01T00:00:03.000Z",
+          "runs": [
+            ["2026-03-23", "2026-03-23"],
+            ["2026-03-25", "2026-04-01"]
+          ]
+        }
+      }
+    ],
+    "lines": [
+      {
+        "settingId": "s2",
+        "dueOn": "2026-03-23",
+        "dueTime": "20:00",
+        "status": "given",
+        "givenOn": "2026-03-11",
+        "targetOn": null,
+        "id": "l5",
+        "decidedAt": "2026-01-01T00:00:05.000Z"
+      },
+      {
+        "settingId": "s2",
+        "dueOn": "2026-03-23",
+        "dueTime": "20:00",
+        "status": "shift",
+        "givenOn": null,
+        "targetOn": "2026-03-11",
+        "id": "l6",
+        "decidedAt": "2026-01-01T00:00:06.000Z"
+      }
+    ],
+    "today": "2026-03-11"
+  },
+  "phoneA": {
+    "settings": [
+      {
+        "id": "s1",
+        "startsOn": "2026-03-09",
+        "firstDueOn": "2026-03-09",
+        "gridOriginOn": "2026-03-09",
+        "firstDueChosen": true,
+        "fallenDosesAnswer": "unasked",
+        "endsOn": "2026-04-05",
+        "stoppedOn": null,
+        "frequency": {
+          "value": 1,
+          "unit": "week"
+        },
+        "times": ["08:00", "20:00"],
+        "createdAt": "2026-01-01T00:00:00.000Z",
+        "gridWrittenAt": "2026-01-01T00:00:02.000Z"
+      },
+      {
+        "startsOn": "2026-03-11",
+        "firstDueOn": "2026-03-23",
+        "gridOriginOn": "2026-03-23",
+        "firstDueChosen": true,
+        "fallenDosesAnswer": "unasked",
+        "endsOn": "2026-04-04",
+        "frequency": {
+          "value": 1,
+          "unit": "week"
+        },
+        "times": ["08:00", "20:00"],
+        "id": "s2",
+        "stoppedOn": null,
+        "createdAt": "2026-01-01T00:00:03.000Z",
+        "gridWrittenAt": "2026-01-01T00:00:03.000Z",
+        "gridBefore": {
+          "frequency": {
+            "value": 1,
+            "unit": "week"
+          },
+          "endsOn": "2026-04-05",
+          "writtenAt": "2026-01-01T00:00:01.000Z",
+          "runs": [["2026-03-16", "2026-03-30"]]
+        }
+      },
+      {
+        "startsOn": "2026-03-11",
+        "firstDueOn": "2026-03-23",
+        "gridOriginOn": "2026-03-23",
+        "firstDueChosen": false,
+        "fallenDosesAnswer": "unasked",
+        "endsOn": "2026-04-04",
+        "frequency": {
+          "value": 2,
+          "unit": "day"
+        },
+        "times": ["08:00", "20:00"],
+        "id": "s3",
+        "stoppedOn": null,
+        "createdAt": "2026-01-01T00:00:07.000Z",
+        "gridWrittenAt": "2026-01-01T00:00:07.000Z",
+        "gridBefore": {
+          "frequency": {
+            "value": 1,
+            "unit": "week"
+          },
+          "endsOn": "2026-04-04",
+          "writtenAt": "2026-01-01T00:00:03.000Z",
+          "runs": [
+            ["2026-03-23", "2026-03-23"],
+            ["2026-03-25", "2026-04-01"]
+          ]
+        }
+      }
+    ],
+    "lines": [
+      {
+        "settingId": "s2",
+        "dueOn": "2026-03-23",
+        "dueTime": "20:00",
+        "status": "given",
+        "givenOn": "2026-03-11",
+        "targetOn": null,
+        "id": "l5",
+        "decidedAt": "2026-01-01T00:00:05.000Z"
+      },
+      {
+        "settingId": "s3",
+        "dueOn": "2026-03-23",
+        "dueTime": "08:00",
+        "status": "postponed",
+        "givenOn": null,
+        "targetOn": "2026-03-24",
+        "previousTargetOn": null,
+        "previousTargetTime": null,
+        "dueRank": 1,
+        "id": "A2",
+        "decidedAt": "2026-06-01T00:00:02.000Z"
+      }
+    ],
+    "today": "2026-03-11"
+  },
+  "phoneB": {
+    "settings": [
+      {
+        "id": "s1",
+        "startsOn": "2026-03-09",
+        "firstDueOn": "2026-03-09",
+        "gridOriginOn": "2026-03-09",
+        "firstDueChosen": true,
+        "fallenDosesAnswer": "unasked",
+        "endsOn": "2026-04-05",
+        "stoppedOn": null,
+        "frequency": {
+          "value": 1,
+          "unit": "week"
+        },
+        "times": ["08:00", "20:00"],
+        "createdAt": "2026-01-01T00:00:00.000Z",
+        "gridWrittenAt": "2026-01-01T00:00:02.000Z"
+      },
+      {
+        "startsOn": "2026-03-11",
+        "firstDueOn": "2026-03-23",
+        "gridOriginOn": "2026-03-23",
+        "firstDueChosen": true,
+        "fallenDosesAnswer": "unasked",
+        "endsOn": "2026-04-04",
+        "frequency": {
+          "value": 1,
+          "unit": "week"
+        },
+        "times": ["08:00", "20:00"],
+        "id": "s2",
+        "stoppedOn": null,
+        "createdAt": "2026-01-01T00:00:03.000Z",
+        "gridWrittenAt": "2026-01-01T00:00:03.000Z",
+        "gridBefore": {
+          "frequency": {
+            "value": 1,
+            "unit": "week"
+          },
+          "endsOn": "2026-04-05",
+          "writtenAt": "2026-01-01T00:00:01.000Z",
+          "runs": [["2026-03-16", "2026-03-30"]]
+        }
+      },
+      {
+        "startsOn": "2026-03-11",
+        "firstDueOn": "2026-03-23",
+        "gridOriginOn": "2026-03-23",
+        "firstDueChosen": false,
+        "fallenDosesAnswer": "unasked",
+        "endsOn": "2026-04-04",
+        "frequency": {
+          "value": 2,
+          "unit": "day"
+        },
+        "times": ["20:00"],
+        "id": "s3",
+        "stoppedOn": null,
+        "createdAt": "2026-01-01T00:00:07.000Z",
+        "gridWrittenAt": "2026-01-01T00:00:07.000Z",
+        "gridBefore": {
+          "frequency": {
+            "value": 1,
+            "unit": "week"
+          },
+          "endsOn": "2026-04-04",
+          "writtenAt": "2026-01-01T00:00:03.000Z",
+          "runs": [
+            ["2026-03-23", "2026-03-23"],
+            ["2026-03-25", "2026-04-01"]
+          ]
+        },
+        "updatedAt": "2026-06-01T00:00:01.000Z"
+      }
+    ],
+    "lines": [
+      {
+        "settingId": "s2",
+        "dueOn": "2026-03-23",
+        "dueTime": "20:00",
+        "status": "given",
+        "givenOn": "2026-03-11",
+        "targetOn": null,
+        "id": "l5",
+        "decidedAt": "2026-01-01T00:00:05.000Z"
+      },
+      {
+        "settingId": "s2",
+        "dueOn": "2026-03-23",
+        "dueTime": "20:00",
+        "status": "shift",
+        "givenOn": null,
+        "targetOn": "2026-03-11",
+        "id": "l6",
+        "decidedAt": "2026-01-01T00:00:06.000Z"
+      }
+    ],
+    "today": "2026-03-11"
+  },
+  "merged": {
+    "settings": [
+      {
+        "id": "s1",
+        "startsOn": "2026-03-09",
+        "firstDueOn": "2026-03-09",
+        "gridOriginOn": "2026-03-09",
+        "firstDueChosen": true,
+        "fallenDosesAnswer": "unasked",
+        "endsOn": "2026-04-05",
+        "stoppedOn": null,
+        "frequency": {
+          "value": 1,
+          "unit": "week"
+        },
+        "times": ["08:00", "20:00"],
+        "createdAt": "2026-01-01T00:00:00.000Z",
+        "gridWrittenAt": "2026-01-01T00:00:02.000Z"
+      },
+      {
+        "startsOn": "2026-03-11",
+        "firstDueOn": "2026-03-23",
+        "gridOriginOn": "2026-03-23",
+        "firstDueChosen": true,
+        "fallenDosesAnswer": "unasked",
+        "endsOn": "2026-04-04",
+        "frequency": {
+          "value": 1,
+          "unit": "week"
+        },
+        "times": ["08:00", "20:00"],
+        "id": "s2",
+        "stoppedOn": null,
+        "createdAt": "2026-01-01T00:00:03.000Z",
+        "gridWrittenAt": "2026-01-01T00:00:03.000Z",
+        "gridBefore": {
+          "frequency": {
+            "value": 1,
+            "unit": "week"
+          },
+          "endsOn": "2026-04-05",
+          "writtenAt": "2026-01-01T00:00:01.000Z",
+          "runs": [["2026-03-16", "2026-03-30"]]
+        }
+      },
+      {
+        "startsOn": "2026-03-11",
+        "firstDueOn": "2026-03-23",
+        "gridOriginOn": "2026-03-23",
+        "firstDueChosen": false,
+        "fallenDosesAnswer": "unasked",
+        "endsOn": "2026-04-04",
+        "frequency": {
+          "value": 2,
+          "unit": "day"
+        },
+        "times": ["20:00"],
+        "id": "s3",
+        "stoppedOn": null,
+        "createdAt": "2026-01-01T00:00:07.000Z",
+        "gridWrittenAt": "2026-01-01T00:00:07.000Z",
+        "gridBefore": {
+          "frequency": {
+            "value": 1,
+            "unit": "week"
+          },
+          "endsOn": "2026-04-04",
+          "writtenAt": "2026-01-01T00:00:03.000Z",
+          "runs": [
+            ["2026-03-23", "2026-03-23"],
+            ["2026-03-25", "2026-04-01"]
+          ]
+        },
+        "updatedAt": "2026-06-01T00:00:01.000Z"
+      }
+    ],
+    "lines": [
+      {
+        "settingId": "s2",
+        "dueOn": "2026-03-23",
+        "dueTime": "20:00",
+        "status": "given",
+        "givenOn": "2026-03-11",
+        "targetOn": null,
+        "id": "l5",
+        "decidedAt": "2026-01-01T00:00:05.000Z"
+      },
+      {
+        "settingId": "s3",
+        "dueOn": "2026-03-23",
+        "dueTime": "08:00",
+        "status": "postponed",
+        "givenOn": null,
+        "targetOn": "2026-03-24",
+        "previousTargetOn": null,
+        "previousTargetTime": null,
+        "dueRank": 1,
+        "id": "A2",
+        "decidedAt": "2026-06-01T00:00:02.000Z"
+      }
+    ],
+    "today": "2026-03-11"
+  }
+}

@@ -28,6 +28,8 @@ export type ReferenceLine = {
   dueOn: string
   dueTime: string | null
   status: 'given' | 'missed' | 'extra' | 'postponed' | 'shift' | 'not-due'
+  /** Prise : le jour où elle a été donnée ; absent : son échéance. */
+  givenOn?: string | null
   /** Report : jour d'arrivée ; décalage : jour d'ancrage. */
   targetOn: string | null
   /** Report déplacé de nouveau : jour de son arrivée d'avant, et l'heure qu'on y a touchée. */

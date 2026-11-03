@@ -1,5 +1,14 @@
-import { later, plusDays, sameFrequency, stepped } from '../grid'
-import type { Day, Frequency, Refusal, Setting, SettingFields, TreatmentViewInput } from '../types'
+import { dayOfKey, later, plusDays, sameFrequency, stepped } from '../grid'
+import { givenAhead } from '../released'
+import type {
+  Day,
+  Frequency,
+  Line,
+  Refusal,
+  Setting,
+  SettingFields,
+  TreatmentViewInput,
+} from '../types'
 import { buildView, type DueSlot, type TreatmentView } from '../view'
 
 /** « Modifier » : les nouveaux réglages ; `firstDueOn` : la « Prochaine dose » choisie, sinon la proposée. */
@@ -39,11 +48,29 @@ function dueToday(view: TreatmentView, today: Day): boolean {
   return view.slots(today, today).some(({ state }) => state === 'pending')
 }
 
+/**
+ * R4, R6 (#1373, Q76) : quand la fréquence change, une prise donnée d'avance sur une journée décalée
+ * avec la case compte au jour où elle a été donnée.
+ */
+export function realDays(view: TreatmentView, today: Day): (line: Line, day: Day) => Day {
+  const advanced = new Set(
+    view.history.flatMap(({ line, effect }) =>
+      effect.kind === 'shifts' && line.targetOn! < effect.from && line.targetOn! <= today
+        ? [effect.from]
+        : [],
+    ),
+  )
+  return (line, day) => (advanced.has(day) && givenAhead(line) ? line.givenOn! : day)
+}
+
 function heldNextDay(view: TreatmentView, today: Day): Day | undefined {
   const tomorrow = plusDays(today, 1)
   const day = view.slots(tomorrow, plusDays(today, NEXT_DAYS))[0]?.due.dueOn
   if (day === undefined) return undefined
-  const started = view.slots(day, day).some(({ state }) => isNoted(state))
+  const realDay = realDays(view, today)
+  const started = view
+    .slots(day, day)
+    .some(({ state, by }) => isNoted(state) && (by === null || realDay(by, day) === day))
   const arrival = view.history.some(
     ({ effect }) => effect.kind === 'moves' && effect.arrival === day,
   )
@@ -53,9 +80,12 @@ function heldNextDay(view: TreatmentView, today: Day): Day | undefined {
 // R9.3, #799 : une journée sortie du calendrier par le réglage suivant garde ses prises (R4), elle
 // reste la dernière journée d'échéance passée quel que soit le jour de la correction.
 function lastNotedDay(view: TreatmentView, today: Day): Day | undefined {
+  const realDay = realDays(view, today)
   return view.history
     .flatMap(({ line, effect }) =>
-      effect.kind === 'covers' && line.status !== 'not-due' ? [effect.key.slice(0, 10)] : [],
+      effect.kind === 'covers' && line.status !== 'not-due'
+        ? [realDay(line, dayOfKey(effect.key))]
+        : [],
     )
     .filter((day) => day <= today)
     .sort()
