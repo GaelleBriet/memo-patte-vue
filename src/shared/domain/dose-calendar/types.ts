@@ -106,6 +106,8 @@ export type LineEffect =
       opensRhythm?: true
     }
   | { kind: 'shifts'; from: Day }
+  /** R4, R6 (#1373) : prise restée à l'ancien rythme, au jour où elle a été donnée, sans échéance couverte. */
+  | { kind: 'old-rhythm'; key: string }
   | { kind: 'extra' }
   | { kind: 'idle'; reason: IdleReason }
 

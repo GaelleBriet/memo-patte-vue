@@ -12,7 +12,7 @@ import type {
   TreatmentViewInput,
 } from '../types'
 import { buildView, type TreatmentView } from '../view'
-import { shiftWritten, written } from './changes'
+import { rhythmOf, shiftWritten, written } from './changes'
 import { lostToEnd, outcome, shiftDayOf, withFollowed } from './outcome'
 import { offersShiftFor } from './shift-offer'
 
@@ -62,9 +62,11 @@ function isExtra(
 // TR-25 : la prise la plus récente de la dose dans sa période, de `device` s'il est donné.
 function latestOfDose(input: TreatmentViewInput, of: LineFields | Line, device?: string) {
   const period = episodeIdsOf(input.settings, of.settingId)
+  const inRhythm = rhythmOf(input, of)
   return input.lines
     .filter(
       (line) =>
+        inRhythm(line) &&
         (device === undefined || line.createdByDevice === device) &&
         isTaken(line) &&
         line.dueOn === of.dueOn &&
@@ -118,7 +120,11 @@ export function noteDose(input: TreatmentViewInput, gesture: NoteGesture): Gestu
   if (!offered || !shiftsFollowing) return outcome(input, notes, { offersShift: offered })
   const shifted = [
     ...notes,
-    shiftWritten(input.lines, { ...due, dueOn: shiftDayOf(view, due) }, givenOn),
+    shiftWritten(
+      input.lines.filter(rhythmOf(input, due)),
+      { ...due, dueOn: shiftDayOf(view, due) },
+      givenOn,
+    ),
   ]
   return withFollowed(input, shifted, due.dueOn, {
     offersShift: true,

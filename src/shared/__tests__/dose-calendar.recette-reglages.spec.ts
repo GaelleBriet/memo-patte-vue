@@ -8,6 +8,7 @@ import {
   bornes,
   carnet,
   caseProposee,
+  deplace,
   donne,
   echeance,
   H,
@@ -182,23 +183,33 @@ describe('R4, R9 : rythme changé, journée à venir entamée en avance (G24)', 
     expect(affiche(c, '2026-10-02', 2)).toEqual(['2026-10-03 20:00', '2026-10-05 09:00'])
   })
 
-  // Lecture actuelle de R4, question de règle ouverte pour Gaelle : #1373.
-  it('#1373 : tous les 3 jours à 9 h, dose du 4 donnée le 2 avec décalage, tous les 2 jours le 3 : le nouveau rythme compte depuis l’échéance d’origine (R4), le 6 puis le 8', () => {
+  it('#1373 : tous les 3 jours à 9 h, dose du 4 donnée le 2 avec décalage, tous les 2 jours le 3 : le nouveau rythme compte depuis la prise réelle, le 4 puis le 6 (Q76)', () => {
     let c = carnet('2026-10-01', jours(3), ['09:00'])
     c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '09:00'))
     c = donne(c, '2026-10-02', echeance(c, '2026-10-04', '09:00'), '2026-10-02', true)
+    expect(journees(c, '2026-10-02', 1)).toEqual(['2026-10-05'])
     c = modifie(c, '2026-10-03', jours(2), ['09:00'])
-    expect(journees(c, '2026-10-03', 2)).toEqual(['2026-10-06', '2026-10-08'])
+    expect(journees(c, '2026-10-03', 2)).toEqual(['2026-10-04', '2026-10-06'])
   })
 
-  it('#1373 : tous les 3 jours, les deux doses du 4 données le 2, 20 h avec décalage, tous les 2 jours le 3 : le nouveau rythme compte depuis l’échéance d’origine (R4), le 6 à 8 h et 20 h', () => {
+  it('#1373 : tous les 3 jours à 9 h, dose du 4 avancée au 2 par « Prochaine dose » avec décalage puis donnée le 2, tous les 2 jours le 3 : le 4 puis le 6 (Q76)', () => {
+    let c = carnet('2026-10-01', jours(3), ['09:00'])
+    c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '09:00'))
+    c = deplace(c, '2026-10-02', echeance(c, '2026-10-04', '09:00'), '2026-10-02', true)
+    c = donne(c, '2026-10-02', echeance(c, '2026-10-02', '09:00'))
+    expect(journees(c, '2026-10-02', 1)).toEqual(['2026-10-05'])
+    c = modifie(c, '2026-10-03', jours(2), ['09:00'])
+    expect(journees(c, '2026-10-03', 2)).toEqual(['2026-10-04', '2026-10-06'])
+  })
+
+  it('#1373 : tous les 3 jours, les deux doses du 4 données le 2, 20 h avec décalage, tous les 2 jours le 3 : le 4 à 8 h et 20 h (Q76)', () => {
     let c = carnet('2026-10-01', jours(3), H)
     c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '08:00'))
     c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '20:00'))
     c = donne(c, '2026-10-02', echeance(c, '2026-10-04', '08:00'), '2026-10-02', false)
     c = donne(c, '2026-10-02', echeance(c, '2026-10-04', '20:00'), '2026-10-02', true)
     c = modifie(c, '2026-10-03', jours(2), H)
-    expect(affiche(c, '2026-10-03', 2)).toEqual(['2026-10-06 08:00', '2026-10-06 20:00'])
+    expect(affiche(c, '2026-10-03', 2)).toEqual(['2026-10-04 08:00', '2026-10-04 20:00'])
   })
 })
 

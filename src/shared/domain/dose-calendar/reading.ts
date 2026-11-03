@@ -2,6 +2,7 @@ import { episodeCalendar, type EpisodeCalendar, type EpisodeInput } from './cale
 import { dayOfKey, plusDays } from './grid'
 import type { Gap } from './journeys'
 import type { Moment } from './moment'
+import { takenKeyOf } from './released'
 import type { Day, Setting } from './types'
 
 export const UPCOMING_DAYS = 400
@@ -39,9 +40,10 @@ function readOn(later: readonly EpisodeCalendar[], day: Day | null): Set<string>
   return new Set(
     later.flatMap(({ slots, effects }) => [
       ...slots.filter(({ due }) => due.dueOn === day).map(({ key }) => key),
-      ...[...effects.values()].flatMap((effect) =>
-        effect.kind === 'covers' && dayOfKey(effect.key) === day ? [effect.key] : [],
-      ),
+      ...[...effects.values()].flatMap((effect) => {
+        const key = takenKeyOf(effect)
+        return key !== null && dayOfKey(key) === day ? [key] : []
+      }),
     ]),
   )
 }

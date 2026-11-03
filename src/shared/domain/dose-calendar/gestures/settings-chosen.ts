@@ -1,9 +1,11 @@
-import { dayOfKey } from '../grid'
+import { dayOfKey, sameFrequency } from '../grid'
 import { isTaken } from '../lines'
+import { takenKeyOf } from '../released'
 import { episodesOf } from '../settings'
 import type { Day, Refusal, SettingsPlan, TreatmentViewInput } from '../types'
-import { buildView } from '../view'
+import { buildView, type TreatmentView } from '../view'
 import { arrivalFollowing } from './move'
+import { realDays } from './settings-proposal'
 import type { SettingsResult } from './settings'
 
 // R9, R7 : seule une dose du moment qui est l'arrivée d'un report l'emmène ; en retard ou du jour,
@@ -35,16 +37,26 @@ const shownOf = (result: SettingsResult): Day | undefined =>
     ? undefined
     : (result.shownOn ?? ('plan' in result ? result.plan : result.question.keep).setting.firstDueOn)
 
-function laterNote(input: TreatmentViewInput, isLater: (day: Day) => boolean): Refusal | null {
+function laterNote(
+  input: TreatmentViewInput,
+  implicit: SettingsResult,
+  isLater: (day: Day) => boolean,
+): Refusal | null {
   const episode = new Set((episodesOf(input.settings).at(-1) ?? []).map(({ id }) => id))
-  const later = buildView(input).history.some(
-    ({ line, effect }) =>
-      isTaken(line) &&
-      episode.has(line.settingId) &&
-      effect.kind === 'covers' &&
-      isLater(dayOfKey(effect.key)),
-  )
+  const view = buildView(input)
+  const realDay = changesFrequency(view, implicit) ? realDays(view, input.today) : null
+  const later = view.history.some(({ line, effect }) => {
+    const key = takenKeyOf(effect)
+    if (key === null || !isTaken(line) || !episode.has(line.settingId)) return false
+    return isLater(realDay?.(line, dayOfKey(key)) ?? dayOfKey(key))
+  })
   return later ? { reason: 'later-dose' } : null
+}
+
+const changesFrequency = (view: TreatmentView, implicit: SettingsResult): boolean => {
+  if ('refusal' in implicit || view.currentSetting === null) return false
+  const { setting } = 'plan' in implicit ? implicit.plan : implicit.question.keep
+  return !sameFrequency(setting.frequency, view.currentSetting.frequency)
 }
 
 /**
@@ -59,7 +71,7 @@ export function chosenDateRefusal(
   const shown = shownOf(implicit)
   if (shown === undefined) return null
   const from = shown < input.today ? shown : input.today
-  return laterNote(input, (day) => day > from && day !== shown)
+  return laterNote(input, implicit, (day) => day > from && day !== shown)
 }
 
 /** Q26 : une date choisie avant une dose déjà notée, ou dans un champ grisé, est refusée. */
@@ -68,7 +80,7 @@ export function chosenRefusal(
   chosen: Day,
   implicit: SettingsResult,
 ): Refusal | null {
-  return chosenDateRefusal(input, implicit) ?? laterNote(input, (day) => day > chosen)
+  return chosenDateRefusal(input, implicit) ?? laterNote(input, implicit, (day) => day > chosen)
 }
 
 /**

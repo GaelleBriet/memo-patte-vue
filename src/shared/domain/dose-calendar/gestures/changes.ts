@@ -1,6 +1,8 @@
 import { keyOf } from '../grid'
 import { gridBeforeOf, keepsGridBefore } from '../grid-before'
 import { familyOf } from '../lines'
+import { releasedLines } from '../released'
+import { episodeOf, spanOf } from '../settings'
 import { withReportFacts } from '../report-facts'
 import type {
   Day,
@@ -35,6 +37,31 @@ export function written(lines: readonly Line[], fields: LineFields): LineChange 
   return existing === undefined
     ? { action: 'create', line: fields }
     : { action: 'rewrite', id: existing.id, line: fields }
+}
+
+/**
+ * R4, R6 (#1373) : les lignes du même rythme que `of`. Restées à l'ancien rythme, les lignes d'une
+ * journée avancée avec la case ne se mêlent pas à celles que le nouveau rythme écrit le même jour.
+ */
+export function rhythmOf(
+  input: Pick<TreatmentViewInput, 'settings' | 'lines'>,
+  of: Pick<Line, 'settingId'> & { id?: string },
+): (line: Line) => boolean {
+  const episode = episodeOf(input.settings, of.settingId)
+  const own = new Set(episode.map(({ id }) => id))
+  const released =
+    episode.length === 0
+      ? new Set<string>()
+      : new Set(
+          [
+            ...releasedLines(
+              input.lines.filter((line) => own.has(line.settingId)),
+              spanOf(episode, input.lines),
+            ),
+          ].map(({ id }) => id),
+        )
+  const old = of.id !== undefined && released.has(of.id)
+  return (line) => released.has(line.id) === old
 }
 
 /** R6, G17 : une journée n'a qu'une ligne de décalage, la plus récente. */

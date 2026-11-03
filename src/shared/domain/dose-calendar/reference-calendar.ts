@@ -36,6 +36,7 @@ import { arriveReports } from './reference-arrivals'
 import { chooserOf, staleTurn } from './reference-ranks'
 import { chosenDateOf } from './reference-reports'
 import { shiftKeptByReport, type RewriteContext } from './reference-rewrite'
+import { pastArrivals, pastLinesOf } from './reference-taken-ahead'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 type Calendar = { pending: string[]; fallen: Set<string>; rhythmFrom: string; dues: Set<string> }
@@ -53,7 +54,9 @@ export function calendarOf(
   const settingOf = (id: string) => settings.find((setting) => setting.id === id)!
   const { endOf, settingAt } = settingsIn(live)
   const { closedFrom, stoppedAt } = stopDayOf(live.at(-1)!)
-  const lines = episodeLinesOf(episode, allLines)
+  const own = allLines.filter((line) => episode.some(({ id }) => id === line.settingId))
+  const past = pastLinesOf(own, live, settingOf)
+  const lines = episodeLinesOf(episode, allLines, past).filter((line) => !past.has(line))
   const reports = reportsOf(lines)
   const returns = returnsOf(lines)
   const onDeparture = departureBeaten(lines.filter(isNote), reports)
@@ -275,6 +278,7 @@ export function calendarOf(
     rewrite: plain ? undefined : rewriteContext,
     shiftedDays: new Set(shifts.map(({ dueOn }) => dueOn)),
     turnedFromChosen,
+    pastArrivals: pastArrivals(past, settingOf),
   })
   settle()
 

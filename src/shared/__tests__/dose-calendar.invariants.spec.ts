@@ -184,6 +184,13 @@ describe('campagne d’invariants du moteur v2', () => {
     },
   )
 
+  it.each([1_373_100_740, 1_374_000_646])(
+    'graine %i : un rythme remplacé le jour où il commence ne libère pas une prise d’avance',
+    (seed) => {
+      expect(playCampaign({ from: seed, seeds: 1, steps: 30 }).failures).toEqual([])
+    },
+  )
+
   it.each([
     ['INVARIANTS_SEEDS', 'mille'],
     ['INVARIANTS_FROM', '-3'],

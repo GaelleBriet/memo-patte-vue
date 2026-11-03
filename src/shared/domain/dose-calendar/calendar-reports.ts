@@ -3,7 +3,7 @@ import type { notDueArrivals } from './calendar-not-due'
 import { withCededDoses } from './ceded-day'
 import { hoursOf, isOnGrid, keyOf, sameFrequency, sameHours } from './grid'
 import type { Journey, journeys } from './journeys'
-import type { EpisodeLines } from './lines'
+import { arriveReleased, type EpisodeLines } from './lines'
 import {
   hoursSeenOn,
   oldArrivalChooser,
@@ -42,6 +42,7 @@ export function moveReports(input: ReportsInput) {
   const arrivalsOnly = new Set<Day>()
   const gridDays = new Set(days.keys())
   const waiting = [...lines.reports, ...lines.homecomings]
+  arriveReleased(lines, settingOf, arrive)
   while (waiting.length > 0) {
     const ready = waiting.findIndex(
       (report) => !waiting.some((other) => other !== report && other.targetOn === report.dueOn),

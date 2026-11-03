@@ -1,8 +1,8 @@
 import { keyOf } from '../grid'
 import { episodeIdsOf } from '../settings'
-import type { Day, Due, Line, TreatmentViewInput } from '../types'
-import { buildView } from '../view'
-import { ownsDayShift, shiftOfDay } from './changes'
+import type { Day, Due, Line, LineChange, TreatmentViewInput } from '../types'
+import { buildView, type TreatmentView } from '../view'
+import { applied, ownsDayShift, rhythmOf, shiftOfDay, shiftWritten, written } from './changes'
 import { linesAfter, movedAlone, shiftDayOf } from './outcome'
 
 /**
@@ -32,15 +32,35 @@ export function offersShiftFor(
   const sameDay = view.slots(due.dueOn, due.dueOn)
   if (sameDay.some(({ due: other, state }) => state === 'pending' && !sameKey(other))) return false
   const shiftDay = shiftDayOf(view, due)
-  const own = shiftOfDay(carnet.lines, shiftDay)
+  const own = shiftOfDay(carnet.lines.filter(rhythmOf(carnet, due)), shiftDay)
   if (own !== undefined && writtenByAnotherHour(carnet, due, own)) return false
   const later = linesAfter(carnet, due, new Set(own === undefined ? [] : [own.id]))
   if (later.notes.length > 0 || later.others.some(({ status }) => status === 'shift')) return false
   const onThatDay = buildView({ ...carnet, today: givenOn })
-  return (
+  const ahead =
     onThatDay.currentDoses.some(sameKey) ||
     onThatDay.upcoming({ from: givenOn, to: due.dueOn }).some(sameKey)
-  )
+  return ahead && !changesNothing(carnet, view, due, givenOn)
+}
+
+// Q84 (#1373) : avant la première échéance d'une date choisie, la case n'est proposée que si elle
+// change la suite.
+function changesNothing(
+  carnet: TreatmentViewInput,
+  view: TreatmentView,
+  due: Due,
+  givenOn: Day,
+): boolean {
+  const inForce = view.settingAt(due.dueOn)
+  if (inForce?.firstDueChosen !== true || due.dueOn >= inForce.firstDueOn) return false
+  const note = written(carnet.lines, { ...due, status: 'given', givenOn, targetOn: null })
+  const at = { ...due, dueOn: shiftDayOf(view, due) }
+  const shift = shiftWritten(carnet.lines.filter(rhythmOf(carnet, due)), at, givenOn)
+  const next = (changes: LineChange[]) => {
+    const after = buildView(applied(carnet, changes))
+    return JSON.stringify([after.currentDoses, after.upcoming({ from: givenOn, limit: 12 })])
+  }
+  return next([note]) === next([note, shift])
 }
 
 // Q48 ; une prise donnée le jour de son échéance n'a jamais eu la case, elle n'a donc rien écrit.

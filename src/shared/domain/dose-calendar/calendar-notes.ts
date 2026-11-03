@@ -67,6 +67,10 @@ export function noteEffects(
     if (coveredBy !== null && !covering.has(coveredBy)) covering.set(coveredBy, key)
   }
   for (const note of [...lines.notes, ...borrowed]) {
+    if (lines.released.has(note)) {
+      effects.set(note.id, { kind: 'old-rhythm', key: keyOf(note.givenOn!, note.dueTime) })
+      continue
+    }
     const key = covering.get(note)
     if (borrowed.includes(note) && key === undefined) continue
     const covered = key ?? held.get(note)

@@ -103,14 +103,16 @@ export function touchedJourneys(
 export function episodeLinesOf(
   episode: readonly ReferenceSetting[],
   allLines: readonly ReferenceLine[],
+  past: ReadonlySet<ReferenceLine> = new Set(),
 ): ReferenceLine[] {
   const own = allLines.filter((line) => episode.some(({ id }) => id === line.settingId))
-  const latest = latestBy(
-    own,
-    (line) => `${keyOf(line.dueOn, line.dueTime)} ${isTaken(line) ? 'note' : line.status}`,
-  )
+  const family = (line: ReferenceLine) =>
+    `${isTaken(line) ? 'note' : line.status}${past.has(line) ? ' passée' : ''}`
+  const latest = latestBy(own, (line) => `${keyOf(line.dueOn, line.dueTime)} ${family(line)}`)
   // #873 : une prise l'emporte toujours sur la ligne « pas à donner » de la même dose.
-  const given = latest.filter(isTaken).map((line) => keyOf(line.dueOn, line.dueTime))
+  const given = latest
+    .filter((line) => isTaken(line) && !past.has(line))
+    .map((line) => keyOf(line.dueOn, line.dueTime))
   return latest.filter(
     (line) => line.status !== 'not-due' || !given.includes(keyOf(line.dueOn, line.dueTime)),
   )
