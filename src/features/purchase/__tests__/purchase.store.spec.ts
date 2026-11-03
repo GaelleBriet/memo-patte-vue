@@ -640,6 +640,25 @@ describe('usePurchaseStore › sauvegarde en pause', () => {
       expect(usePurchaseStore().expiredPlan).toBe('monthly')
     })
 
+    it('une vérification suivante remplace une fin déjà retenue par la vraie échéance', async () => {
+      const realEnd = new Date(2026, 8, 14, 10)
+      vi.setSystemTime(new Date(2026, 7, 10, 10))
+      writeStoredPlusStatus({ plan: 'monthly', expiresAt: new Date(2026, 7, 14, 10).toISOString() })
+      service.fetchStatus
+        .mockResolvedValueOnce(NO_PLUS)
+        .mockResolvedValueOnce({ ...NO_PLUS, endedAt: realEnd.toISOString() })
+      const store = usePurchaseStore()
+      vi.setSystemTime(new Date(2026, 8, 17, 10))
+      await store.verifyKnownStatus()
+      expect(store.backupPause).toEqual({ keptUntil: '2027-08-14' })
+
+      vi.setSystemTime(new Date(2026, 8, 20, 10))
+      await store.verifyKnownStatus()
+
+      expect(store.backupPause).toEqual({ keptUntil: '2027-09-14' })
+      expect(readStoredPlusStatus().subscriptionEndedAt).toBe(realEnd.toISOString())
+    })
+
     it('date la fin du constat quand l’accès est retiré avant son échéance', async () => {
       writeStoredPlusStatus({ plan: 'annual', expiresAt: new Date(2027, 8, 1, 10).toISOString() })
       service.fetchStatus.mockResolvedValueOnce(NO_PLUS)
