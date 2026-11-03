@@ -127,22 +127,31 @@ describe('syncOutboxRepository', () => {
     })
 
     it.each([
-      { deleted: 'vaccination', id: 'v-1', expected: [ANIMAL_ID, 't-1', 'p-1', 'd-1', 'w-1'] },
-      { deleted: 'treatment', id: 't-1', expected: [ANIMAL_ID, 'v-1', 'i-1', 'w-1'] },
+      { label: 'un animal', deleted: 'animal', id: ANIMAL_ID, expected: [] },
       {
+        label: 'un vaccin',
+        deleted: 'vaccination',
+        id: 'v-1',
+        expected: [ANIMAL_ID, 't-1', 'p-1', 'd-1', 'w-1'],
+      },
+      {
+        label: 'un traitement',
+        deleted: 'treatment',
+        id: 't-1',
+        expected: [ANIMAL_ID, 'v-1', 'i-1', 'w-1'],
+      },
+      {
+        label: 'une période',
         deleted: 'treatment_period',
         id: 'p-1',
         expected: [ANIMAL_ID, 'v-1', 'i-1', 't-1', 'w-1'],
       },
-    ])(
-      "n'envoie aucune ligne visible sous un $deleted supprimé",
-      async ({ deleted, id, expected }) => {
-        await insertWholeCarnet()
-        await db.run(`UPDATE ${deleted} SET deleted_at = ? WHERE id = ?`, [T2, id])
+    ])("n'envoie aucune ligne visible sous $label supprimé", async ({ deleted, id, expected }) => {
+      await insertWholeCarnet()
+      await db.run(`UPDATE ${deleted} SET deleted_at = ? WHERE id = ?`, [T2, id])
 
-        await expect(queuedIds()).resolves.toEqual(expected)
-      },
-    )
+      await expect(queuedIds()).resolves.toEqual(expected)
+    })
   })
 
   describe('removeIfUnchanged', () => {
