@@ -2,7 +2,7 @@
 import type { CustomerInfo, PurchasesSubscriptionInfo } from '@revenuecat/purchases-capacitor'
 import { describe, expect, it } from 'vitest'
 
-import { lapsedAt, NO_PLUS, plusStatusFrom } from '../logic/plus-status'
+import { isPlusActive, lapsedAt, NO_PLUS, plusStatusFrom } from '../logic/plus-status'
 import { customerInfo, entitlement, LIFETIME } from './billing-fixture'
 
 describe('plusStatusFrom', () => {
@@ -213,5 +213,13 @@ describe('lapsedAt', () => {
   it('ne rend rien avant l’échéance, ni sans échéance', () => {
     expect(lapsedAt(MONTHLY, Date.parse('2026-09-14T07:59:59.999Z'))).toBeNull()
     expect(lapsedAt(NO_PLUS, Date.parse('2026-09-14T08:00:00.000Z'))).toBeNull()
+  })
+})
+
+describe('isPlusActive', () => {
+  it('lit Plus actif pour un abonnement ou un achat à vie, jamais pour « aucun »', () => {
+    expect(isPlusActive({ plan: 'annual', expiresAt: '2027-10-29T09:00:00.000Z' })).toBe(true)
+    expect(isPlusActive({ plan: 'lifetime', expiresAt: null })).toBe(true)
+    expect(isPlusActive(NO_PLUS)).toBe(false)
   })
 })
