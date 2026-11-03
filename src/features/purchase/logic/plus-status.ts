@@ -33,6 +33,10 @@ export function lapsedAt({ expiresAt }: PlusStatus, now: number): string | null 
   return expiresAt !== null && Date.parse(expiresAt) <= now ? expiresAt : null
 }
 
+export function isPlusActive(status: PlusStatus): boolean {
+  return status.plan !== 'none'
+}
+
 export function subscriptionOf(status: PlusStatus): SubscriptionPlan | null {
   return status.plan === 'monthly' || status.plan === 'annual' ? status.plan : null
 }

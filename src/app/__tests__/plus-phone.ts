@@ -9,6 +9,8 @@ import { createRestoreFlow } from '@/core/sync/service/restore-flow'
 import { createSyncCycle } from '@/core/sync/service/sync-cycle'
 import { useAuthStore } from '@/features/auth/store/auth.store'
 import { createCheckout } from '@/features/purchase/service/checkout.service'
+import { isPlusActive } from '@/features/purchase/logic/plus-status'
+import { isSyncEligible } from '@/features/purchase/logic/sync-eligibility'
 import { installPlusAccountLink } from '@/features/purchase/service/plus-account-link.service'
 import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
@@ -25,7 +27,7 @@ type Db = Parameters<typeof createAnimalsRepository>[0]
 
 export type PlusPhoneAccess = {
   userId: () => string | null
-  /** Ce que `app/sync.ts` compose : compte Plus sur l'appareil et statut Plus du store. */
+  /** Ce que `app/sync.ts` compose : la règle de la feature purchase sur les stores de l'appareil. */
   isEligible: () => boolean
 }
 
@@ -94,7 +96,7 @@ export async function launchPlusApp(phone: PlusPhone) {
     userId: () => auth.userId,
     sessionActive: () => auth.sessionState === 'active',
     signInNeeded,
-    plusActive: isPlusActive,
+    plusActive: () => isPlusActive(usePurchaseStore().status),
     checkAccountBackup: () => phone.backup.check(),
     confirmCarnetSend: () => phone.backup.confirmSend(),
     restoreFlow: flow,
@@ -123,10 +125,6 @@ export function phoneCheckout() {
   )
 }
 
-function isPlusActive(): boolean {
-  return usePurchaseStore().status.plan !== 'none'
-}
-
 export function isPlusEligible(): boolean {
-  return useAuthStore().hasPlusAccount && isPlusActive()
+  return isSyncEligible(useAuthStore().hasPlusAccount, usePurchaseStore().status)
 }
