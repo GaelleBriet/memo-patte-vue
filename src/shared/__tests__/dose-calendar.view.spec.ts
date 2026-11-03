@@ -590,14 +590,14 @@ describe('R3, R10 : un réglage remplacé le jour même transmet sa grille au r�
 
 describe('R3, R6 : un décalage écrit avant un changement de fréquence reste dépassé sous une posologie', () => {
   const s1 = setting('s1', '2026-03-13', { value: 3, unit: 'day' }, ['20:00'])
-  const s2 = setting('s2', '2026-03-15', { value: 2, unit: 'week' }, ['20:00'], {
-    startsOn: '2026-03-14',
-  })
   const lines = [
     line('s1', 'postponed', '2026-03-13', '20:00', '2026-03-15'),
     { ...line('s1', 'given', '2026-03-15', '20:00'), givenOn: '2026-03-14' },
     line('s1', 'shift', '2026-03-15', '20:00', '2026-03-14'),
   ]
+  const s2 = setting('s2', '2026-03-15', { value: 2, unit: 'week' }, ['20:00'], {
+    startsOn: '2026-03-14',
+  })
 
   // #1373 : la prise du 14 a eu lieu le 14 ; le 15, première échéance écrite du nouveau rythme, est à donner.
   it('tous les 3 jours à 20 h, dose du 13 reportée seule au 15 et donnée le 14 avec décalage ; le 14, toutes les 2 semaines dès le 15 ; le 15, posologie : 15 et 29 mars, 12 avr.', () => {

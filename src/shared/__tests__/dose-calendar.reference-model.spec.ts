@@ -686,6 +686,7 @@ describe('R3, R6 : un décalage écrit avant un changement de fréquence reste d
   const s1 = setting('s1', '2026-03-13', { value: 3, unit: 'day' }, ['20:00'])
   const s2 = setting('s2', '2026-03-15', { value: 2, unit: 'week' }, ['20:00'], {
     startsOn: '2026-03-14',
+    createdAt: '2026-01-01T02:00:00.000Z',
   })
   const lines = [
     line('s1', 'postponed', '2026-03-13', '20:00', '2026-03-15'),
@@ -698,6 +699,7 @@ describe('R3, R6 : un décalage écrit avant un changement de fréquence reste d
     const s3 = setting('s3', '2026-03-29', { value: 2, unit: 'week' }, ['20:00'], {
       startsOn: '2026-03-15',
       gridOriginOn: null,
+      createdAt: '2026-01-01T03:00:00.000Z',
     })
     const expected = ['2026-03-15 20:00', '2026-03-29 20:00', '2026-04-12 20:00']
     expect(next([s1, s2], lines, '2026-03-15')).toEqual(expected)

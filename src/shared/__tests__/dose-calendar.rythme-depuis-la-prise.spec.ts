@@ -13,8 +13,10 @@ import {
   affiche,
   semaines,
   supprimeReport,
+  corrige,
   vue,
   type Carnet,
+  type Due,
 } from './dose-calendar.recette.aides'
 
 // #1373, Q76 : une dose donnée est une vraie prise ce jour-là ; quand le rythme change, il compte
@@ -91,6 +93,21 @@ describe('#1373 : la dose du nouveau rythme, le jour de l’ancienne échéance,
   })
 })
 
+describe('#1373 : le nouveau rythme compte depuis la prise réelle', () => {
+  it('le changement de rythme le jour même de la prise : le 4, puis le 6', () => {
+    const c = modifie(milo(), '2026-10-02', jours(2), ['09:00'])
+    expect(journees(c, '2026-10-02', 2)).toEqual(['2026-10-04', '2026-10-06'])
+  })
+
+  it('chaque semaine, dose du 8 donnée le 6 avec la case, toutes les 2 semaines le 7 : le 20 (6 + 14)', () => {
+    let c = carnet('2026-10-01', semaines(1), ['09:00'])
+    c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '09:00'))
+    c = donne(c, '2026-10-06', echeance(c, '2026-10-08', '09:00'), '2026-10-06', true)
+    c = modifie(c, '2026-10-07', semaines(2), ['09:00'])
+    expect(journees(c, '2026-10-07', 2)).toEqual(['2026-10-20', '2026-11-03'])
+  })
+})
+
 describe('#1373 : « Prochaine dose » après une prise réelle', () => {
   it('tous les 5 jours le 3 : proposé le 7 (2 + 5)', () => {
     const c = modifie(milo(), '2026-10-03', jours(5), ['09:00'])
@@ -104,11 +121,6 @@ describe('#1373 : « Prochaine dose » après une prise réelle', () => {
 })
 
 describe('#1373 : ce que la règle ne change pas', () => {
-  it('le changement de rythme le jour même de la prise : le 4, puis le 6', () => {
-    const c = modifie(milo(), '2026-10-02', jours(2), ['09:00'])
-    expect(journees(c, '2026-10-02', 2)).toEqual(['2026-10-04', '2026-10-06'])
-  })
-
   it('heures seules après la prise avec la case : le calendrier décalé ne bouge pas, le 5, puis le 8', () => {
     const c = modifie(milo(), '2026-10-03', jours(3), ['10:00'])
     expect(journees(c, '2026-10-03', 2)).toEqual(['2026-10-05', '2026-10-08'])
@@ -129,14 +141,6 @@ describe('#1373 : ce que la règle ne change pas', () => {
       '2026-10-06 08:00',
     ])
   })
-
-  it('chaque semaine, dose du 8 donnée le 6 avec la case, toutes les 2 semaines le 7 : le 20 (6 + 14)', () => {
-    let c = carnet('2026-10-01', semaines(1), ['09:00'])
-    c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '09:00'))
-    c = donne(c, '2026-10-06', echeance(c, '2026-10-08', '09:00'), '2026-10-06', true)
-    c = modifie(c, '2026-10-07', semaines(2), ['09:00'])
-    expect(journees(c, '2026-10-07', 2)).toEqual(['2026-10-20', '2026-11-03'])
-  })
 })
 
 describe('#1373 : supprimer une ligne du nouveau rythme ne touche pas l’ancien', () => {
@@ -152,5 +156,39 @@ describe('#1373 : supprimer une ligne du nouveau rythme ne touche pas l’ancien
     ).toEqual(['p1'])
     expect(sansEffet(c, '2026-10-03')).toEqual([])
     expect(journees(c, '2026-10-03', 2)).toEqual(['2026-10-04', '2026-10-06'])
+  })
+})
+
+describe('#1373 : une prise notée après le changement de rythme compte dans le nouveau', () => {
+  function miloAuSix(heures: string[]): Carnet {
+    let c = carnet('2026-10-01', jours(3), ['09:00'])
+    c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '09:00'))
+    c = deplace(c, '2026-10-02', echeance(c, '2026-10-04', '09:00'), '2026-10-06', true)
+    return modifie(c, '2026-10-05', jours(2), heures)
+  }
+
+  const doseDuMoment = (c: Carnet, today: string): Due => {
+    const { settingId, dueOn, dueTime } = vue(c, today).currentDoses[0]!
+    return { periodId: settingId, dueOn, dueTime }
+  }
+
+  it.each([[[]], [['20:00']]])(
+    'dose du 4 au 6 avec la case, tous les 2 jours le 5 (heures %j), « Fait à une autre date » le 5 avec la case : plus de 6 à donner, le 8, puis le 10',
+    (heures: string[]) => {
+      const c = miloAuSix(heures)
+      expect(affiche(c, '2026-10-06', 1)).toEqual(['2026-10-06 09:00'])
+      const apres = donne(c, '2026-10-06', doseDuMoment(c, '2026-10-06'), '2026-10-05', true)
+      expect(journees(apres, '2026-10-06', 3)).toEqual(['2026-10-08', '2026-10-10', '2026-10-12'])
+    },
+  )
+
+  it('même geste par « C’est fait » le 6 puis « Changer la date » au 5 avec la case : accepté, le 8, puis le 10', () => {
+    let c = miloAuSix([])
+    c = donne(c, '2026-10-06', doseDuMoment(c, '2026-10-06'))
+    const prise = c.doses.find(
+      ({ status, givenOn }) => status === 'given' && givenOn === '2026-10-06',
+    )!
+    c = corrige(c, '2026-10-06', prise.id, '2026-10-05', true)
+    expect(journees(c, '2026-10-06', 3)).toEqual(['2026-10-08', '2026-10-10', '2026-10-12'])
   })
 })

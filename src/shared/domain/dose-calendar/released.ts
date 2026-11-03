@@ -34,18 +34,12 @@ function takenOnArrival(report: Line, lines: readonly Line[]): boolean {
 }
 
 /**
- * R4, R6 (#1373, Q76) : une journée avancée avec « Décaler aussi les doses suivantes » a eu lieu à son
- * ancrage. Quand un réglage d'une autre fréquence, écrit à partir de ce jour-là, la remet dans son
- * calendrier, ses lignes d'avant lui (le décalage, les prises données d'avance, le report qui l'a
- * avancée vers une journée donnée) restent à l'ancien rythme : elles ne couvrent ni ne déplacent la
- * journée du nouveau.
+ * R4, R6 (#1373, Q76) : écrites avant un réglage d'une autre fréquence, les lignes d'une journée
+ * avancée avec la case restent à l'ancien rythme.
  */
 export function releasedLines(lines: readonly Line[], span: Span): Set<Line> {
   const settingOf = (id: string) => span.episode.find((setting) => setting.id === id)
-  const before = (line: Line, opener: Setting) => {
-    const written = settingOf(line.settingId)
-    return written !== undefined && written.createdAt < opener.createdAt
-  }
+  const before = (line: Line, opener: Setting) => line.decidedAt < opener.createdAt
   const shifts = lines.filter((line) => {
     const rhythm = line.status === 'shift' ? rhythmAt(span, line.dueOn) : undefined
     return rhythm !== undefined && line.targetOn !== null && before(line, rhythm.opener)
