@@ -1,6 +1,9 @@
 import { keyOf, sameFrequency, sameHours } from './grid'
+import { isMoreRecent, latestBy } from './latest'
 import type { Span } from './settings'
 import type { Day, IdleReason, Line, Setting } from './types'
+
+export { isMoreRecent, latestBy } from './latest'
 
 /** Une prise : donnée ou oubliée ; une ligne « pas à donner » n'en est jamais une (#873). */
 export const isTaken = (line: Pick<Line, 'status'>): boolean =>
@@ -18,21 +21,8 @@ export const isAdvanced = (line: Pick<Line, 'status' | 'dueOn' | 'targetOn'>): b
 export const familyOf = (line: Pick<Line, 'status'>): string =>
   isTaken(line) ? 'note' : line.status
 
-export const isMoreRecent = (a: Line, b: Line): boolean =>
-  a.decidedAt > b.decidedAt || (a.decidedAt === b.decidedAt && a.id > b.id)
-
 /** #867, #873 : entre un report et la ligne « pas à donner » de sa dose, au départ comme à l'arrivée, le plus récent l'emporte. */
 export const reportBeats = (report: Line, note: Line): boolean => isMoreRecent(report, note)
-
-/** TR-25 : par clé, la ligne modifiée le plus récemment ; triées par jour d'échéance. */
-export function latestBy(lines: readonly Line[], keyOfLine: (line: Line) => string): Line[] {
-  const latest = new Map<string, Line>()
-  for (const line of lines) {
-    const kept = latest.get(keyOfLine(line))
-    if (kept === undefined || isMoreRecent(line, kept)) latest.set(keyOfLine(line), line)
-  }
-  return [...latest.values()].sort((a, b) => a.dueOn.localeCompare(b.dueOn))
-}
 
 /** TR-25, R11 : l'échéance et la famille d'une ligne, quel que soit son réglage : deux prises du même jour et de la même heure sont la même dose. */
 const doseKeyOf = (line: Line): string => `${keyOf(line.dueOn, line.dueTime)} ${familyOf(line)}`
