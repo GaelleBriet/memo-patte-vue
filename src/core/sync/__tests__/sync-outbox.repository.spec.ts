@@ -95,6 +95,56 @@ describe('syncOutboxRepository', () => {
     })
   })
 
+  describe('queueLiveCarnetStatements', () => {
+    async function insertWholeCarnet(): Promise<void> {
+      await insertAnimal(db, ANIMAL_ID, T1)
+      await insertVaccination(db, 'v-1', ANIMAL_ID, T1)
+      await insertVaccinationInjection(db, 'i-1', 'v-1', ANIMAL_ID, T1)
+      await insertTreatment(db, 't-1', ANIMAL_ID, T1)
+      await insertTreatmentPeriod(db, 'p-1', 't-1', ANIMAL_ID, T1)
+      await insertTreatmentDose(db, 'd-1', 'p-1', 't-1', ANIMAL_ID, T1)
+      await insertWeightEntry(db, 'w-1', ANIMAL_ID, T1)
+    }
+
+    async function queuedIds(): Promise<string[]> {
+      await db.runMany(repository.queueLiveCarnetStatements())
+      const pending = await repository.listPending()
+      return pending.map(({ entityId }) => entityId)
+    }
+
+    it('met en file chaque ligne visible du carnet', async () => {
+      await insertWholeCarnet()
+
+      await expect(queuedIds()).resolves.toEqual([
+        ANIMAL_ID,
+        'v-1',
+        'i-1',
+        't-1',
+        'p-1',
+        'd-1',
+        'w-1',
+      ])
+    })
+
+    it.each([
+      { deleted: 'vaccination', id: 'v-1', expected: [ANIMAL_ID, 't-1', 'p-1', 'd-1', 'w-1'] },
+      { deleted: 'treatment', id: 't-1', expected: [ANIMAL_ID, 'v-1', 'i-1', 'w-1'] },
+      {
+        deleted: 'treatment_period',
+        id: 'p-1',
+        expected: [ANIMAL_ID, 'v-1', 'i-1', 't-1', 'w-1'],
+      },
+    ])(
+      "n'envoie aucune ligne visible sous un $deleted supprimé",
+      async ({ deleted, id, expected }) => {
+        await insertWholeCarnet()
+        await db.run(`UPDATE ${deleted} SET deleted_at = ? WHERE id = ?`, [T2, id])
+
+        await expect(queuedIds()).resolves.toEqual(expected)
+      },
+    )
+  })
+
   describe('removeIfUnchanged', () => {
     it('supprime une entrée dont le queued_at relu est identique', async () => {
       await enableSync(db)
