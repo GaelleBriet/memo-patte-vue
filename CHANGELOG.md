@@ -5,6 +5,24 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.141](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.140...memo-patte-v0.1.141) (2026-11-03)
+
+
+### 🐛 Corrections
+
+* **plus:** afficher la date de l'abonnement Google Play avec un droit offert à vie ([e005678](https://github.com/GaelleBriet/memo-patte-vue/commit/e005678e94b9f419a89806c9748edbc4271e3158))
+* **plus:** date et formule de l'abonnement Google Play à côté d'un Plus offert ([cfd9986](https://github.com/GaelleBriet/memo-patte-vue/commit/cfd9986128474b175408c67d2b8378b058289afd))
+* **plus:** lire la formule de l'abonnement Google Play dans son plan de base ([ba6ccbb](https://github.com/GaelleBriet/memo-patte-vue/commit/ba6ccbbc8842b88a575b485e95251e45329c7a7a)), closes [#1440](https://github.com/GaelleBriet/memo-patte-vue/issues/1440)
+* **plus:** lire la vraie date de fin d'un abonnement échu ([588df71](https://github.com/GaelleBriet/memo-patte-vue/commit/588df7161a211528fd14d01991f3b43e9db18fd8))
+* **plus:** lire la vraie date de fin du droit échu dans RevenueCat ([379c5aa](https://github.com/GaelleBriet/memo-patte-vue/commit/379c5aa5b8304daacb352cb1daa46debeb10d993)), closes [#1435](https://github.com/GaelleBriet/memo-patte-vue/issues/1435)
+* **supabase:** effacer une sauvegarde à la demande sans droit de table pour la clé serveur ([cf90ace](https://github.com/GaelleBriet/memo-patte-vue/commit/cf90ace68e83a9ce58e44542be90dff20dc3a6f1))
+* **supabase:** effacer une sauvegarde sans droit de table pour service_role ([b37a35f](https://github.com/GaelleBriet/memo-patte-vue/commit/b37a35f5b0dfe3cbec0abc4074c0b6fd51b11dc6)), closes [#1447](https://github.com/GaelleBriet/memo-patte-vue/issues/1447)
+* **supabase:** faire échouer un effacement de sauvegarde incomplet ([88dd403](https://github.com/GaelleBriet/memo-patte-vue/commit/88dd40390961bc8a8523b87b8e813712cf3b1fd7)), closes [#1447](https://github.com/GaelleBriet/memo-patte-vue/issues/1447)
+* **supabase:** retirer TRIGGER et TRUNCATE sur la sauvegarde cloud ([09eb29e](https://github.com/GaelleBriet/memo-patte-vue/commit/09eb29e63fda1276b6236b8f0100a5f9e2ced26e)), closes [#1447](https://github.com/GaelleBriet/memo-patte-vue/issues/1447) [#1460](https://github.com/GaelleBriet/memo-patte-vue/issues/1460)
+* **synchro:** aucune lecture ni écriture du carnet sans session d'utilisateur ([387684b](https://github.com/GaelleBriet/memo-patte-vue/commit/387684b101252a19c2fdbf86ad570733b534da1d)), closes [#1450](https://github.com/GaelleBriet/memo-patte-vue/issues/1450)
+* **synchro:** ne jamais lire la sauvegarde sans session d'utilisateur ([e5a2a6d](https://github.com/GaelleBriet/memo-patte-vue/commit/e5a2a6db19fa592da27249bfbea8555c6436cce0))
+* **synchro:** nommer « sans session » une requête refusée faute de session dans les journaux ([9632eb6](https://github.com/GaelleBriet/memo-patte-vue/commit/9632eb672bd47ae75c74b767846385dc4d987e48)), closes [#1450](https://github.com/GaelleBriet/memo-patte-vue/issues/1450)
+
 ## [0.1.140](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.139...memo-patte-v0.1.140) (2026-10-29)
 
 
