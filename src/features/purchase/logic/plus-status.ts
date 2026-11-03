@@ -1,4 +1,8 @@
-import type { CustomerInfo, PurchasesEntitlementInfo } from '@revenuecat/purchases-capacitor'
+import type {
+  CustomerInfo,
+  PurchasesEntitlementInfo,
+  PurchasesSubscriptionInfo,
+} from '@revenuecat/purchases-capacitor'
 import { differenceInDays, parseISO } from 'date-fns'
 
 const PLUS_ENTITLEMENT = 'plus'
@@ -37,11 +41,18 @@ export function managedInGooglePlay(status: PlusStatus): boolean {
   return subscriptionOf(status) !== null && !status.offered
 }
 
-function subscriptionPlan(plus: PurchasesEntitlementInfo, expiresAt: string): SubscriptionPlan {
-  const basePlan = plus.productPlanIdentifier ?? plus.productIdentifier.split(':')[1]
-  if (basePlan === 'monthly' || basePlan === 'annual') return basePlan
+function isSubscriptionPlan(basePlan: string | null | undefined): basePlan is SubscriptionPlan {
+  return basePlan === 'monthly' || basePlan === 'annual'
+}
 
-  const periodDays = differenceInDays(parseISO(expiresAt), parseISO(plus.latestPurchaseDate))
+function subscriptionPlan(
+  basePlan: string | null | undefined,
+  purchasedAt: string,
+  expiresAt: string,
+): SubscriptionPlan {
+  if (isSubscriptionPlan(basePlan)) return basePlan
+
+  const periodDays = differenceInDays(parseISO(expiresAt), parseISO(purchasedAt))
   return periodDays <= LONGEST_MONTHLY_PERIOD_DAYS ? 'monthly' : 'annual'
 }
 
@@ -49,13 +60,39 @@ function subscriptionPlan(plus: PurchasesEntitlementInfo, expiresAt: string): Su
 export function plusStatusFrom(customerInfo: CustomerInfo): PlusStatus {
   const plus = customerInfo.entitlements.active[PLUS_ENTITLEMENT]
   if (!plus) return endedStatusFrom(customerInfo)
-  const status: PlusStatus =
-    plus.expirationDate === null
-      ? { plan: 'lifetime', expiresAt: null }
-      : { plan: subscriptionPlan(plus, plus.expirationDate), expiresAt: plus.expirationDate }
-  return plus.store === OFFERED_STORE && !paysInGooglePlay(customerInfo)
-    ? { ...status, offered: true }
-    : status
+  if (plus.store === OFFERED_STORE) {
+    const googlePlay = activeGooglePlaySubscription(customerInfo)
+    return googlePlay ? statusOfGooglePlaySubscription(googlePlay, plus) : offeredStatusFrom(plus)
+  }
+  return statusOfEntitlement(plus)
+}
+
+function statusOfEntitlement(plus: PurchasesEntitlementInfo): PlusStatus {
+  if (plus.expirationDate === null) return { plan: 'lifetime', expiresAt: null }
+  const basePlan = plus.productPlanIdentifier ?? plus.productIdentifier.split(':')[1]
+  const plan = subscriptionPlan(basePlan, plus.latestPurchaseDate, plus.expirationDate)
+  return { plan, expiresAt: plus.expirationDate }
+}
+
+function offeredStatusFrom(plus: PurchasesEntitlementInfo): PlusStatus {
+  return { ...statusOfEntitlement(plus), offered: true }
+}
+
+function statusOfGooglePlaySubscription(
+  subscription: PurchasesSubscriptionInfo,
+  plus: PurchasesEntitlementInfo,
+): PlusStatus {
+  const { expiresDate } = subscription
+  const basePlan =
+    subscription.productPlanIdentifier ?? subscription.productIdentifier.split(':')[1]
+  if (expiresDate === null) {
+    const plan = isSubscriptionPlan(basePlan) ? basePlan : statusOfEntitlement(plus).plan
+    return { plan, expiresAt: null }
+  }
+  return {
+    plan: subscriptionPlan(basePlan, subscription.purchaseDate, expiresDate),
+    expiresAt: expiresDate,
+  }
 }
 
 function endedStatusFrom(customerInfo: CustomerInfo): PlusStatus {
@@ -66,8 +103,12 @@ function endedStatusFrom(customerInfo: CustomerInfo): PlusStatus {
 }
 
 /** Le droit ne remonte qu'un achat : un abonnement Google Play en cours peut se cacher derrière un droit offert. */
-function paysInGooglePlay(customerInfo: CustomerInfo): boolean {
-  return Object.values(customerInfo.subscriptionsByProductIdentifier).some(
-    (subscription) => subscription.isActive && subscription.store === GOOGLE_PLAY_STORE,
-  )
+function activeGooglePlaySubscription(
+  customerInfo: CustomerInfo,
+): PurchasesSubscriptionInfo | undefined {
+  return Object.values(customerInfo.subscriptionsByProductIdentifier)
+    .filter((subscription) => subscription.isActive && subscription.store === GOOGLE_PLAY_STORE)
+    .sort(
+      (a, b) => (Date.parse(b.expiresDate ?? '') || 0) - (Date.parse(a.expiresDate ?? '') || 0),
+    )[0]
 }

@@ -71,6 +71,8 @@ et une relecture s'y réfère plutôt que de rouvrir le débat.
 | Abonnement               | subscription                     | plan, membership                          |                                                                         |
 | Plus mensuel / annuel    | Monthly Plus / Annual Plus       | Plus monthly, Plus yearly, yearly Plus    | « /month », « /year » pour les prix, « annual » pour le nom de l'offre   |
 | Plus à vie               | Lifetime Plus                    | Plus lifetime, forever Plus               |                                                                         |
+| Plus offert              | Plus, complimentary              | free Plus, gifted Plus                    | droit accordé dans RevenueCat, rien à gérer dans Google Play            |
+| Plus offert — terminé    | Plus, complimentary — ended      | Plus, complimentary — expired             |                                                                         |
 | Découvrir (Plus)         | explore                          | discover                                  | « discover » est un gallicisme dans un CTA anglais                       |
 | Export / exporter        | export                           | dump, extract                             |                                                                         |
 | Import / importer        | import                           | upload, load                              |                                                                         |
