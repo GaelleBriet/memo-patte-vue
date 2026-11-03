@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { isMissingPhotoObject } from '../animal-photos-bucket'
 import { isTransportFailure } from '../transport-failure'
 import { accountServer, clientOver, NOW, PUBLISHABLE_KEY, USER_ID } from './account-server'
 
@@ -50,8 +51,42 @@ describe.each(['muet', 'coupé', 'refusé'] as const)(
       expect(error).not.toBeNull()
       expect(dataRequests).toEqual([])
     })
+
+    it('un téléchargement de photo échoue sans être pris pour une photo absente', async () => {
+      const { serverFetch, dataRequests } = accountServer(auth)
+      const supabase = clientOver(serverFetch, 'périmé')
+
+      const { data, error } = await settled(
+        supabase.storage.from('animal-photos').download(`${USER_ID}/milo.webp`),
+      )
+
+      expect(data).toBeNull()
+      expect(error).not.toBeNull()
+      expect(isMissingPhotoObject(error)).toBe(false)
+      expect(dataRequests).toEqual([])
+    })
   },
 )
+
+describe('jeton périmé, Auth renouvelle la session', () => {
+  it('la lecture et la liste de photos partent avec le nouveau jeton', async () => {
+    const { serverFetch, dataRequests } = accountServer('renouvelé')
+    const supabase = clientOver(serverFetch, 'périmé')
+
+    const { count, error } = await settled(
+      supabase.from('animals').select('id', { count: 'exact', head: true }).eq('user_id', USER_ID),
+    )
+    const photos = await settled(supabase.storage.from('animal-photos').list(USER_ID))
+
+    expect(error).toBeNull()
+    expect(count).toBe(2)
+    expect(photos.error).toBeNull()
+    expect(dataRequests).toEqual([
+      '/rest/v1/animals Bearer jeton-utilisateur',
+      '/storage/v1/object/list/animal-photos Bearer jeton-utilisateur',
+    ])
+  })
+})
 
 describe('jeton valide', () => {
   it('la lecture part avec le jeton de l’utilisateur et voit sa sauvegarde', async () => {

@@ -12,8 +12,8 @@ export const NOW = new Date('2026-11-03T08:00:00.000Z')
 const USER_TOKEN = 'jeton-utilisateur'
 const STORAGE_KEY = 'memopatte.test.session'
 
-/** Muet : sans réponse ; coupé : réseau perdu ; refusé : jeton de rafraîchissement inconnu. */
-export type AuthAnswer = 'muet' | 'coupé' | 'refusé'
+/** Muet : sans réponse ; coupé : réseau perdu ; refusé : jeton de rafraîchissement inconnu ; renouvelé : nouveau jeton. */
+export type AuthAnswer = 'muet' | 'coupé' | 'refusé' | 'renouvelé'
 
 /**
  * Serveur d'un compte qui a deux animaux sauvegardés : la RLS les cache à une requête qui n'a pas
@@ -26,6 +26,7 @@ export function accountServer(auth: AuthAnswer) {
     if (url.pathname === '/auth/v1/token') {
       if (auth === 'muet') return new Promise<Response>(() => {})
       if (auth === 'coupé') throw new TypeError('Failed to fetch')
+      if (auth === 'renouvelé') return Response.json(sessionWith(USER_TOKEN, 3600))
       return Response.json(
         {
           code: 'refresh_token_not_found',
@@ -50,21 +51,8 @@ export function accountServer(auth: AuthAnswer) {
 
 /** Session enregistrée sur le téléphone, jeton encore valide ou déjà périmé. */
 export function clientOver(serverFetch: typeof fetch, token: 'valide' | 'périmé'): SupabaseClient {
-  const nowSeconds = Math.floor(NOW.getTime() / 1000)
-  const session = {
-    access_token: token === 'valide' ? USER_TOKEN : 'jeton-perime',
-    refresh_token: 'jeton-de-rafraichissement',
-    token_type: 'bearer',
-    expires_in: 3600,
-    expires_at: token === 'valide' ? nowSeconds + 3600 : nowSeconds - 60,
-    user: {
-      id: USER_ID,
-      aud: 'authenticated',
-      app_metadata: {},
-      user_metadata: {},
-      created_at: '',
-    },
-  }
+  const session =
+    token === 'valide' ? sessionWith(USER_TOKEN, 3600) : sessionWith('jeton-perime', -60)
   const stored = new Map([[STORAGE_KEY, JSON.stringify(session)]])
   return createClient(PROJECT, PUBLISHABLE_KEY, {
     auth: {
@@ -79,4 +67,21 @@ export function clientOver(serverFetch: typeof fetch, token: 'valide' | 'périm�
     },
     global: { fetch: requireUserSession(createBoundedFetch(serverFetch)) },
   })
+}
+
+function sessionWith(accessToken: string, expiresInSeconds: number) {
+  return {
+    access_token: accessToken,
+    refresh_token: 'jeton-de-rafraichissement',
+    token_type: 'bearer',
+    expires_in: 3600,
+    expires_at: Math.floor(NOW.getTime() / 1000) + expiresInSeconds,
+    user: {
+      id: USER_ID,
+      aud: 'authenticated',
+      app_metadata: {},
+      user_metadata: {},
+      created_at: '',
+    },
+  }
 }
