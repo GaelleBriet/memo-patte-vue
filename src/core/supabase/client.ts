@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 
 import { AUTH_STORAGE_KEY, authStorage } from './auth-storage'
 import { createBoundedFetch } from './request-timeout'
+import { requireUserSession } from './user-session-required'
 
 const url = import.meta.env.VITE_SUPABASE_URL
 const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
@@ -16,5 +17,5 @@ if (!url || !publishableKey) {
 
 export default createClient(url, publishableKey, {
   auth: { storageKey: AUTH_STORAGE_KEY, storage: authStorage },
-  global: { fetch: createBoundedFetch((input, init) => fetch(input, init)) },
+  global: { fetch: requireUserSession(createBoundedFetch((input, init) => fetch(input, init))) },
 })

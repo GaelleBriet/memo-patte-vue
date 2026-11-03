@@ -69,6 +69,12 @@ describe('errorSummary', () => {
     expect(errorSummary(offline)).toBe('coupure réseau')
   })
 
+  it('nomme une requête refusée faute de session d’utilisateur', () => {
+    const noSession = { message: 'NoUserSessionError: requête sans session pour Milo', code: '' }
+
+    expect(errorSummary(noSession)).toBe('sans session')
+  })
+
   it('ne lit le préfixe qu’en tête du message, et seulement faute d’autre champ', () => {
     expect(errorSummary({ message: 'Milo AbortError: x', code: '' })).toBe('erreur sans nom')
     expect(errorSummary({ message: 'TypeError: x', code: '42501' })).toBe('42501')
