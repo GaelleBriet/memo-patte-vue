@@ -1,5 +1,6 @@
 import { dayOfKey, sameFrequency } from '../grid'
 import { isTaken } from '../lines'
+import { takenKeyOf } from '../released'
 import { episodesOf } from '../settings'
 import type { Day, Refusal, SettingsPlan, TreatmentViewInput } from '../types'
 import { buildView, type TreatmentView } from '../view'
@@ -44,13 +45,11 @@ function laterNote(
   const episode = new Set((episodesOf(input.settings).at(-1) ?? []).map(({ id }) => id))
   const view = buildView(input)
   const realDay = changesFrequency(view, implicit) ? realDays(view, input.today) : null
-  const later = view.history.some(
-    ({ line, effect }) =>
-      isTaken(line) &&
-      episode.has(line.settingId) &&
-      effect.kind === 'covers' &&
-      isLater(realDay?.(line, dayOfKey(effect.key)) ?? dayOfKey(effect.key)),
-  )
+  const later = view.history.some(({ line, effect }) => {
+    const key = takenKeyOf(effect)
+    if (key === null || !isTaken(line) || !episode.has(line.settingId)) return false
+    return isLater(realDay?.(line, dayOfKey(key)) ?? dayOfKey(key))
+  })
   return later ? { reason: 'later-dose' } : null
 }
 

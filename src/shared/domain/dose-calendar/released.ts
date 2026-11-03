@@ -1,7 +1,11 @@
 import { isOnGrid, sameFrequency } from './grid'
 import { latestBy } from './latest'
 import type { Span } from './settings'
-import type { Day, Line, Setting } from './types'
+import type { Day, Line, LineEffect, Setting } from './types'
+
+/** La clé d'une prise : l'échéance qu'elle couvre, ou le jour et l'heure où elle a été donnée (#1373). */
+export const takenKeyOf = (effect: LineEffect): string | null =>
+  effect.kind === 'covers' || effect.kind === 'old-rhythm' ? effect.key : null
 
 /** Une prise donnée avant le jour de son échéance. */
 export const givenAhead = (line: Pick<Line, 'status' | 'givenOn' | 'dueOn'>): boolean =>

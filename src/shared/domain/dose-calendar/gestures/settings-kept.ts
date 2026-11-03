@@ -1,6 +1,7 @@
-import { isOnGrid, later, plusDays, stepped } from '../grid'
+import { dayOfKey, isOnGrid, later, plusDays, stepped } from '../grid'
 import type { Day, Setting, SettingsPlan, TreatmentViewInput } from '../types'
 import { isTaken } from '../lines'
+import { takenKeyOf } from '../released'
 import { buildView } from '../view'
 import { settingsApplied } from './changes'
 import { NEXT_DAYS, type Dates, type SettingsRequest } from './settings-proposal'
@@ -15,9 +16,10 @@ const movingReports = (input: TreatmentViewInput) =>
 // Q25 : une journée d'arrivée où une dose a été donnée ou oubliée a servi.
 const servedDays = (input: TreatmentViewInput) =>
   new Set(
-    buildView(input).history.flatMap(({ line, effect }) =>
-      isTaken(line) && effect.kind === 'covers' ? [effect.key.slice(0, 10)] : [],
-    ),
+    buildView(input).history.flatMap(({ line, effect }) => {
+      const key = takenKeyOf(effect)
+      return isTaken(line) && key !== null ? [dayOfKey(key)] : []
+    }),
   )
 
 // R7 : un report parti d'une journée du réglage corrigé, qui deviendrait sans effet si le réglage

@@ -48,7 +48,8 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   const notDue = notDueArrivals(effects)
   const journey = journeys(input, effects)
   const { days, translated, left, rhythmFrom, replaced } = journey
-  const covering = [...lines.notes.filter((note) => !lines.released.has(note)), ...borrowed]
+  const current = lines.notes.filter((note) => !lines.released.has(note))
+  const covering = [...current, ...borrowed]
   const byDay = new Map<Day, Line[]>()
   for (const note of covering) {
     byDay.set(note.dueOn, [...(byDay.get(note.dueOn) ?? []), note])
@@ -106,14 +107,10 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
       slots.push({ due, key: keyOf(day, hour), coveredBy: note, exact })
     }
   }
-  // R4, R6 (#1373) : restée à l'ancien rythme, une prise donnée d'avance tient au jour où elle a été donnée.
-  for (const note of lines.released) {
-    if (note.status === 'given') held.set(note, keyOf(note.givenOn!, note.dueTime))
-  }
   const unread = [...journey.skipped].filter((day) => !days.has(day) && !left.has(day))
-  keepSkippedDays(lines.notes, new Set(unread), slots, held)
-  keepGivenNotes(lines.notes, slots, held, { yielded, closedFrom: span.closedFrom })
-  keepAnsweredNotes(lines.notes, slots, held, settingOf)
+  keepSkippedDays(current, new Set(unread), slots, held)
+  keepGivenNotes(current, slots, held, { yielded, closedFrom: span.closedFrom })
+  keepAnsweredNotes(current, slots, held, settingOf)
   noteEffects(lines, borrowed, slots, held, effects)
   notDue.settle()
   const lateDays = new Set(

@@ -192,3 +192,31 @@ describe('#1373 : une prise notée après le changement de rythme compte dans le
     expect(journees(c, '2026-10-06', 3)).toEqual(['2026-10-08', '2026-10-10', '2026-10-12'])
   })
 })
+
+describe('#1373 : une prise restée à l’ancien rythme ne couvre aucune échéance', () => {
+  function deuxPrisesDAvance(): Carnet {
+    let c = carnet('2026-10-01', jours(3), ['09:00'])
+    c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '09:00'))
+    c = donne(c, '2026-10-03', echeance(c, '2026-10-04', '09:00'), '2026-10-03', true)
+    c = donne(c, '2026-10-04', echeance(c, '2026-10-06', '09:00'), '2026-10-04', true)
+    return modifie(c, '2026-10-05', jours(2), ['09:00'])
+  }
+
+  const couvertes = (c: Carnet, today: string) =>
+    vue(c, today).history.flatMap(({ effect }) => (effect.kind === 'covers' ? [effect.key] : []))
+
+  it('dose du 4 donnée le 3, dose du 6 donnée le 4, avec la case, tous les 2 jours le 5 : une seule prise couvre le 4 à 9 h, puis le 6, le 8', () => {
+    const c = deuxPrisesDAvance()
+    expect(couvertes(c, '2026-10-05').filter((key) => key === '2026-10-04 09:00')).toHaveLength(1)
+    expect(journees(c, '2026-10-05', 3)).toEqual(['2026-10-06', '2026-10-08', '2026-10-10'])
+  })
+
+  it('la prise du 4 reste une prise donnée ce jour-là, jamais sans effet', () => {
+    const c = deuxPrisesDAvance()
+    expect(sansEffet(c, '2026-10-05')).toEqual([])
+    const prise = vue(c, '2026-10-05').history.find(
+      ({ line }) => line.status === 'given' && line.dueOn === '2026-10-06',
+    )!
+    expect(prise.effect).toEqual({ kind: 'old-rhythm', key: '2026-10-04 09:00' })
+  })
+})

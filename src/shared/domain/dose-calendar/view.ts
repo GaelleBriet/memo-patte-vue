@@ -4,6 +4,7 @@ import { episodeLines, isTaken } from './lines'
 import { momentOf } from './moment'
 import { dueReminders, type ReminderReading, type ReminderWindow } from './reminders'
 import { readingOf, UPCOMING_DAYS } from './reading'
+import { takenKeyOf } from './released'
 import { borrowedNotes, closedBeforeFirstDue, episodesOf, spanOf } from './settings'
 import type {
   Day,
@@ -118,7 +119,8 @@ export function buildView({ settings, lines: given, today }: TreatmentViewInput)
   // aussi la première journée de la reprise, sauf quand la reprise reprend cette dose.
   const effects = new Map<string, LineEffect>()
   for (const [id, effect] of calendars.flatMap((calendar) => [...calendar.effects])) {
-    if (effects.get(id)?.kind !== 'covers') effects.set(id, effect)
+    const kept = effects.get(id)
+    if (kept === undefined || takenKeyOf(kept) === null) effects.set(id, effect)
   }
   const live = parts.flatMap(({ span }) => span.live)
   // Un réglage remplacé avant sa première échéance ne donne pas la première échéance du traitement.

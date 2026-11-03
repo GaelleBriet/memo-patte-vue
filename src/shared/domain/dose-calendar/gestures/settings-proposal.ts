@@ -1,5 +1,5 @@
 import { dayOfKey, later, plusDays, sameFrequency, stepped } from '../grid'
-import { givenAhead } from '../released'
+import { givenAhead, takenKeyOf } from '../released'
 import type {
   Day,
   Frequency,
@@ -82,11 +82,10 @@ function heldNextDay(view: TreatmentView, today: Day): Day | undefined {
 function lastNotedDay(view: TreatmentView, today: Day): Day | undefined {
   const realDay = realDays(view, today)
   return view.history
-    .flatMap(({ line, effect }) =>
-      effect.kind === 'covers' && line.status !== 'not-due'
-        ? [realDay(line, dayOfKey(effect.key))]
-        : [],
-    )
+    .flatMap(({ line, effect }) => {
+      const key = takenKeyOf(effect)
+      return key !== null && line.status !== 'not-due' ? [realDay(line, dayOfKey(key))] : []
+    })
     .filter((day) => day <= today)
     .sort()
     .at(-1)
