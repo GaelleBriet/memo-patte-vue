@@ -726,7 +726,7 @@ describe('createSyncCycle — photos', () => {
       const files = fakeFiles({ [MILO_PHOTO]: jpeg() })
       await insertAnimal(db, ANIMAL_ID, '2026-09-01T08:00:00.000Z', 'Milo', MILO_PHOTO)
       vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-23T08:00:00.000Z') })
-      await createLocalSyncOutbox(db).enableAndQueueWholeCarnet()
+      await createLocalSyncOutbox(db).enableAndQueueLiveCarnet()
       const { cycle, uploads, deletes, remoteRows, setNow } = realBaseCycle(files, order)
       uploads.failures.set(MILO_PHOTO, () => new Error('fetch failed'))
       remoteRows.push({

@@ -132,7 +132,7 @@ describe('restauration du carnet d’un compte', () => {
     })
     await phone.register()
     await phone.settings.update({ vaccineReminderTime: '18:30' })
-    await phone.outbox.enableAndQueueWholeCarnet()
+    await phone.outbox.enableAndQueueLiveCarnet()
     await phone.sync()
     later()
     tablet = await createPhone(server, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')
@@ -148,7 +148,7 @@ describe('restauration du carnet d’un compte', () => {
   it('sur un appareil sans carnet, tout le carnet du compte revient, et les rappels se reconstruisent', async () => {
     expect(CARNET_ENTITIES.filter((entity) => serverRows(entity).length === 0)).toEqual([])
 
-    await tablet.outbox.enableAndQueueWholeCarnet()
+    await tablet.outbox.enableAndQueueLiveCarnet()
     await tablet.sync()
 
     expect(await carnetOf(tablet)).toEqual(serverCarnet())
@@ -165,7 +165,7 @@ describe('restauration du carnet d’un compte', () => {
       await tablet.outbox.setLastPulledAt(entity, '2099-01-01T00:00:00.000Z')
     }
 
-    await tablet.outbox.enableAndQueueWholeCarnet()
+    await tablet.outbox.enableAndQueueLiveCarnet()
     await tablet.sync()
 
     expect(await carnetOf(tablet)).toEqual(serverCarnet())
@@ -173,7 +173,7 @@ describe('restauration du carnet d’un compte', () => {
 
   it('coupée par le réseau, la restauration reprend où elle s’était arrêtée, même après un redémarrage', async () => {
     server.cutPull('treatment_dose')
-    await tablet.outbox.enableAndQueueWholeCarnet()
+    await tablet.outbox.enableAndQueueLiveCarnet()
 
     await expect(tablet.sync()).rejects.toBeDefined()
 
@@ -188,7 +188,7 @@ describe('restauration du carnet d’un compte', () => {
   it('« Fusionner » garde le carnet de l’appareil et lui ajoute celui du compte, dans les deux sens', async () => {
     const luna = await tablet.repositories.animals.create({ name: 'Luna', species: 'cat' })
 
-    await tablet.outbox.enableAndQueueWholeCarnet()
+    await tablet.outbox.enableAndQueueLiveCarnet()
     await tablet.sync()
     await phone.sync()
 
@@ -213,7 +213,7 @@ describe('restauration du carnet d’un compte', () => {
     await tablet.settings.update({ vaccineReminderTime: '07:45' })
     vi.setSystemTime(new Date(2026, 9, 21, 9))
 
-    await tablet.outbox.enableAndQueueWholeCarnet()
+    await tablet.outbox.enableAndQueueLiveCarnet()
     await tablet.sync()
 
     await expect(tablet.settings.get()).resolves.toMatchObject({ vaccineReminderTime: '18:30' })

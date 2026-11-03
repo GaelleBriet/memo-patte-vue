@@ -31,7 +31,7 @@ import { createWeightRepository } from '@/features/weight/repository/weight.repo
 
 const USER_ID = '99999999-9999-4999-8999-999999999999'
 
-describe('amorçage : le carnet local part en entier vers un compte vide', () => {
+describe('amorçage : le carnet visible part vers un compte vide', () => {
   let server: FakeSyncServer
   let db: InMemoryDb
   let tables: SyncableTable[]
@@ -115,6 +115,8 @@ describe('amorçage : le carnet local part en entier vers un compte vide', () =>
     return rows.sort(byId)
   }
 
+  const isVisible = (row: SyncRow) => row.deleted_at === null || row.deleted_at === undefined
+
   function serverRows(entity: string): SyncRow[] {
     return server
       .rows(entity)
@@ -131,29 +133,32 @@ describe('amorçage : le carnet local part en entier vers un compte vide', () =>
     expect(server.pushes()).toEqual([])
   })
 
-  it('une fois activée, chaque ligne locale est sur le serveur, à l’identique, et la file est vide', async () => {
-    await outbox.enableAndQueueWholeCarnet()
+  it('une fois activée, chaque ligne visible est sur le serveur, à l’identique, sans la pesée supprimée, et la file est vide', async () => {
+    await outbox.enableAndQueueLiveCarnet()
 
     await cycle.runCycle()
 
     const local = Object.fromEntries(
       await Promise.all(SYNC_ENTITY_ORDER.map(async (entity) => [entity, await localRows(entity)])),
     ) as Record<string, SyncRow[]>
+    const visible = Object.fromEntries(
+      SYNC_ENTITY_ORDER.map((entity) => [entity, local[entity]!.filter(isVisible)]),
+    )
     const remote = Object.fromEntries(
       SYNC_ENTITY_ORDER.map((entity) => [entity, serverRows(entity)]),
     )
-    expect(SYNC_ENTITY_ORDER.filter((entity) => local[entity]!.length === 0)).toEqual([])
-    expect(remote).toEqual(local)
-    expect(serverRows('weight_entry').some((row) => row.deleted_at !== null)).toBe(true)
+    expect(SYNC_ENTITY_ORDER.filter((entity) => visible[entity]!.length === 0)).toEqual([])
+    expect(local.weight_entry!.filter((row) => !isVisible(row))).toHaveLength(1)
+    expect(remote).toEqual(visible)
     await expect(outbox.listPending()).resolves.toEqual([])
   })
 
   it('un second envoi ne crée ni ne réécrit rien sur le serveur', async () => {
-    await outbox.enableAndQueueWholeCarnet()
+    await outbox.enableAndQueueLiveCarnet()
     await cycle.runCycle()
     const before = SYNC_ENTITY_ORDER.map((entity) => server.rows(entity))
 
-    await outbox.enableAndQueueWholeCarnet()
+    await outbox.enableAndQueueLiveCarnet()
     await cycle.runCycle()
 
     expect(SYNC_ENTITY_ORDER.map((entity) => server.rows(entity))).toEqual(before)
@@ -201,7 +206,7 @@ describe('amorçage : le carnet local part en entier vers un compte vide', () =>
   for (const mode of ['merge', 'replace'] as const) {
     it(`un compte B restauré (« ${mode === 'merge' ? 'Fusionner' : 'Remplacer'} ») après A ne montre jamais la dernière sauvegarde de A`, async () => {
       const readFacts = backupFacts()
-      await outbox.enableAndQueueWholeCarnet()
+      await outbox.enableAndQueueLiveCarnet()
       await cycle.runCycle()
       expect(backupStatusOf(await readFacts()).kind).toBe('saved')
 
@@ -231,7 +236,7 @@ describe('amorçage : le carnet local part en entier vers un compte vide', () =>
       }
       return pushRow(userId, sent, push)
     }
-    await outbox.enableAndQueueWholeCarnet()
+    await outbox.enableAndQueueLiveCarnet()
 
     await expect(cycle.runCycle()).rejects.toMatchObject({ code: '23514' })
     await expect(cycle.runCycle()).rejects.toMatchObject({ code: '23514' })
@@ -286,7 +291,7 @@ describe('amorçage : le carnet local part en entier vers un compte vide', () =>
     let total = 0
     for (const entity of Object.keys(SYNC_PARENT_COLUMNS)) {
       const [row] = await db.query<{ total: number }>(
-        `SELECT COUNT(*) AS total FROM ${entity} WHERE animal_id = ?`,
+        `SELECT COUNT(*) AS total FROM ${entity} WHERE animal_id = ? AND deleted_at IS NULL`,
         [animalId],
       )
       total += row?.total ?? 0
@@ -300,7 +305,7 @@ describe('amorçage : le carnet local part en entier vers un compte vide', () =>
     const milo = await miloId()
     const miloChildren = await childrenOf(milo)
     const refusal = refuseAnimal(milo)
-    await outbox.enableAndQueueWholeCarnet()
+    await outbox.enableAndQueueLiveCarnet()
 
     await expect(cycle.runCycle()).rejects.toMatchObject({ code: '23514' })
     await expect(cycle.runCycle()).rejects.toMatchObject({ code: '23514' })
@@ -332,7 +337,7 @@ describe('amorçage : le carnet local part en entier vers un compte vide', () =>
   it('Milo déjà sur le serveur, sa modification refusée : la pesée corrigée à 9,9 kg arrive quand même', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {})
     const milo = await miloId()
-    await outbox.enableAndQueueWholeCarnet()
+    await outbox.enableAndQueueLiveCarnet()
     await cycle.runCycle()
     const [weighing] = await db.query<{ id: string }>(
       'SELECT id FROM weight_entry WHERE animal_id = ? AND deleted_at IS NULL ORDER BY id LIMIT 1',
@@ -377,7 +382,7 @@ describe('amorçage : le carnet local part en entier vers un compte vide', () =>
     async function refuseMiloModification(): Promise<string> {
       vi.spyOn(console, 'warn').mockImplementation(() => {})
       const milo = await miloId()
-      await outbox.enableAndQueueWholeCarnet()
+      await outbox.enableAndQueueLiveCarnet()
       await cycle.runCycle()
       refuseAnimal(milo)
       await db.run("UPDATE animal SET name = 'Milou', updated_at = ? WHERE id = ?", [

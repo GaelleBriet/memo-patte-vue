@@ -137,7 +137,7 @@ describe('photos à la restauration du carnet d’un compte', () => {
       photoPath: PIRATE_PHOTO,
     })
     await phone.animals.remove(pirate.id)
-    await phone.outbox.enableAndQueueWholeCarnet()
+    await phone.outbox.enableAndQueueLiveCarnet()
     await phone.sync()
     cloud = new Map([
       [MILO_PHOTO, jpeg(1)],
