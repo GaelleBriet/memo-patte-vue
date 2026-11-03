@@ -44,3 +44,20 @@ $$;
 
 revoke execute on function public.delete_cloud_backup(uuid) from public, anon, authenticated;
 grant execute on function public.delete_cloud_backup(uuid) to service_role;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_proc p join pg_roles r on r.oid = p.proowner
+    where p.oid = 'public.delete_cloud_backup(uuid)'::regprocedure and (r.rolbypassrls or r.rolsuper)
+  ) then
+    raise exception 'delete_cloud_backup : son propriétaire doit passer outre les règles d''accès';
+  end if;
+end
+$$;
+
+-- Un déclencheur sur ces tables s'exécuterait aussi sous le propriétaire de la fonction ; TRUNCATE ignore les règles d'accès.
+revoke trigger, truncate on table
+  public.treatment_dose, public.treatment_period, public.treatment, public.vaccination_injection,
+  public.vaccination, public.weight_entry, public.animal, public.carnet_settings, public.device, public.sync_push
+from anon, authenticated, service_role;

@@ -61,14 +61,13 @@ insert into backup values
   ('animal'), ('weight_entry'), ('carnet_settings'), ('vaccination'), ('vaccination_injection'),
   ('treatment'), ('treatment_period'), ('treatment_dose'), ('device'), ('sync_push');
 
--- Droits exacts de la production : la base locale accorde tout à service_role, la production non.
+-- La base locale accorde à service_role des droits que la production ne lui a jamais donnés.
 do $$
 declare
   t text;
 begin
   for t in select name from backup loop
-    execute format('revoke all on table public.%I from service_role', t);
-    execute format('grant references, trigger, truncate on table public.%I to service_role', t);
+    execute format('revoke select, insert, update, delete, maintain on table public.%I from service_role', t);
   end loop;
 end
 $$;
@@ -107,6 +106,11 @@ select is(
   'delete_cloud_backup ne résout aucun nom par un schéma de l''appelant et refuse d''être filtrée par les règles d''accès');
 select is(
   (select count(*)::int
+   from backup b, unnest(array['anon', 'authenticated', 'service_role']) role, unnest(array['TRIGGER', 'TRUNCATE']) p
+   where has_table_privilege(role, 'public.' || b.name, p)),
+  0, 'personne ne pose de déclencheur sur la sauvegarde ni ne la vide sans ses règles d''accès');
+select is(
+  (select count(*)::int
    from unnest(array['anon', 'authenticated']) role,
         unnest(array['public.account_id_by_email(text)', 'public.delete_cloud_backup(uuid)']) fn
    where has_function_privilege(role, fn, 'EXECUTE')),
@@ -123,6 +127,7 @@ set local role service_role;
 
 select throws_ok($$ select count(*) from public.treatment_dose $$,
   '42501', null, 'comme en production, service_role ne lit pas les doses');
+select throws_ok($$ truncate public.sync_push $$, '42501', null, 'service_role ne vide pas une table de la sauvegarde');
 
 select is(public.account_id_by_email('sophie@exemple.test'),
   'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid, 'le compte se retrouve par son adresse');
@@ -187,10 +192,6 @@ select lives_ok($$ select public.delete_cloud_backup('aaaaaaaa-aaaa-4aaa-8aaa-aa
   'effacer une sauvegarde déjà vide ne gêne pas');
 
 reset role;
-select is(
-  (select count(*)::int from backup b, unnest(array['SELECT', 'INSERT', 'UPDATE', 'DELETE']) p
-   where has_table_privilege('service_role', 'public.' || b.name, p)),
-  0, 'service_role n''a toujours ni lecture ni écriture sur la sauvegarde');
 select is(
   (select array_agg(n order by name) from pg_temp.rows_of('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')),
   array[0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 'la sauvegarde de Sophie est vide');
