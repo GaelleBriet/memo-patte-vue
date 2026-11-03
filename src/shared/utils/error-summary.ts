@@ -4,6 +4,7 @@ const LOGGED_FIELDS = ['name', 'reason', 'code', 'status'] as const
 const UNANSWERED_REQUESTS: Record<string, string> = {
   'AbortError:': 'délai dépassé',
   'TypeError:': 'coupure réseau',
+  'NoUserSessionError:': 'sans session',
 }
 
 /** supabase-js attache le corps de la réponse à ses erreurs : `adb logcat` n'a pas à le lire. */
