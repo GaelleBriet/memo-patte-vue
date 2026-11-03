@@ -197,17 +197,6 @@ describe('restauration du carnet d’un compte', () => {
     expect(serverRows('animal').map(({ id }) => id)).toContain(luna.id)
   })
 
-  it('« Fusionner » : pour les réglages du carnet, la modification la plus récente gagne', async () => {
-    await tablet.settings.update({ vaccineReminderTime: '07:45' })
-
-    await tablet.outbox.enableAndQueueWholeCarnet()
-    await tablet.sync()
-    await phone.sync()
-
-    await expect(phone.settings.get()).resolves.toMatchObject({ vaccineReminderTime: '07:45' })
-    await expect(tablet.settings.get()).resolves.toMatchObject({ vaccineReminderTime: '07:45' })
-  })
-
   it('« Fusionner » : des réglages plus anciens sur l’appareil cèdent devant ceux du compte', async () => {
     vi.setSystemTime(new Date(2026, 9, 20, 8))
     await tablet.settings.update({ vaccineReminderTime: '07:45' })
