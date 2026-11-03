@@ -13,7 +13,18 @@ describe('plusStatusFrom', () => {
   it('renvoie « aucun » quand le droit plus a expiré', () => {
     const expired = entitlement({ isActive: false, expirationDate: '2026-08-01T10:00:00Z' })
 
-    expect(plusStatusFrom(customerInfo(null, expired))).toEqual(NO_PLUS)
+    expect(plusStatusFrom(customerInfo(null, expired))).toEqual({
+      ...NO_PLUS,
+      endedAt: '2026-08-01T10:00:00Z',
+    })
+  })
+
+  it('ne retient pas comme fin une date postérieure à la requête, ni l’absence de date', () => {
+    const future = entitlement({ isActive: false, expirationDate: '2026-10-01T10:00:00Z' })
+    const undated = entitlement({ isActive: false, ...LIFETIME })
+
+    expect(plusStatusFrom(customerInfo(null, future))).toEqual(NO_PLUS)
+    expect(plusStatusFrom(customerInfo(null, undated))).toEqual(NO_PLUS)
   })
 
   it('reconnaît l’abonnement annuel et garde sa date d’expiration', () => {
