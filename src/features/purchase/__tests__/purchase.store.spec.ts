@@ -621,6 +621,25 @@ describe('usePurchaseStore › sauvegarde en pause', () => {
       expect(relance.backupPause).toEqual({ keptUntil: '2027-09-14' })
     })
 
+    it('date la fin de la vraie échéance quand un renouvellement n’a pas été vu', async () => {
+      const realEnd = new Date(2026, 8, 14, 10)
+      vi.setSystemTime(new Date(2026, 7, 10, 10))
+      writeStoredPlusStatus({ plan: 'monthly', expiresAt: new Date(2026, 7, 14, 10).toISOString() })
+      service.fetchStatus.mockResolvedValueOnce({ ...NO_PLUS, endedAt: realEnd.toISOString() })
+      const store = usePurchaseStore()
+      vi.setSystemTime(new Date(2026, 8, 17, 10))
+
+      await store.verifyKnownStatus()
+
+      expect(store.backupPause).toEqual({ keptUntil: '2027-09-14' })
+      expect(readStoredPlusStatus().subscriptionEndedAt).toBe(realEnd.toISOString())
+      expect(localStorage.getItem(PLUS_ENDED_AT_STORAGE_KEY)).toBe(realEnd.toISOString())
+
+      vi.setSystemTime(new Date(2026, 9, 10, 10))
+      setActivePinia(createPinia())
+      expect(usePurchaseStore().expiredPlan).toBe('monthly')
+    })
+
     it('date la fin du constat quand l’accès est retiré avant son échéance', async () => {
       writeStoredPlusStatus({ plan: 'annual', expiresAt: new Date(2027, 8, 1, 10).toISOString() })
       service.fetchStatus.mockResolvedValueOnce(NO_PLUS)

@@ -16,6 +16,8 @@ export type PlusStatus = {
   expiresAt: string | null
   /** Droit offert depuis RevenueCat : rien à gérer dans Google Play. */
   offered?: boolean
+  /** Vraie fin d'un droit échu, ISO 8601 : seulement avec `plan: 'none'`, quand RevenueCat la donne. */
+  endedAt?: string
 }
 
 export const NO_PLUS: PlusStatus = { plan: 'none', expiresAt: null }
@@ -46,7 +48,7 @@ function subscriptionPlan(plus: PurchasesEntitlementInfo, expiresAt: string): Su
 /** Un droit en période de grâce reste dans `entitlements.active`, donc compte comme actif. */
 export function plusStatusFrom(customerInfo: CustomerInfo): PlusStatus {
   const plus = customerInfo.entitlements.active[PLUS_ENTITLEMENT]
-  if (!plus) return NO_PLUS
+  if (!plus) return endedStatusFrom(customerInfo)
   const status: PlusStatus =
     plus.expirationDate === null
       ? { plan: 'lifetime', expiresAt: null }
@@ -54,6 +56,13 @@ export function plusStatusFrom(customerInfo: CustomerInfo): PlusStatus {
   return plus.store === OFFERED_STORE && !paysInGooglePlay(customerInfo)
     ? { ...status, offered: true }
     : status
+}
+
+function endedStatusFrom(customerInfo: CustomerInfo): PlusStatus {
+  const endedAt = customerInfo.entitlements.all[PLUS_ENTITLEMENT]?.expirationDate
+  return endedAt && Date.parse(endedAt) <= Date.parse(customerInfo.requestDate)
+    ? { ...NO_PLUS, endedAt }
+    : NO_PLUS
 }
 
 /** Le droit ne remonte qu'un achat : un abonnement Google Play en cours peut se cacher derrière un droit offert. */
