@@ -27,7 +27,7 @@ export interface SyncDependencies {
   runCycle: () => Promise<void>
   userId: () => string | null
   sessionActive: () => boolean
-  /** Session expirée : seule une reconnexion la rend, pas le retour du réseau. */
+  /** Session expirée : seule une reconnexion la rend, pas le retour du réseau ; aucun cycle d'ici là. */
   signInNeeded: () => boolean
   /** Statut Plus enregistré sur l'appareil : son passage à vrai déclenche un cycle. */
   plusActive: () => boolean
@@ -59,7 +59,11 @@ export interface SyncDependencies {
  * renvoie le débranchement. Le debounce après écriture vient des triggers SQLite, pas d'ici.
  */
 export async function installSync(deps: SyncDependencies): Promise<() => void> {
-  const scheduler = createSyncScheduler({ runCycle: deps.runCycle })
+  const scheduler = createSyncScheduler({
+    runCycle: async () => {
+      if (!deps.signInNeeded()) await deps.runCycle()
+    },
+  })
   let accountWork: Promise<void> = Promise.resolve()
   let checkedFor: string | null = null
   let sendConfirmedFor: string | null = null
@@ -175,6 +179,9 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
   const stopPlusWatch = watch(deps.plusActive, (active) => {
     if (active) scheduler.notifyPlusActivated()
   })
+  const stopSignInWatch = watch(deps.signInNeeded, (needed) => {
+    if (!needed) scheduler.notifyComeback()
+  })
 
   await resumePendingSync(deps.outbox, scheduler)
   scheduler.notifyChange()
@@ -188,6 +195,7 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
     stopNetwork()
     stopAccountWatch()
     stopPlusWatch()
+    stopSignInWatch()
   }
 }
 

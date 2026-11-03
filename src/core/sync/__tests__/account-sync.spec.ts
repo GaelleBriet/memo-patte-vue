@@ -256,6 +256,71 @@ describe('installSync', () => {
     stop()
   })
 
+  describe('session perdue, compte gardé (« Reconnecte-toi »)', () => {
+    async function installWithSession(session: { value: 'active' | 'needs-sign-in' }) {
+      const runCycle = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
+      const stop = await installSync({
+        outbox: fakeOutbox(1),
+        runCycle,
+        userId: () => 'user-1',
+        ...withoutSession,
+        sessionActive: () => session.value === 'active',
+        signInNeeded: () => session.value === 'needs-sign-in',
+      })
+      return { runCycle, stop }
+    }
+
+    it('aucun cycle ne tourne, ni au lancement, ni au premier plan, ni au retour du réseau', async () => {
+      let emit!: NetworkListener
+      addNetworkListener.mockImplementation(async (_event, listener) => {
+        emit = listener
+        return { remove: vi.fn<() => Promise<void>>(async () => {}) }
+      })
+      const { runCycle, stop } = await installWithSession(ref('needs-sign-in'))
+
+      await runDebounce()
+      simulateWebResume()
+      await runDebounce()
+      emit({ connected: true, connectionType: 'wifi' })
+      await vi.advanceTimersByTimeAsync(SYNC_BACKOFF_STEPS_MS.at(-1)!)
+
+      expect(runCycle).not.toHaveBeenCalled()
+      stop()
+    })
+
+    it('à la reconnexion, le cycle repart sans attendre l’attente accumulée par les refus d’avant', async () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0)
+      const session = ref<'active' | 'needs-sign-in'>('active')
+      const { runCycle, stop } = await installWithSession(session)
+      runCycle.mockRejectedValue(new Error('refus'))
+      await runDebounce()
+      for (const step of SYNC_BACKOFF_STEPS_MS.slice(0, 4)) await vi.advanceTimersByTimeAsync(step)
+      session.value = 'needs-sign-in'
+      await nextTick()
+      runCycle.mockClear().mockResolvedValue(undefined)
+
+      session.value = 'active'
+      await nextTick()
+      await runDebounce()
+
+      expect(runCycle).toHaveBeenCalledOnce()
+      stop()
+    })
+
+    it('une reconnexion après désinstallation ne déclenche rien', async () => {
+      const session = ref<'active' | 'needs-sign-in'>('needs-sign-in')
+      const { runCycle, stop } = await installWithSession(session)
+      await runDebounce()
+
+      stop()
+      session.value = 'active'
+      await nextTick()
+      await runDebounce()
+
+      expect(runCycle).not.toHaveBeenCalled()
+    })
+  })
+
   describe('Plus qui change d’état, app ouverte', () => {
     async function installWithPlus(plus: { plan: string; expiresAt: string | null }) {
       const runCycle = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)

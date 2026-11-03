@@ -4,12 +4,17 @@ import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
+import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { createFakeSyncServer, type FakeSyncServer } from '@/core/sync/__tests__/fake-sync-server'
 import { createBackupFactsReader } from '@/core/sync/service/backup-facts'
-import { SYNC_DEBOUNCE_MS } from '@/core/sync/service/sync-scheduler'
+import { SYNC_BACKOFF_STEPS_MS, SYNC_DEBOUNCE_MS } from '@/core/sync/service/sync-scheduler'
 import { memoryStorage, USER_ID } from '@/features/auth/__tests__/auth-fixture'
-import { authRepository, type AuthRepository } from '@/features/auth/repository/auth.repository'
+import {
+  authRepository,
+  type AuthRepository,
+  type AuthSession,
+} from '@/features/auth/repository/auth.repository'
 import { provideAuthRepository, useAuthStore } from '@/features/auth/store/auth.store'
 import { NO_PLUS, type PlusStatus } from '@/features/purchase/logic/plus-status'
 import { billingService, type BillingService } from '@/features/purchase/service/billing.service'
@@ -63,6 +68,7 @@ let db: InMemoryDb
 let phone: PlusPhone
 let stop: () => void = () => {}
 let sessionUnreadable: () => void = () => {}
+let sessionChanged: (session: AuthSession | null) => void = () => {}
 
 beforeEach(async () => {
   vi.clearAllMocks()
@@ -70,6 +76,9 @@ beforeEach(async () => {
   addNetworkListener.mockImplementation(async () => ({ remove: async () => {} }))
   repository.onSessionUnreadable.mockImplementation((listener) => {
     sessionUnreadable = listener
+  })
+  repository.onSessionChange.mockImplementation((listener) => {
+    sessionChanged = listener
   })
   setActivePinia(createPinia())
   billing.logIn.mockReset().mockResolvedValue(NO_PLUS)
@@ -138,5 +147,46 @@ describe('coffre Keystore illisible le 29 octobre, après l’achat de Plus annu
     expect((await phone.animals.list()).map(({ name }) => name)).toEqual(['Milo'])
     await expect(phone.outbox.isEnabled()).resolves.toBe(true)
     expect(await phone.weight.listByAnimal(milo.id)).toHaveLength(1)
+  })
+
+  it('une pesée notée sans session reste en file, sans requête ni tentative comptée, et part dès la reconnexion', async () => {
+    const auth = useAuthStore()
+    repository.signIn.mockResolvedValueOnce({ userId: USER_ID })
+    await auth.signIn('milo@example.test', 'motdepasse-solide')
+    await nextTick()
+    await usePurchaseStore().purchase('annual')
+    const milo = await phone.animals.create({ name: 'Milo', species: 'dog' })
+    await phone.backup.check()
+    await phone.backup.confirmSend()
+    await phone.runCycle()
+    const app = await launchPlusApp(phone)
+    stop = app.stop
+    await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS + 1)
+
+    vi.setSystemTime(new Date(2026, 9, 29, 14))
+    sessionUnreadable()
+    await nextTick()
+    const requests = vi.spyOn(server.client, 'from')
+    const weighing = await phone.weight.create({
+      animalId: milo.id,
+      weightKg: 9.8,
+      measuredOn: '2026-10-29',
+    })
+    simulateWebResume()
+    await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS + 1)
+    for (const step of SYNC_BACKOFF_STEPS_MS) await vi.advanceTimersByTimeAsync(step)
+
+    expect(requests).not.toHaveBeenCalled()
+    expect(await phone.outbox.listPending()).toEqual([
+      expect.objectContaining({ entity: 'weight_entry', entityId: weighing.id, attempts: 0 }),
+    ])
+
+    sessionChanged({ userId: USER_ID })
+    await nextTick()
+    await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS + 1)
+
+    expect(auth.sessionState).toBe('active')
+    expect(server.rows('weight_entry').map(({ id }) => id)).toEqual([weighing.id])
+    expect(await phone.outbox.listPending()).toEqual([])
   })
 })
