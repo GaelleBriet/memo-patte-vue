@@ -31,8 +31,8 @@ export type ArrivalContext = {
   shiftedDays: ReadonlySet<string>
   /** G13 : les déplacements (`départ>arrivée`) dont le décalage est parti de la date choisie. */
   turnedFromChosen: ReadonlySet<string>
-  /** #1373 : les reports restés à l'ancien rythme et les heures qu'ils apportent à leur arrivée. */
-  oldArrivals: readonly { report: ReferenceLine; carried: Hour[] }[]
+  /** Q76 : les reports qui ont eu lieu avant un changement de rythme, et les heures qu'ils apportent. */
+  pastArrivals: readonly { report: ReferenceLine; carried: Hour[] }[]
 }
 
 /** R7 : chaque report part de sa journée et arrive sur la sienne ; ceux qui arrivent sur sa journée d'abord. */
@@ -44,7 +44,7 @@ export function arriveReports(context: ArrivalContext) {
   const arrivedBy = new Map<string, ReferenceLine>()
   const arrivedHours = new Map<string, Hour[]>()
   const arrivalsOnly = new Set<string>()
-  for (const { report, carried } of context.oldArrivals) {
+  for (const { report, carried } of context.pastArrivals) {
     land(report, { carried, hoursOf: settingOf(report.settingId) })
   }
   const homeless = context.returns.filter(({ dueOn }) => !days.has(dueOn))

@@ -1,6 +1,5 @@
 import {
   gridDays,
-  hoursOf,
   inForceAt,
   isDueDay,
   isOnGrid,
@@ -27,7 +26,6 @@ import {
   isLiveIn,
   isNote,
   latestBy,
-  oldRhythmLines,
   reportsOf,
   returnsOf,
   settingsIn,
@@ -38,6 +36,7 @@ import { arriveReports } from './reference-arrivals'
 import { chooserOf, staleTurn } from './reference-ranks'
 import { chosenDateOf } from './reference-reports'
 import { shiftKeptByReport, type RewriteContext } from './reference-rewrite'
+import { pastArrivals, pastLinesOf } from './reference-taken-ahead'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 type Calendar = { pending: string[]; fallen: Set<string>; rhythmFrom: string; dues: Set<string> }
@@ -56,9 +55,8 @@ export function calendarOf(
   const { endOf, settingAt } = settingsIn(live)
   const { closedFrom, stoppedAt } = stopDayOf(live.at(-1)!)
   const own = allLines.filter((line) => episode.some(({ id }) => id === line.settingId))
-  const old = oldRhythmLines(own, settingOf, live, settingAt)
-  const all = episodeLinesOf(episode, allLines, old)
-  const lines = all.filter((line) => !old.has(line))
+  const past = pastLinesOf(own, live, settingOf)
+  const lines = episodeLinesOf(episode, allLines, past).filter((line) => !past.has(line))
   const reports = reportsOf(lines)
   const returns = returnsOf(lines)
   const onDeparture = departureBeaten(lines.filter(isNote), reports)
@@ -68,21 +66,6 @@ export function calendarOf(
     lines.filter((line) => line.status === 'shift' && line.targetOn !== null),
     (line) => line.dueOn,
   )
-  // #1373 : le report de l'ancien rythme arrive avec les heures de son réglage encore sans prise d'avance.
-  const oldArrivals = reportsOf(all.filter((line) => old.has(line))).map((report) => ({
-    report,
-    carried: hoursOf(settingOf(report.settingId)).filter(
-      (hour) =>
-        (hour === null || hour >= (report.dueTime ?? '')) &&
-        !all.some(
-          (note) =>
-            old.has(note) &&
-            note.status === 'given' &&
-            note.dueOn === report.dueOn &&
-            note.dueTime === hour,
-        ),
-    ),
-  }))
 
   const days = new Map<string, Journey>()
   const chosenOf = (report: ReferenceLine) => chosenDateOf(report, live, settingOf)
@@ -295,7 +278,7 @@ export function calendarOf(
     rewrite: plain ? undefined : rewriteContext,
     shiftedDays: new Set(shifts.map(({ dueOn }) => dueOn)),
     turnedFromChosen,
-    oldArrivals,
+    pastArrivals: pastArrivals(past, settingOf),
   })
   settle()
 

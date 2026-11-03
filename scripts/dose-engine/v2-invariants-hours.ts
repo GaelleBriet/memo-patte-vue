@@ -6,7 +6,7 @@ import {
   type TreatmentViewInput,
 } from '@/shared/domain/dose-calendar'
 
-import { oldRhythmLinesOf } from '@/shared/domain/dose-calendar/reference-model'
+import { pastLinesIn } from '@/shared/domain/dose-calendar/reference-model'
 import { episodeIdsOf } from '@/shared/domain/dose-calendar/settings'
 
 import { dueKey } from './display'
@@ -44,7 +44,7 @@ function touchedDays(
   const period = episodeIdsOf(input.settings, settingId)
   const touched = new Map<string, Set<string> | null>()
   // #1373 : restées à l'ancien rythme, ces lignes ne touchent pas la journée du nouveau.
-  const old = oldRhythmLinesOf(input.settings, input.lines)
+  const old = pastLinesIn(input.settings, input.lines)
   for (const line of input.lines) {
     const { status, dueOn, settingId: own } = line
     const touches = status === 'given' || status === 'missed' || status === 'postponed'

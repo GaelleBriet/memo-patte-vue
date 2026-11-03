@@ -1,4 +1,4 @@
-import { hoursOf, isOnGrid, keyOf, sameFrequency, sameHours } from './reference-grid'
+import { hoursOf, keyOf, sameHours } from './reference-grid'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 /** Une prise ; « pas à donner » n'en est jamais une. */
@@ -103,75 +103,19 @@ export function touchedJourneys(
 export function episodeLinesOf(
   episode: readonly ReferenceSetting[],
   allLines: readonly ReferenceLine[],
-  oldRhythm: ReadonlySet<ReferenceLine> = new Set(),
+  past: ReadonlySet<ReferenceLine> = new Set(),
 ): ReferenceLine[] {
   const own = allLines.filter((line) => episode.some(({ id }) => id === line.settingId))
   const family = (line: ReferenceLine) =>
-    `${isTaken(line) ? 'note' : line.status}${oldRhythm.has(line) ? ' ancien rythme' : ''}`
+    `${isTaken(line) ? 'note' : line.status}${past.has(line) ? ' passée' : ''}`
   const latest = latestBy(own, (line) => `${keyOf(line.dueOn, line.dueTime)} ${family(line)}`)
   // #873 : une prise l'emporte toujours sur la ligne « pas à donner » de la même dose.
   const given = latest
-    .filter((line) => isTaken(line) && !oldRhythm.has(line))
+    .filter((line) => isTaken(line) && !past.has(line))
     .map((line) => keyOf(line.dueOn, line.dueTime))
   return latest.filter(
     (line) => line.status !== 'not-due' || !given.includes(keyOf(line.dueOn, line.dueTime)),
   )
-}
-
-// R4, R6 (#1373, Q76) : une journée avancée avec la case a eu lieu le jour de sa prise. Quand un
-// réglage d'une autre fréquence, écrit à partir de ce jour-là, la remet dans son calendrier, le
-// décalage, les prises données d'avance et le report qui l'a avancée vers une prise, écrits avant lui,
-// ne la couvrent ni ne la déplacent.
-export function oldRhythmLines(
-  own: readonly ReferenceLine[],
-  settingOf: (id: string) => ReferenceSetting,
-  live: readonly ReferenceSetting[],
-  settingAt: (day: string) => ReferenceSetting | undefined,
-): Set<ReferenceLine> {
-  const old = new Set<ReferenceLine>()
-  const shiftDays = new Set(
-    own.filter(({ status }) => status === 'shift').map(({ dueOn }) => dueOn),
-  )
-  for (const day of shiftDays) {
-    const reading = settingAt(day)
-    if (reading === undefined) continue
-    // Les réglages de même fréquence qui mènent à celui du jour : le premier a changé le rythme.
-    const run: ReferenceSetting[] = []
-    for (const setting of live.slice(0, live.indexOf(reading) + 1).reverse()) {
-      if (!sameFrequency(setting, reading)) break
-      run.unshift(setting)
-    }
-    const changed = run[0]!
-    const grid = [...run].reverse().find(({ gridOriginOn }) => gridOriginOn !== null) ?? changed
-    const before = own.filter(
-      (line) => line.dueOn === day && settingOf(line.settingId).createdAt < changed.createdAt,
-    )
-    const [shift] = latestBy(
-      before.filter(({ status, targetOn }) => status === 'shift' && targetOn !== null),
-      ({ dueOn }) => dueOn,
-    )
-    const anchor = shift?.targetOn
-    if (shift === undefined || anchor! >= day || anchor! > changed.startsOn) continue
-    if (sameFrequency(settingOf(shift.settingId), changed)) continue
-    // La journée doit être une échéance du nouveau rythme, pas seulement l'arrivée d'un ancien report.
-    const origin = grid.gridOriginOn ?? grid.firstDueOn
-    if (day < grid.firstDueOn || !isOnGrid(origin, grid.frequency, day)) continue
-    old.add(shift)
-    for (const line of before) {
-      const givenEarly =
-        line.status === 'given' &&
-        line.givenOn !== undefined &&
-        line.givenOn !== null &&
-        line.givenOn < day
-      const toAGivenDay =
-        line.status === 'postponed' &&
-        line.targetOn !== null &&
-        line.targetOn < day &&
-        own.some(({ status, dueOn }) => status === 'given' && dueOn === line.targetOn)
-      if (givenEarly || toAGivenDay) old.add(line)
-    }
-  }
-  return old
 }
 
 // R7 : une ligne de report par journée, sans les reports revenus à leur date.
