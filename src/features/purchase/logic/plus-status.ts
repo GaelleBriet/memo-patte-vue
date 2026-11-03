@@ -79,8 +79,12 @@ function statusOfGooglePlaySubscription(
   plus: PurchasesEntitlementInfo,
 ): PlusStatus {
   const { expiresDate } = subscription
-  if (expiresDate === null) return { plan: statusOfEntitlement(plus).plan, expiresAt: null }
-  const basePlan = subscription.productIdentifier.split(':')[1]
+  const basePlan =
+    subscription.productPlanIdentifier ?? subscription.productIdentifier.split(':')[1]
+  if (expiresDate === null) {
+    const plan = basePlan === 'monthly' || basePlan === 'annual' ? basePlan : null
+    return { plan: plan ?? statusOfEntitlement(plus).plan, expiresAt: null }
+  }
   return {
     plan: subscriptionPlan(basePlan, subscription.purchaseDate, expiresDate),
     expiresAt: expiresDate,

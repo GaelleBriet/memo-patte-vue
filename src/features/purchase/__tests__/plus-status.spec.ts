@@ -120,14 +120,17 @@ describe('plusStatusFrom, droit promotionnel accordé dans RevenueCat', () => {
     info: CustomerInfo,
     isActive: boolean,
     expiresDate?: string | null,
+    abonnement: Partial<PurchasesSubscriptionInfo> = {},
   ): CustomerInfo {
     const fin = isActive ? new Date(2027, 8, 1, 10) : new Date(2026, 7, 1, 10)
     const subscription = {
       productIdentifier: 'memopatte_plus',
+      productPlanIdentifier: null,
       purchaseDate: new Date(2026, 6, 1, 10).toISOString(),
       expiresDate: expiresDate === undefined ? fin.toISOString() : expiresDate,
       store: 'PLAY_STORE',
       isActive,
+      ...abonnement,
     } as PurchasesSubscriptionInfo
     return { ...info, subscriptionsByProductIdentifier: { memopatte_plus: subscription } }
   }
@@ -155,6 +158,41 @@ describe('plusStatusFrom, droit promotionnel accordé dans RevenueCat', () => {
 
     expect(plusStatusFrom(info).expiresAt).toBeNull()
     expect(plusStatusFrom(info).offered).toBeUndefined()
+  })
+
+  it('lit la formule de l’abonnement Google Play dans son plan de base, pas dans sa durée', () => {
+    const fin = new Date(2227, 9, 29, 9).toISOString()
+    const offert = customerInfo(promotional('lifetime', fin))
+    const mensuelEnGrace = avecAbonnementGooglePlay(
+      offert,
+      true,
+      new Date(2026, 11, 1, 10).toISOString(),
+      {
+        productPlanIdentifier: 'monthly',
+        purchaseDate: new Date(2026, 9, 1, 10).toISOString(),
+      },
+    )
+    const annuelEnEssai = avecAbonnementGooglePlay(
+      offert,
+      true,
+      new Date(2026, 10, 4, 10).toISOString(),
+      {
+        productPlanIdentifier: 'annual',
+        purchaseDate: new Date(2026, 9, 28, 10).toISOString(),
+      },
+    )
+
+    expect(plusStatusFrom(mensuelEnGrace).plan).toBe('monthly')
+    expect(plusStatusFrom(annuelEnEssai).plan).toBe('annual')
+  })
+
+  it('sans date sur l’abonnement Google Play actif, garde sa formule à lui', () => {
+    const fin = new Date(2227, 9, 29, 9).toISOString()
+    const info = avecAbonnementGooglePlay(customerInfo(promotional('lifetime', fin)), true, null, {
+      productPlanIdentifier: 'monthly',
+    })
+
+    expect(plusStatusFrom(info)).toEqual({ plan: 'monthly', expiresAt: null })
   })
 
   it('dit offert un droit offert à côté d’un abonnement Google Play échu', () => {
