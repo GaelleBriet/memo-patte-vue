@@ -30,17 +30,23 @@ function queueWholeTable(entity: string): SqlStatement {
   }
 }
 
-const LIVE_ANIMALS = 'SELECT id FROM animal WHERE deleted_at IS NULL'
+function liveRowsOf(table: string): string {
+  return `SELECT id FROM ${table} WHERE deleted_at IS NULL`
+}
+
+function underLiveParents(entity: string): string {
+  return Object.entries(SYNC_PARENT_COLUMNS[entity] ?? {})
+    .map(([column, parent]) => ` AND ${column} IN (${liveRowsOf(parent)})`)
+    .join('')
+}
 
 function queueLiveTable(entity: string): SqlStatement {
   const source =
     entity === 'device'
       ? ''
       : entity === 'carnet_settings'
-        ? `WHERE EXISTS (${LIVE_ANIMALS})`
-        : entity === 'animal'
-          ? 'WHERE deleted_at IS NULL'
-          : `WHERE deleted_at IS NULL AND animal_id IN (${LIVE_ANIMALS})`
+        ? `WHERE EXISTS (${liveRowsOf('animal')})`
+        : `WHERE deleted_at IS NULL${underLiveParents(entity)}`
   return {
     sql: `INSERT OR IGNORE INTO sync_outbox (entity, entity_id, queued_at)
           SELECT ?, id, updated_at FROM ${entity} ${source}`,
@@ -90,8 +96,9 @@ export function createSyncOutboxRepository(db: DbClient) {
 
     /**
      * Premier envoi vers un compte vide : la fiche de l'appareil, puis seulement ce qui est visible
-     * (animaux non supprimés, leurs lignes non supprimées, leurs photos) ; sans animal visible,
-     * rien d'autre que l'appareil. Les suppressions n'ont rien à effacer sur un compte vide.
+     * (animaux non supprimés, leurs lignes non supprimées sous des parents non supprimés, leurs
+     * photos) ; sans animal visible, rien d'autre que l'appareil. Les suppressions n'ont rien à
+     * effacer sur un compte vide.
      */
     queueLiveCarnetStatements(): SqlStatement[] {
       return [RETRY_REFUSED, ...SYNC_ENTITY_ORDER.map(queueLiveTable), queueLiveAnimalPhotos()]
