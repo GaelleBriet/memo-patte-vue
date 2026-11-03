@@ -38,13 +38,17 @@ function remember(next: PlusStatus, previous: StoredPlusStatus): StoredPlusStatu
   }
   const { lastSubscription, lastSubscriptionOffered, subscriptionEndedAt } = previous
   return {
-    ...next,
+    plan: next.plan,
+    expiresAt: next.expiresAt,
     lastSubscription,
     ...offeredMemory(lastSubscription !== null && lastSubscriptionOffered),
     subscriptionEndedAt:
       lastSubscription === null
         ? null
-        : (subscriptionEndedAt ?? lapsedAt(previous, Date.now()) ?? new Date().toISOString()),
+        : (next.endedAt ??
+          subscriptionEndedAt ??
+          lapsedAt(previous, Date.now()) ??
+          new Date().toISOString()),
   }
 }
 
