@@ -116,12 +116,16 @@ describe('plusStatusFrom, droit promotionnel accordé dans RevenueCat', () => {
     expect(plusStatusFrom(customerInfo(entitlement())).offered).toBeUndefined()
   })
 
-  function avecAbonnementGooglePlay(info: CustomerInfo, isActive: boolean): CustomerInfo {
+  function avecAbonnementGooglePlay(
+    info: CustomerInfo,
+    isActive: boolean,
+    expiresDate?: string | null,
+  ): CustomerInfo {
     const fin = isActive ? new Date(2027, 8, 1, 10) : new Date(2026, 7, 1, 10)
     const subscription = {
       productIdentifier: 'memopatte_plus',
       purchaseDate: new Date(2026, 6, 1, 10).toISOString(),
-      expiresDate: fin.toISOString(),
+      expiresDate: expiresDate === undefined ? fin.toISOString() : expiresDate,
       store: 'PLAY_STORE',
       isActive,
     } as PurchasesSubscriptionInfo
@@ -132,6 +136,24 @@ describe('plusStatusFrom, droit promotionnel accordé dans RevenueCat', () => {
     const fin = new Date(2227, 9, 29, 9).toISOString()
     const info = avecAbonnementGooglePlay(customerInfo(promotional('lifetime', fin)), true)
 
+    expect(plusStatusFrom(info).offered).toBeUndefined()
+  })
+
+  it('donne la date de l’abonnement Google Play actif, pas celle du droit offert à vie', () => {
+    const fin = new Date(2227, 9, 29, 9).toISOString()
+    const info = avecAbonnementGooglePlay(customerInfo(promotional('lifetime', fin)), true)
+
+    expect(plusStatusFrom(info)).toEqual({
+      plan: 'annual',
+      expiresAt: new Date(2027, 8, 1, 10).toISOString(),
+    })
+  })
+
+  it('sans date lisible sur l’abonnement Google Play actif, ne donne pas la date du droit offert', () => {
+    const fin = new Date(2227, 9, 29, 9).toISOString()
+    const info = avecAbonnementGooglePlay(customerInfo(promotional('lifetime', fin)), true, null)
+
+    expect(plusStatusFrom(info).expiresAt).toBeNull()
     expect(plusStatusFrom(info).offered).toBeUndefined()
   })
 
