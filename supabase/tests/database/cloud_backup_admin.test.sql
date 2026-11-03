@@ -103,7 +103,8 @@ select ok(
   'delete_cloud_backup efface avec les droits de son propriétaire, sans droit de table pour service_role');
 select is(
   (select proconfig from pg_proc where oid = 'public.delete_cloud_backup(uuid)'::regprocedure),
-  array['search_path=""'], 'delete_cloud_backup ne résout aucun nom par un schéma de l''appelant');
+  array['search_path=""', 'row_security=off'],
+  'delete_cloud_backup ne résout aucun nom par un schéma de l''appelant et refuse d''être filtrée par les règles d''accès');
 select is(
   (select count(*)::int
    from unnest(array['anon', 'authenticated']) role,
@@ -144,6 +145,40 @@ select is(
     || (select array_agg(n order by name) from pg_temp.rows_of('dddddddd-dddd-4ddd-8ddd-dddddddddddd')),
   array[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
   'sans compte ou avec un compte inconnu, aucune sauvegarde n''est touchée');
+
+create function public.keep_sync_push_row() returns trigger language plpgsql as $$ begin return null; end $$;
+create trigger keep_sync_push_row before delete on public.sync_push
+  for each row execute function public.keep_sync_push_row();
+set local role service_role;
+select throws_ok($$ select public.delete_cloud_backup('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') $$,
+  'P0001', null, 'une ligne restée fait échouer l''effacement au lieu d''un faux succès');
+reset role;
+drop trigger keep_sync_push_row on public.sync_push;
+select is(
+  (select array_agg(n order by name) from pg_temp.rows_of('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')),
+  array[1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 'après un échec, rien n''est à moitié effacé');
+
+create role backup_owner_without_bypass nologin;
+grant backup_owner_without_bypass to postgres;
+grant create on schema public to backup_owner_without_bypass;
+do $$
+declare
+  t text;
+begin
+  for t in select name from backup loop
+    execute format('grant select, delete on table public.%I to backup_owner_without_bypass', t);
+  end loop;
+end
+$$;
+alter function public.delete_cloud_backup(uuid) owner to backup_owner_without_bypass;
+set local role service_role;
+select throws_ok($$ select public.delete_cloud_backup('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') $$,
+  '42501', null, 'un propriétaire soumis aux règles d''accès fait échouer l''effacement au lieu de ne rien effacer');
+reset role;
+alter function public.delete_cloud_backup(uuid) owner to postgres;
+select is(
+  (select array_agg(n order by name) from pg_temp.rows_of('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')),
+  array[1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 'la sauvegarde de Sophie est encore entière');
 
 set local role service_role;
 select lives_ok($$ select public.delete_cloud_backup('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') $$,
