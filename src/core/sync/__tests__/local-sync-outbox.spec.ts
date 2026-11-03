@@ -162,7 +162,11 @@ describe('localSyncOutbox', () => {
     }
   })
 
-  describe('enableAndQueueWholeCarnet', () => {
+  describe('enableAndQueueLiveCarnet', () => {
+    async function deleteRow(entity: string, id: string): Promise<void> {
+      await db.run(`UPDATE ${entity} SET deleted_at = ?, updated_at = ? WHERE id = ?`, [T2, T2, id])
+    }
+
     async function insertWholeCarnet(): Promise<void> {
       await db.run(
         `INSERT INTO device (id, model, installed_at, created_at, updated_at)
@@ -182,19 +186,48 @@ describe('localSyncOutbox', () => {
       await insertCarnetSettings(db, SETTINGS_ID, T1)
     }
 
-    it('active la synchronisation et met en file chaque ligne du carnet, supprimées comprises, et la photo de chaque animal non supprimé', async () => {
+    async function insertDeletedRows(): Promise<void> {
+      await insertVaccination(db, 'v-supprime', ANIMAL_ID, T1)
+      await insertVaccinationInjection(db, 'i-supprimee', 'v-supprime', ANIMAL_ID, T1)
+      await insertTreatment(db, 't-supprime', ANIMAL_ID, T1)
+      await insertTreatmentPeriod(db, 'p-supprimee', 't-supprime', ANIMAL_ID, T1)
+      await insertTreatmentDose(db, 'd-supprimee', 'p-supprimee', 't-supprime', ANIMAL_ID, T1)
+      await insertWeightEntry(db, 'w-supprimee', ANIMAL_ID, T1)
+      for (const [entity, id] of [
+        ['vaccination_injection', 'i-supprimee'],
+        ['vaccination', 'v-supprime'],
+        ['treatment_dose', 'd-supprimee'],
+        ['treatment_period', 'p-supprimee'],
+        ['treatment', 't-supprime'],
+        ['weight_entry', 'w-supprimee'],
+      ] as const) {
+        await deleteRow(entity, id)
+      }
+    }
+
+    async function insertRowsOfDeletedAnimal(): Promise<void> {
+      await insertVaccination(db, 'v-parti', 'parti', T1)
+      await insertVaccinationInjection(db, 'i-parti', 'v-parti', 'parti', T1)
+      await insertTreatment(db, 't-parti', 'parti', T1)
+      await insertTreatmentPeriod(db, 'p-parti', 't-parti', 'parti', T1)
+      await insertTreatmentDose(db, 'd-parti', 'p-parti', 't-parti', 'parti', T1)
+      await insertWeightEntry(db, 'w-parti', 'parti', T1)
+    }
+
+    it('active la synchronisation et met en file le carnet visible de chaque table, sans les lignes supprimées ni celles d’un animal supprimé, et la photo de chaque animal non supprimé', async () => {
       vi.useFakeTimers({ toFake: ['Date'], now: new Date(OCTOBER_23_8AM) })
       await insertWholeCarnet()
+      await insertDeletedRows()
+      await insertRowsOfDeletedAnimal()
       await expect(repository.listPending()).resolves.toEqual([])
 
-      await repository.enableAndQueueWholeCarnet()
+      await repository.enableAndQueueLiveCarnet()
 
       await expect(repository.isEnabled()).resolves.toBe(true)
       await expect(repository.listPending()).resolves.toEqual([
         { entity: 'device', entityId: 'appareil', queuedAt: T1, attempts: 0 },
         { entity: 'animal', entityId: ANIMAL_ID, queuedAt: T1, attempts: 0 },
         { entity: 'animal', entityId: 'sans-photo', queuedAt: T1, attempts: 0 },
-        { entity: 'animal', entityId: 'parti', queuedAt: T2, attempts: 0 },
         { entity: 'vaccination', entityId: 'v-1', queuedAt: T1, attempts: 0 },
         { entity: 'vaccination_injection', entityId: 'i-1', queuedAt: T1, attempts: 0 },
         { entity: 'treatment', entityId: 't-1', queuedAt: T1, attempts: 0 },
@@ -211,12 +244,31 @@ describe('localSyncOutbox', () => {
       ])
     })
 
+    it('sans animal visible, ne met en file que la fiche de l’appareil', async () => {
+      await db.run(
+        `INSERT INTO device (id, model, installed_at, created_at, updated_at)
+         VALUES ('appareil', NULL, ?, ?, ?)`,
+        [T1, T1, T1],
+      )
+      await insertAnimal(db, 'parti', T1, 'Pirate', PHOTO_PIRATE)
+      await insertRowsOfDeletedAnimal()
+      await deleteRow('animal', 'parti')
+      await insertCarnetSettings(db, SETTINGS_ID, T1)
+
+      await repository.enableAndQueueLiveCarnet()
+
+      await expect(repository.isEnabled()).resolves.toBe(true)
+      await expect(repository.listPending()).resolves.toEqual([
+        { entity: 'device', entityId: 'appareil', queuedAt: T1, attempts: 0 },
+      ])
+    })
+
     it('Milo, modifié le 1er septembre, synchro activée le 23 octobre à 8 h : sa photo entre en file à 8 h, ses lignes gardent le 1er septembre', async () => {
       vi.useFakeTimers({ toFake: ['Date'], now: new Date(OCTOBER_23_8AM) })
       await insertAnimal(db, ANIMAL_ID, SEPTEMBER_1, 'Milo', PHOTO_MILO)
       await insertVaccination(db, 'v-1', ANIMAL_ID, SEPTEMBER_1)
 
-      await repository.enableAndQueueWholeCarnet()
+      await repository.enableAndQueueLiveCarnet()
 
       await expect(repository.listPending()).resolves.toEqual([
         { entity: 'animal', entityId: ANIMAL_ID, queuedAt: SEPTEMBER_1, attempts: 0 },
@@ -238,7 +290,7 @@ describe('localSyncOutbox', () => {
         [ANIMAL_PHOTO_ENTITY, PHOTO_MILO, T2],
       )
 
-      await repository.enableAndQueueWholeCarnet()
+      await repository.enableAndQueueLiveCarnet()
 
       const pending = await repository.listPending()
       expect(pending.find(({ entityId }) => entityId === PHOTO_MILO)).toEqual({
@@ -256,7 +308,7 @@ describe('localSyncOutbox', () => {
         [ANIMAL_ID, T2],
       )
 
-      await repository.enableAndQueueWholeCarnet()
+      await repository.enableAndQueueLiveCarnet()
 
       const pending = await repository.listPending()
       expect(pending.find(({ entityId }) => entityId === ANIMAL_ID)).toEqual({
@@ -271,7 +323,7 @@ describe('localSyncOutbox', () => {
       await repository.setLastPulledAt('animal', T2)
       await repository.setLastPulledAt('treatment_dose', T2)
 
-      await repository.enableAndQueueWholeCarnet()
+      await repository.enableAndQueueLiveCarnet()
 
       await expect(repository.getLastPulledAt('animal')).resolves.toBeNull()
       await expect(repository.getLastPulledAt('treatment_dose')).resolves.toBeNull()
@@ -279,10 +331,10 @@ describe('localSyncOutbox', () => {
 
     it('relancée, ne crée aucune entrée de plus', async () => {
       await insertWholeCarnet()
-      await repository.enableAndQueueWholeCarnet()
+      await repository.enableAndQueueLiveCarnet()
       const first = await repository.listPending()
 
-      await repository.enableAndQueueWholeCarnet()
+      await repository.enableAndQueueLiveCarnet()
 
       await expect(repository.listPending()).resolves.toEqual(first)
     })
@@ -290,7 +342,7 @@ describe('localSyncOutbox', () => {
     it('oublie la dernière sauvegarde d’un autre compte : la première sauvegarde de celui-ci commence', async () => {
       await repository.setLastSyncedAt(T2)
 
-      await repository.enableAndQueueWholeCarnet()
+      await repository.enableAndQueueLiveCarnet()
 
       await expect(repository.getLastSyncedAt()).resolves.toBeNull()
     })
@@ -330,7 +382,7 @@ describe('localSyncOutbox', () => {
 
     it('Milo « 2 sur 2 », photo remplacée à 10 h 02 : l’effacement de l’ancienne photo ne compte pas, le restant ne dépasse pas le carnet', async () => {
       await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_MILO)
-      await repository.enableAndQueueWholeCarnet()
+      await repository.enableAndQueueLiveCarnet()
       for (const entry of await repository.listPending()) await repository.removeIfUnchanged(entry)
 
       await setAnimalPhoto(db, ANIMAL_ID, PHOTO_PIRATE, '2026-10-23T10:02:00.000Z')
@@ -343,7 +395,7 @@ describe('localSyncOutbox', () => {
     it('la file se vide au fil des envois, le carnet ne bouge pas', async () => {
       await insertAnimal(db, ANIMAL_ID, T1)
       await insertWeightEntry(db, 'w-1', ANIMAL_ID, T1)
-      await repository.enableAndQueueWholeCarnet()
+      await repository.enableAndQueueLiveCarnet()
 
       await repository.removeIfUnchanged({ entity: 'animal', entityId: ANIMAL_ID, queuedAt: T1 })
 
@@ -496,7 +548,7 @@ describe('localSyncOutbox', () => {
     it('la remise en file de tout le carnet retente l’élément refusé', async () => {
       await refuseMiloWeighing()
 
-      await repository.enableAndQueueWholeCarnet()
+      await repository.enableAndQueueLiveCarnet()
 
       await expect(refusedAt('weight_entry', 'w-12-mars')).resolves.toBeNull()
       await expect(reasonOf('weight_entry', 'w-12-mars')).resolves.toBeNull()
