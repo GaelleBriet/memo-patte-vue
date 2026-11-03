@@ -41,12 +41,16 @@ export function managedInGooglePlay(status: PlusStatus): boolean {
   return subscriptionOf(status) !== null && !status.offered
 }
 
+function isSubscriptionPlan(basePlan: string | null | undefined): basePlan is SubscriptionPlan {
+  return basePlan === 'monthly' || basePlan === 'annual'
+}
+
 function subscriptionPlan(
   basePlan: string | null | undefined,
   purchasedAt: string,
   expiresAt: string,
 ): SubscriptionPlan {
-  if (basePlan === 'monthly' || basePlan === 'annual') return basePlan
+  if (isSubscriptionPlan(basePlan)) return basePlan
 
   const periodDays = differenceInDays(parseISO(expiresAt), parseISO(purchasedAt))
   return periodDays <= LONGEST_MONTHLY_PERIOD_DAYS ? 'monthly' : 'annual'
@@ -82,8 +86,8 @@ function statusOfGooglePlaySubscription(
   const basePlan =
     subscription.productPlanIdentifier ?? subscription.productIdentifier.split(':')[1]
   if (expiresDate === null) {
-    const plan = basePlan === 'monthly' || basePlan === 'annual' ? basePlan : null
-    return { plan: plan ?? statusOfEntitlement(plus).plan, expiresAt: null }
+    const plan = isSubscriptionPlan(basePlan) ? basePlan : statusOfEntitlement(plus).plan
+    return { plan, expiresAt: null }
   }
   return {
     plan: subscriptionPlan(basePlan, subscription.purchaseDate, expiresDate),
