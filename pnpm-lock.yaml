@@ -67,8 +67,8 @@ importers:
         specifier: ^0.47.6
         version: 0.47.6
       '@revenuecat/purchases-capacitor':
-        specifier: ^13.7.5
-        version: 13.7.5(@capacitor/core@8.5.3)
+        specifier: ^14.0.0
+        version: 14.0.0(@capacitor/core@8.5.3)
       '@supabase/supabase-js':
         specifier: ^2.116.0
         version: 2.116.0
@@ -1047,13 +1047,13 @@ packages:
   '@posthog/types@1.415.1':
     resolution: {integrity: sha512-7Qs2wcqipl8KcFpIkIKE1Wcj1djX4dEB3cfq907HrNpKK7/xKh3U4N4bkOD6h9+8j3SxWWrj9JNpE8CZXsE35w==}
 
-  '@revenuecat/purchases-capacitor@13.7.5':
-    resolution: {integrity: sha512-ErAf3VZ3ITWTfCy3h98+Xw4rj3K3L/lZRJ1Rqng3qPCK6k/M+aym+sVvHFR92c1MS80ezfrSMKtg4SIDhHAHLw==}
+  '@revenuecat/purchases-capacitor@14.0.0':
+    resolution: {integrity: sha512-Thiaix8JZNoh2ka0Mh6K+/K4sz+Yaxf5eArEA/6IZdqZ4xGQNlT3uJClKavqrmm2JB998sqU0YOX1hjPIGClbQ==}
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
 
-  '@revenuecat/purchases-typescript-internal-esm@19.14.1':
-    resolution: {integrity: sha512-42CowJivDA8CFTmEXEreD8dzvAURsC5WIbO9PtBJaAas047vC0xQWJe5cKYMsnTAOEoky5+lsjeOWA77nzW9zA==}
+  '@revenuecat/purchases-typescript-internal-esm@20.0.0':
+    resolution: {integrity: sha512-xvAzzvDTzfSt8Td2mTfEzRAtc2eU8/lZIUCXCSiLeRqpVLTQAeE70aVvOYKglkk+uIicWzYr1zyupXTF0AwxrA==}
 
   '@rolldown/binding-android-arm-eabi@1.2.14':
     resolution: {integrity: sha512-aWR+XKH9+rW7m5fWq/5360J3mHycrx/o6xZM2DQFdJnTMdyP7/WzxPjhtLbVWdKo2y612/4U1bWqb3HQhiF7vg==}
@@ -4479,12 +4479,12 @@ snapshots:
 
   '@posthog/types@1.415.1': {}
 
-  '@revenuecat/purchases-capacitor@13.7.5(@capacitor/core@8.5.3)':
+  '@revenuecat/purchases-capacitor@14.0.0(@capacitor/core@8.5.3)':
     dependencies:
       '@capacitor/core': 8.5.3
-      '@revenuecat/purchases-typescript-internal-esm': 19.14.1
+      '@revenuecat/purchases-typescript-internal-esm': 20.0.0
 
-  '@revenuecat/purchases-typescript-internal-esm@19.14.1': {}
+  '@revenuecat/purchases-typescript-internal-esm@20.0.0': {}
 
   '@rolldown/binding-android-arm-eabi@1.2.14':
     optional: true
