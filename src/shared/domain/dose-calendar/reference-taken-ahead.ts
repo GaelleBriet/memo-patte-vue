@@ -1,5 +1,5 @@
 import { hoursOf, isOnGrid, sameFrequency, type Hour } from './reference-grid'
-import { latestBy, reportsOf } from './reference-lines'
+import { latestBy, reportsOf, settingsIn } from './reference-lines'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 /**
@@ -20,6 +20,8 @@ export function pastLinesOf(
     const run = live.slice(index, next === undefined ? undefined : live.indexOf(next))
     // R3 : une échéance du nouveau rythme, sur la grille de son dernier réglage qui l'a fait repartir.
     const isNewDue = (day: string) => {
+      const inForce = settingsIn(live).settingAt(day)
+      if (inForce === undefined || !run.includes(inForce)) return false
       const reading = run.filter(({ startsOn }) => startsOn <= day)
       if (reading.length === 0) return false
       const grid =
