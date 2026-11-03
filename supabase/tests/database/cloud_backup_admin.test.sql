@@ -60,7 +60,17 @@ create temp table backup (name text primary key);
 insert into backup values
   ('animal'), ('weight_entry'), ('carnet_settings'), ('vaccination'), ('vaccination_injection'),
   ('treatment'), ('treatment_period'), ('treatment_dose'), ('device'), ('sync_push');
-grant select on backup to service_role;
+
+-- La base locale accorde à service_role des droits que la production ne lui a jamais donnés.
+do $$
+declare
+  t text;
+begin
+  for t in select name from backup loop
+    execute format('revoke select, insert, update, delete, maintain on table public.%I from service_role', t);
+  end loop;
+end
+$$;
 
 create function pg_temp.rows_of(account uuid) returns table (name text, n int) language plpgsql as $$
 declare
@@ -73,7 +83,6 @@ begin
   end loop;
 end;
 $$;
-grant execute on function pg_temp.rows_of(uuid) to service_role;
 
 select set_eq(
   $$ select n.nspname || '.' || cl.relname
@@ -89,8 +98,17 @@ select ok(
   (select prosecdef from pg_proc where oid = 'public.account_id_by_email(text)'::regprocedure),
   'account_id_by_email lit auth.users avec les droits de son propriétaire');
 select ok(
-  not (select prosecdef from pg_proc where oid = 'public.delete_cloud_backup(uuid)'::regprocedure),
-  'delete_cloud_backup s''exécute avec les droits de service_role');
+  (select prosecdef from pg_proc where oid = 'public.delete_cloud_backup(uuid)'::regprocedure),
+  'delete_cloud_backup efface avec les droits de son propriétaire, sans droit de table pour service_role');
+select is(
+  (select proconfig from pg_proc where oid = 'public.delete_cloud_backup(uuid)'::regprocedure),
+  array['search_path=""', 'row_security=off'],
+  'delete_cloud_backup ne résout aucun nom par un schéma de l''appelant et refuse d''être filtrée par les règles d''accès');
+select is(
+  (select count(*)::int
+   from backup b, unnest(array['anon', 'authenticated', 'service_role']) role, unnest(array['TRIGGER', 'TRUNCATE']) p
+   where has_table_privilege(role, 'public.' || b.name, p)),
+  0, 'personne ne pose de déclencheur sur la sauvegarde ni ne la vide sans ses règles d''accès');
 select is(
   (select count(*)::int
    from unnest(array['anon', 'authenticated']) role,
@@ -107,29 +125,79 @@ select ok(
 
 set local role service_role;
 
+select throws_ok($$ select count(*) from public.treatment_dose $$,
+  '42501', null, 'comme en production, service_role ne lit pas les doses');
+select throws_ok($$ truncate public.sync_push $$, '42501', null, 'service_role ne vide pas une table de la sauvegarde');
+
 select is(public.account_id_by_email('sophie@exemple.test'),
   'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid, 'le compte se retrouve par son adresse');
 select is(public.account_id_by_email('  Sophie@Exemple.TEST '),
   'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid, 'l''adresse se compare sans casse ni espaces autour');
 select is(public.account_id_by_email('inconnue@exemple.test'), null, 'une adresse inconnue ne désigne aucun compte');
 
+reset role;
 select is(
   (select array_agg(n order by name) from pg_temp.rows_of('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')),
   array[1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 'avant : une ligne par table de la sauvegarde de Sophie');
 
+set local role service_role;
+select lives_ok($$ select public.delete_cloud_backup(null) $$, 'sans compte, l''effacement ne refuse pas');
+select lives_ok($$ select public.delete_cloud_backup('ffffffff-ffff-4fff-8fff-ffffffffffff') $$,
+  'un compte inconnu ne refuse pas non plus');
+reset role;
+select is(
+  (select array_agg(n order by name) from pg_temp.rows_of('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'))
+    || (select array_agg(n order by name) from pg_temp.rows_of('dddddddd-dddd-4ddd-8ddd-dddddddddddd')),
+  array[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  'sans compte ou avec un compte inconnu, aucune sauvegarde n''est touchée');
+
+create function public.keep_sync_push_row() returns trigger language plpgsql as $$ begin return null; end $$;
+create trigger keep_sync_push_row before delete on public.sync_push
+  for each row execute function public.keep_sync_push_row();
+set local role service_role;
+select throws_ok($$ select public.delete_cloud_backup('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') $$,
+  'P0001', null, 'une ligne restée fait échouer l''effacement au lieu d''un faux succès');
+reset role;
+drop trigger keep_sync_push_row on public.sync_push;
+select is(
+  (select array_agg(n order by name) from pg_temp.rows_of('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')),
+  array[1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 'après un échec, rien n''est à moitié effacé');
+
+create role backup_owner_without_bypass nologin;
+grant backup_owner_without_bypass to postgres;
+grant create on schema public to backup_owner_without_bypass;
+do $$
+declare
+  t text;
+begin
+  for t in select name from backup loop
+    execute format('grant select, delete on table public.%I to backup_owner_without_bypass', t);
+  end loop;
+end
+$$;
+alter function public.delete_cloud_backup(uuid) owner to backup_owner_without_bypass;
+set local role service_role;
+select throws_ok($$ select public.delete_cloud_backup('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') $$,
+  '42501', null, 'un propriétaire soumis aux règles d''accès fait échouer l''effacement au lieu de ne rien effacer');
+reset role;
+alter function public.delete_cloud_backup(uuid) owner to postgres;
+select is(
+  (select array_agg(n order by name) from pg_temp.rows_of('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')),
+  array[1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 'la sauvegarde de Sophie est encore entière');
+
+set local role service_role;
 select lives_ok($$ select public.delete_cloud_backup('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') $$,
   'service_role efface la sauvegarde de Sophie');
+select lives_ok($$ select public.delete_cloud_backup('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') $$,
+  'effacer une sauvegarde déjà vide ne gêne pas');
 
+reset role;
 select is(
   (select array_agg(n order by name) from pg_temp.rows_of('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')),
   array[0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 'la sauvegarde de Sophie est vide');
 select is(
   (select array_agg(n order by name) from pg_temp.rows_of('dddddddd-dddd-4ddd-8ddd-dddddddddddd')),
   array[1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 'celle de Paul est intacte');
-select lives_ok($$ select public.delete_cloud_backup('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') $$,
-  'effacer une sauvegarde déjà vide ne gêne pas');
-
-reset role;
 select is(
   (select count(*)::int from public.plus_entitlements where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
   1, 'le droit Plus de Sophie reste');
