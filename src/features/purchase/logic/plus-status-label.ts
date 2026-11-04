@@ -1,6 +1,6 @@
 import { addYears } from 'date-fns'
 
-import type { PlusStatus, SubscriptionPlan } from './plus-status'
+import { isPlusActive, type PlusStatus, type SubscriptionPlan } from './plus-status'
 
 const OFFERED_WITHOUT_END_YEARS = 50
 
@@ -19,8 +19,8 @@ export function plusStatusLabel(
         : 'plus.settings.status.expiredAnnual'
     return { key, expiresAt: null }
   }
+  if (!isPlusActive(status)) return null
   const { plan, expiresAt } = status
-  if (plan === 'none') return null
   if (status.offered) return offeredLabel(expiresAt, now)
   if (plan === 'lifetime') return { key: 'plus.settings.status.lifetime', expiresAt: null }
   if (expiresAt === null) return { key: `plus.member.${plan}`, expiresAt: null }
