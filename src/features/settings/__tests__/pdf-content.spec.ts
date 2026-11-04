@@ -733,12 +733,12 @@ describe('buildCarnetPdfContent — historique', () => {
       { periodId: 'p1', dueOn: '2026-10-28', status: 'shift', targetOn: '2026-11-01', ...MOVED_AT },
     ]
 
-    it('marque « · sans effet » le décalage que la fiche grise, et finit la période au report du 28', () => {
+    it('marque « · sans effet » le décalage que la fiche grise, et finit la période la veille de la suivante (#1429)', () => {
       const row = treatmentRow(periods, doses, '2026-10-28')
 
       expect(row.periods[1]).toMatchObject({
         from: '2026-10-26',
-        to: '2026-10-28',
+        to: '2026-10-27',
         lines: [
           { kind: 'moved', dueOn: '2026-10-28', to: '2026-11-01', advanced: false },
           { kind: 'idle', line: { kind: 'shift', next: null } },
@@ -759,12 +759,41 @@ describe('buildCarnetPdfContent — historique', () => {
       expect(texts).toEqual([
         'Dernière prise : 27/10/2026',
         'Depuis le 28/10/2026 · Toutes les 2 semaines',
-        'Du 26/10/2026 au 28/10/2026 · Tous les jours',
+        'Du 26/10/2026 au 27/10/2026 · Tous les jours',
         'Reportée au 01/11/2026 (prévue le 28/10/2026)',
         'Doses suivantes décalées · sans effet',
         'Prises : 27/10/2026 · 26/10/2026',
       ])
     })
+  })
+
+  it('#1429, Milbémax : une période remplacée s’arrête la veille de la suivante, la dose donnée en avance y reste', () => {
+    const content = contentOf(
+      [
+        { id: 'p1', startsOn: '2026-03-01', frequency: { value: 3, unit: 'month' } },
+        {
+          id: 'p2',
+          startsOn: '2026-03-15',
+          frequency: { value: 1, unit: 'month' },
+          createdAt: '2026-03-15T08:00:00.000Z',
+        },
+      ],
+      [
+        ...given('p1', '2026-03-01'),
+        { periodId: 'p1', dueOn: '2026-06-01', status: 'given', givenOn: '2026-03-10' },
+      ],
+      '2026-03-20',
+    )
+    const texts = plain(carnetPdfText(content, i18n.global.t))
+      .treatments.details.flat()
+      .map(({ text }) => text)
+
+    expect(texts).toEqual([
+      'Dernière prise : 10/03/2026',
+      'Depuis le 15/03/2026 · Tous les mois',
+      'Du 01/03/2026 au 14/03/2026 · Tous les 3 mois',
+      'Prises : 10/03/2026 · 01/03/2026',
+    ])
   })
 
   it('Q85, Milbémax : la période ne dépasse jamais son arrêt, même avec une dose donnée en avance', () => {

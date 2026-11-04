@@ -550,7 +550,7 @@ describe('treatmentHistory — plusieurs périodes (planche A · V3)', () => {
     ])
   })
 
-  it('étend l’étiquette d’une période jusqu’au jour de sa dernière prise', () => {
+  it('#1429 : arrête l’étiquette d’une période remplacée la veille de la suivante, même avec une prise ce jour-là', () => {
     const book = treatment(
       [
         period({ startsOn: '2026-10-01', firstDueOn: '2026-10-01' }),
@@ -570,7 +570,7 @@ describe('treatmentHistory — plusieurs périodes (planche A · V3)', () => {
 
     expect(history(book, '2026-10-27').periods.map(({ head }) => head?.title)).toEqual([
       'Depuis le 20 oct. 2026',
-      'Du 1er oct. au 20 oct. 2026',
+      'Du 1er oct. au 19 oct. 2026',
     ])
   })
 
@@ -600,6 +600,45 @@ describe('treatmentHistory — plusieurs périodes (planche A · V3)', () => {
     expect(history(book, '2026-03-20').periods.map(({ head }) => head?.title)).toEqual([
       'Depuis le 20 mars 2026',
       'Du 1er mars au 15 mars 2026',
+    ])
+  })
+
+  it('#1429, Milbémax : une période remplacée s’arrête la veille de la suivante, la dose donnée en avance y reste', () => {
+    const book = treatment(
+      [
+        period({
+          startsOn: '2026-03-01',
+          firstDueOn: '2026-03-01',
+          frequency: { value: 3, unit: 'month' },
+        }),
+        period({
+          id: 'p-2',
+          startsOn: '2026-03-15',
+          firstDueOn: '2026-03-15',
+          frequency: { value: 1, unit: 'month' },
+          createdAt: '2026-03-15T08:00:00.000Z',
+        }),
+      ],
+      [
+        dose('2026-03-01', '2026-06-01'),
+        dose('2026-06-01', '2026-09-01', { givenOn: '2026-03-10' }),
+      ],
+    )
+
+    expect(
+      history(book, '2026-03-20').periods.map(({ head, lines }) => ({
+        head: head?.title,
+        lines: lines.map(({ title, detail }) => [title, detail]),
+      })),
+    ).toEqual([
+      { head: 'Depuis le 15 mars 2026', lines: [] },
+      {
+        head: 'Du 1er mars au 14 mars 2026',
+        lines: [
+          ['1er juin 2026', 'Donnée le 10 mars 2026'],
+          ['1er mars 2026', null],
+        ],
+      },
     ])
   })
 
@@ -904,7 +943,7 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
     })
   })
 
-  it('#1421, Test G de Luna : décalage grisé « · sans effet », période jusqu’au report du 28 oct.', () => {
+  it('#1421, Test G de Luna : décalage grisé « · sans effet », période jusqu’à la veille de la suivante (#1429)', () => {
     expect(
       history(TEST_G, '2026-10-28').periods.map(({ head, lines }) => ({
         head: head?.title,
@@ -913,7 +952,7 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
     ).toEqual([
       { head: 'Depuis le 28 oct. 2026', lines: [] },
       {
-        head: 'Du 26 oct. au 28 oct. 2026',
+        head: 'Du 26 oct. au 27 oct. 2026',
         lines: [
           ['move', 'Reportée au 1er nov. 2026 (prévue le 28 oct.)'],
           ['idle', 'Doses suivantes décalées · sans effet'],

@@ -52,26 +52,13 @@ export function periodShownDays(
 
 type DoseDay = Pick<Line, 'status' | 'dueOn'>
 
-/**
- * R12 : les jours de l'étiquette d'une période, sur la fiche comme sur le PDF ; la veille de la période
- * suivante s'allonge jusqu'à l'échéance de sa dernière ligne, hors décalage et « pas à donner », jamais
- * au-delà de son arrêt ni de sa date de fin. `lines` : ses lignes de l'historique.
- */
+/** R12 : les jours de l'étiquette d'une période, sur la fiche comme sur le PDF. */
 export function periodShownRange(
   periods: readonly Shown[],
   period: Shown,
-  lines: readonly DoseDay[],
+  _lines: readonly DoseDay[],
 ): { start: string; lastDay: string | null } {
-  const { start, lastDay } = periodShownDays(periods, period)
-  const lastDose = lines
-    .filter(({ status }) => status !== 'shift' && status !== 'not-due')
-    .reduce<string | null>(
-      (last, { dueOn }) => (last === null || dueOn > last ? dueOn : last),
-      null,
-    )
-  if (lastDay === null || lastDose === null || lastDose <= lastDay) return { start, lastDay }
-  const closedOn = [period.endsOn, period.stoppedOn].filter((day) => day !== null).sort()[0]
-  return { start, lastDay: closedOn !== undefined && closedOn < lastDose ? closedOn : lastDose }
+  return periodShownDays(periods, period)
 }
 
 /** Arrêtée, finie ou remplacée par `next` avant sa première échéance. */

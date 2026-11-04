@@ -80,7 +80,7 @@ describe('periodShownDays (R12, #925)', () => {
   })
 })
 
-describe('periodShownRange (R12, #1007, #1421)', () => {
+describe('periodShownRange (R12, #1429)', () => {
   const daily = {
     id: 'p1',
     createdAt: '2026-10-26T08:00:00.000Z',
@@ -99,15 +99,16 @@ describe('periodShownRange (R12, #1007, #1421)', () => {
   }
   const periods = [daily, fortnightly]
 
-  it('repousse la fin jusqu’à l’échéance de la dernière ligne de la période, report compris', () => {
+  it('une période remplacée s’arrête la veille de la suivante, même avec un report ce jour-là ou une dose donnée en avance', () => {
     const lines = [
       { status: 'given', dueOn: '2026-10-27' },
       { status: 'postponed', dueOn: '2026-10-28' },
+      { status: 'given', dueOn: '2026-11-30' },
     ] as const
 
     expect(periodShownRange(periods, daily, lines)).toEqual({
       start: '2026-10-26',
-      lastDay: '2026-10-28',
+      lastDay: '2026-10-27',
     })
   })
 
@@ -121,13 +122,14 @@ describe('periodShownRange (R12, #1007, #1421)', () => {
     expect(periodShownRange(periods, daily, lines).lastDay).toBe('2026-10-27')
   })
 
-  it('Q85 : ne dépasse jamais l’arrêt ni la date de fin de la période', () => {
+  it('Q85 : ne dépasse jamais l’arrêt, la date de fin ni la veille de la suivante', () => {
     const advance = [{ status: 'given', dueOn: '2026-11-30' }] as const
     const stopped = { ...daily, stoppedOn: '2026-10-27' }
     const ended = { ...daily, endsOn: '2026-10-29' }
 
     expect(periodShownRange([stopped], stopped, advance).lastDay).toBe('2026-10-27')
-    expect(periodShownRange([ended, fortnightly], ended, advance).lastDay).toBe('2026-10-29')
+    expect(periodShownRange([ended], ended, advance).lastDay).toBe('2026-10-29')
+    expect(periodShownRange([ended, fortnightly], ended, advance).lastDay).toBe('2026-10-27')
     expect(periodShownRange([stopped, fortnightly], stopped, advance).lastDay).toBe('2026-10-27')
   })
 
