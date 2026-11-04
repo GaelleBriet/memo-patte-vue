@@ -244,6 +244,47 @@ describe('localSyncOutbox', () => {
       ])
     })
 
+    it('« Fusionner » met en file le carnet entier, lignes supprimées et lignes d’un animal supprimé comprises, sans la photo d’un animal supprimé', async () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date(OCTOBER_23_8AM) })
+      await insertWholeCarnet()
+      await insertDeletedRows()
+      await insertRowsOfDeletedAnimal()
+
+      await db.runMany(repository.restoreStatements({ mode: 'merge', cursors: [] }).before)
+
+      const queued = (await repository.listPending()).map(
+        ({ entity, entityId }) => `${entity} ${entityId}`,
+      )
+      expect(queued.sort()).toEqual(
+        [
+          'device appareil',
+          `animal ${ANIMAL_ID}`,
+          'animal parti',
+          'animal sans-photo',
+          'vaccination v-1',
+          'vaccination v-supprime',
+          'vaccination v-parti',
+          'vaccination_injection i-1',
+          'vaccination_injection i-supprimee',
+          'vaccination_injection i-parti',
+          'treatment t-1',
+          'treatment t-supprime',
+          'treatment t-parti',
+          'treatment_period p-1',
+          'treatment_period p-supprimee',
+          'treatment_period p-parti',
+          'treatment_dose d-1',
+          'treatment_dose d-supprimee',
+          'treatment_dose d-parti',
+          'weight_entry w-1',
+          'weight_entry w-supprimee',
+          'weight_entry w-parti',
+          `carnet_settings ${SETTINGS_ID}`,
+          `${ANIMAL_PHOTO_ENTITY} ${PHOTO_MILO}`,
+        ].sort(),
+      )
+    })
+
     it('sans animal visible, ne met en file que la fiche de l’appareil', async () => {
       await db.run(
         `INSERT INTO device (id, model, installed_at, created_at, updated_at)
