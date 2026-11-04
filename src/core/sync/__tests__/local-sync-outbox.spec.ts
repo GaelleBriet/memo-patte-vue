@@ -541,7 +541,7 @@ describe('localSyncOutbox', () => {
       await expect(repository.countRefusedPhotos()).resolves.toBe(0)
     })
 
-    it('la remise en file de tout le carnet retente l’élément refusé', async () => {
+    it('l’activation de la synchro retente l’élément refusé', async () => {
       await refuseMiloWeighing()
 
       await repository.enableAndQueueLiveCarnet()

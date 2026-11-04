@@ -32,13 +32,6 @@ export function createLocalSyncOutbox(db: DbClient) {
     recordFailedPush: outbox.recordFailedPush,
     clear: outbox.clear,
 
-    async enableAndQueueWholeCarnet(): Promise<void> {
-      await db.runMany([
-        ...syncState.enableFromStartStatements(),
-        ...outbox.queueWholeCarnetStatements(),
-      ])
-    },
-
     async enableAndQueueLiveCarnet(): Promise<void> {
       await db.runMany([
         ...syncState.enableFromStartStatements(),

@@ -396,7 +396,7 @@ repart, `sync_outbox_removed` (v23, §4.13) lève ses descendants marqués à ca
 le parent quitte la file. La marque disparaît quand l'élément est modifié ou supprimé puis
 sauvegardé : le déclencheur `sync_outbox_requeued` (`AFTER UPDATE OF queued_at`) la remet à nul dès
 qu'une nouvelle écriture avance `queued_at`, sans toucher aux déclencheurs de mise en file des
-tables. `enableAndQueueWholeCarnet` et la restauration la remettent à nul (nouvel essai) ;
+tables. L'activation (`enableAndQueueLiveCarnet`) et la restauration la remettent à nul (nouvel essai) ;
 `forgetAccount` et « Effacer les données » vident la file avec elle.
 
 La migration (`src/core/db/migration-v22.ts`) reconstruit `sync_outbox` par copie, comme la v17 :
