@@ -9,8 +9,8 @@ import { webhookSettingsFrom } from '../webhook-settings'
 
 const AUTHORIZATION_32 = 'Bearer ' + 'a'.repeat(25)
 const AUTHORIZATION_31 = 'Bearer ' + 'b'.repeat(24)
-const SIGNING_SECRET = 'whsec_secret-de-signature'
-const LEAKED_SECRET = 'whsec_' + 'c'.repeat(30)
+const SIGNING_SECRET = 'faux-secret-de-signature'
+const LEAKED_SECRET = 'faux__' + 'c'.repeat(30)
 const LEAKED_AUTHORIZATION = 'Bearer ' + 'd'.repeat(30)
 const HEX = '0123456789abcdef'.repeat(4)
 const BOTH_NAMES = ['REVENUECAT_WEBHOOK_AUTHORIZATION', 'REVENUECAT_WEBHOOK_SIGNING_SECRET']
@@ -170,6 +170,86 @@ describe('webhookSettingsFrom', () => {
       }
     },
   )
+
+  describe('morceau commun entre l’en-tête et le secret de signature', () => {
+    const SECRET = 'faux__0123456789abcdefghijklmnopqrstuvwxyz'
+    const FILLER = '.'.repeat(20)
+    const pieces = {
+      'au début du secret': (length: number) => SECRET.slice(0, length),
+      'au milieu du secret': (length: number) => SECRET.slice(12, 12 + length),
+      'à la fin du secret': (length: number) => SECRET.slice(-length),
+    }
+    const shapes = {
+      'au milieu de l’en-tête sans Bearer': (piece: string) => `${FILLER}${piece}${FILLER}`,
+      'au milieu de l’en-tête Bearer': (piece: string) => `Bearer ${FILLER}${piece}${FILLER}`,
+      'juste après Bearer': (piece: string) => `Bearer ${piece}${FILLER}`,
+      'après Bearer et deux espaces': (piece: string) => `Bearer  ${piece}${FILLER}`,
+      'après Bearer et une tabulation': (piece: string) => `Bearer\t${piece}${FILLER}`,
+      'à la fin de l’en-tête Bearer': (piece: string) => `Bearer ${FILLER}${piece}`,
+    }
+    const casings = {
+      'même casse': (authorization: string) => [authorization, SECRET],
+      'en-tête en majuscules': (authorization: string) => [authorization.toUpperCase(), SECRET],
+      'secret en majuscules': (authorization: string) => [authorization, SECRET.toUpperCase()],
+    }
+    const combinations = Object.entries(pieces).flatMap(([where, pieceOf]) =>
+      Object.entries(shapes).flatMap(([shape, authorizationOf]) =>
+        Object.entries(casings).map(([casing, pairOf]) => ({
+          label: `${where}, ${shape}, ${casing}`,
+          pieceOf,
+          valuesOf: (length: number) =>
+            pairOf(authorizationOf(pieceOf(length))) as [string, string],
+        })),
+      ),
+    )
+
+    it.each(combinations)('garde un morceau commun de 15 caractères ($label)', ({ valuesOf }) => {
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const [authorization, signingSecret] = valuesOf(15)
+
+      const settings = settingsOf({
+        REVENUECAT_WEBHOOK_AUTHORIZATION: authorization,
+        REVENUECAT_WEBHOOK_SIGNING_SECRET: signingSecret,
+      })
+
+      expect(settings).toEqual({ expectedAuthorization: authorization, signingSecret })
+      expect(error).not.toHaveBeenCalled()
+    })
+
+    it.each(combinations)(
+      'écarte un morceau commun de 16 caractères ($label), et le dit une fois sans les valeurs',
+      ({ valuesOf, pieceOf }) => {
+        const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+        const [authorization, signingSecret] = valuesOf(16)
+
+        const settings = settingsOf({
+          REVENUECAT_WEBHOOK_AUTHORIZATION: authorization,
+          REVENUECAT_WEBHOOK_SIGNING_SECRET: signingSecret,
+        })
+
+        expect(settings).toEqual({ expectedAuthorization: authorization, signingSecret: undefined })
+        expect(error).toHaveBeenCalledOnce()
+        const written = JSON.stringify(error.mock.calls)
+        for (const name of BOTH_NAMES) expect(written).toContain(name)
+        expect(written).toContain('16 caractères')
+        expect(written.toLowerCase()).not.toContain(pieceOf(16))
+      },
+    )
+
+    it('ne compte pas le préfixe Bearer dans le morceau commun', () => {
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const authorization = `Bearer ${SECRET.slice(6, 21)}${FILLER}`
+      const signingSecret = `faux__bearer ${SECRET.slice(6)}`
+
+      const settings = settingsOf({
+        REVENUECAT_WEBHOOK_AUTHORIZATION: authorization,
+        REVENUECAT_WEBHOOK_SIGNING_SECRET: signingSecret,
+      })
+
+      expect(settings).toEqual({ expectedAuthorization: authorization, signingSecret })
+      expect(error).not.toHaveBeenCalled()
+    })
+  })
 
   it('cherche le secret dans l’en-tête après le retrait des espaces', () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {})

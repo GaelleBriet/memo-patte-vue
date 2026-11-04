@@ -561,8 +561,9 @@ et 40 minutes après, soit une fenêtre d'environ 80 minutes) ; au-delà, l'év�
 ce secret dans la fonction, chaque envoi reçoit `503` `webhook-not-configured`. L'en-tête
 d'autorisation ne doit pas contenir le secret de signature, ni à l'identique ni sous la forme
 `Bearer <secret>`, ni l'inverse (le secret de signature qui contient tout l'en-tête d'autorisation),
-majuscules et minuscules confondues : sinon le secret de signature est écarté, et chaque envoi reçoit
-aussi `503` `webhook-not-configured`.
+et les deux ne partagent aucun morceau de 16 caractères à la suite (en-tête lu sans le préfixe
+`Bearer `), majuscules et minuscules confondues : sinon le secret de signature est écarté, et chaque
+envoi reçoit aussi `503` `webhook-not-configured`.
 
 ### 7.3 Projet
 
