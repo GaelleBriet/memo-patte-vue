@@ -92,6 +92,7 @@ export const usePurchaseStore = defineStore('purchase', () => {
   let pendingRestore = false
 
   let generation = 0
+  let accountEpoch = 0
 
   function record(next: PlusStatus, previous = stored.value): PlusStatus {
     generation += 1
@@ -184,13 +185,15 @@ export const usePurchaseStore = defineStore('purchase', () => {
     /** L'appareil garde son droit : seul `reset()` solde le souvenir du compte quitté. */
     async logIn(appUserID: string): Promise<PlusStatus> {
       const startedAt = generation
+      const accountAtStart = accountEpoch
       const next = await billingService.logIn(appUserID)
       if (generation === startedAt) return record(next)
-      return isPlusActive(next) ? next : status.value
+      return accountEpoch === accountAtStart && isPlusActive(next) ? next : status.value
     },
 
     /** Le compte quitté n'emporte ni son droit ni le souvenir de son abonnement. */
     reset(): void {
+      accountEpoch += 1
       pendingCheckout.value = null
       pendingRestore = false
       record(NO_PLUS, NO_STORED_PLUS)

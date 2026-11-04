@@ -583,6 +583,19 @@ describe('usePurchaseStore — offre en attente d’un compte', () => {
     expect(store.status).toEqual(NO_PLUS)
     await expect(connexion).resolves.toEqual(RENOUVELE_NON_VU)
   })
+
+  it('ne rend pas un Plus lu par une connexion quand le compte a été quitté pendant l’appel', async () => {
+    let repondreLogIn: (status: PlusStatus) => void = () => {}
+    service.logIn.mockReturnValueOnce(new Promise((resolve) => (repondreLogIn = resolve)))
+    const store = usePurchaseStore()
+
+    const connexion = store.logIn('compte-a')
+    store.reset()
+    repondreLogIn(LIFETIME)
+
+    await expect(connexion).resolves.toEqual(NO_PLUS)
+    expect(store.status).toEqual(NO_PLUS)
+  })
 })
 
 describe('usePurchaseStore › sauvegarde en pause', () => {
