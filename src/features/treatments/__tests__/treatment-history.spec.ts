@@ -931,6 +931,55 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
     expect(idle?.optionsLabel).toBe(
       'Options pour le décalage des doses suivantes du 28 octobre 2026',
     )
+    applyLocale('en')
+    const idleEn = history(TEST_G, '2026-10-28')
+      .periods.flatMap(({ lines }) => lines)
+      .find(({ kind }) => kind === 'idle')
+    expect(idleEn?.optionsLabel).toBe('Options for the move of the doses after October 28, 2026')
+  })
+
+  it('#1424 : un report ou une prise en plus grisés s’annoncent comme leur ligne active', () => {
+    const FRIDAYS = period({
+      startsOn: '2026-10-09',
+      firstDueOn: '2026-10-09',
+      frequency: { value: 1, unit: 'week' },
+    })
+    const idleLabels = (book: TreatmentWithPeriods) =>
+      history(book, '2026-10-20')
+        .periods.flatMap(({ lines }) => lines)
+        .filter(({ kind }) => kind === 'idle')
+        .map(({ optionsLabel }) => optionsLabel)
+
+    expect(
+      idleLabels(
+        treatment(
+          [FRIDAYS],
+          [
+            dose('2026-10-09', '2026-10-09'),
+            postponed('2026-10-16', '2026-10-18', {
+              id: 'a',
+              updatedAt: '2026-10-15T08:00:00.000Z',
+            }),
+            postponed('2026-10-16', '2026-10-19', {
+              id: 'b',
+              updatedAt: '2026-10-15T09:00:00.000Z',
+            }),
+          ],
+        ),
+      ),
+    ).toEqual(['Options pour le report de la dose du 16 octobre 2026'])
+    expect(
+      idleLabels(
+        treatment(
+          [FRIDAYS],
+          [
+            dose('2026-10-09', '2026-10-09'),
+            extra('2026-10-14', '2026-10-14', { id: 'x1', updatedAt: '2026-10-14T08:00:00.000Z' }),
+            extra('2026-10-14', '2026-10-14', { id: 'x2', updatedAt: '2026-10-14T09:00:00.000Z' }),
+          ],
+        ),
+      ),
+    ).toEqual(['Options pour la prise en plus du 14 octobre 2026'])
   })
 })
 

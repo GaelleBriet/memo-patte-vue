@@ -56,6 +56,31 @@ function shiftOptionsLabel(t: Translate, dose: TreatmentDose): string {
   return t('treatments.history.shiftOptions', { date: formatFullDate(dose.dueOn) })
 }
 
+function moveOptionsLabel(t: Translate, dose: TreatmentDose): string {
+  return t('treatments.history.moveOptions', { date: formatFullDate(dose.dueOn) })
+}
+
+function extraOptionsLabel(t: Translate, dose: TreatmentDose): string {
+  return t('treatments.history.extraOptions', { date: formatFullDate(dose.dueOn) })
+}
+
+function idleOptionsLabel(
+  t: Translate,
+  dose: TreatmentDose,
+  period: TreatmentPeriodRecord,
+): string {
+  switch (dose.status) {
+    case 'shift':
+      return shiftOptionsLabel(t, dose)
+    case 'postponed':
+      return moveOptionsLabel(t, dose)
+    case 'extra':
+      return extraOptionsLabel(t, dose)
+    default:
+      return doseOptionsLabel(t, dose, period)
+  }
+}
+
 function doseOptionsLabel(
   t: Translate,
   dose: TreatmentDose,
@@ -121,7 +146,7 @@ function moveLine(
     kind: 'move',
     dose,
     title: reportTitle(t, dose, period),
-    optionsLabel: t('treatments.history.moveOptions', { date: formatFullDate(dose.dueOn) }),
+    optionsLabel: moveOptionsLabel(t, dose),
     actions: locked ? [] : found === null ? ['remove-move'] : ['change-date', 'remove-move'],
     bounds: found,
   }
@@ -180,8 +205,7 @@ function idleLine(t: Translate, dose: TreatmentDose, period: TreatmentPeriodReco
     dose,
     title: answered ? dueTitle(t, dose, period) : noEffect,
     detail: answered ? noEffect : null,
-    optionsLabel:
-      dose.status === 'shift' ? shiftOptionsLabel(t, dose) : doseOptionsLabel(t, dose, period),
+    optionsLabel: idleOptionsLabel(t, dose, period),
     actions: ['remove'],
   }
 }
@@ -227,7 +251,7 @@ function extraLine(t: Translate, dose: TreatmentDose): HistoryLine {
     kind: 'extra',
     dose,
     title: t('treatments.history.extra', { date }),
-    optionsLabel: t('treatments.history.extraOptions', { date: formatFullDate(dose.dueOn) }),
+    optionsLabel: extraOptionsLabel(t, dose),
     actions: ['change-date', 'remove'],
   }
 }
