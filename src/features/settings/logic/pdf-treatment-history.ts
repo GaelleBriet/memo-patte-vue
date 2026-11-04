@@ -42,6 +42,8 @@ export type PdfTreatmentPeriod = {
   from: string
   /** `null` : période ouverte, sans date de fin. */
   to: string | null
+  /** Renseigné seulement pour une période passée, suivie d'une reprise. */
+  stoppedOn: string | null
   frequency: ExportFrequency
   /** Vide sauf quand la période a plusieurs heures. */
   times: string[]
@@ -285,6 +287,7 @@ export function treatmentPeriods(state: TreatmentState): PdfTreatmentPeriod[] {
       {
         from: shown.start,
         to: shown.lastDay,
+        stoppedOn: index > 0 ? period.stoppedOn : null,
         frequency: period.frequency,
         times: severalTimes ? period.times : [],
         dosage: { doseQuantity: period.doseQuantity, doseUnit: period.doseUnit },

@@ -248,6 +248,14 @@ function treatmentHistory(row: PdfTreatmentRow, t: Translate): PdfDetail[] {
     detail(summary),
     ...row.periods.flatMap((period) => [
       detail(periodHeadText(period, t)),
+      ...(period.stoppedOn === null
+        ? []
+        : [
+            detail(
+              t('settings.pdf.treatments.stopped', { date: formatNumericDate(period.stoppedOn) }),
+              1,
+            ),
+          ]),
       ...(repeats ? [] : period.lines.map((line) => detail(historyLineText(line, t), 1))),
     ]),
   ]

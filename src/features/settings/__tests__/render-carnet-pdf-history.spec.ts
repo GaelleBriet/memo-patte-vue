@@ -47,6 +47,7 @@ function periode(fields: Partial<PdfTreatmentPeriod>): PdfTreatmentPeriod {
   return {
     from: '2026-09-01',
     to: '2026-09-30',
+    stoppedOn: null,
     frequency: { value: 1, unit: 'day' },
     times: ['08:00', '20:00'],
     dosage: { doseQuantity: 0.5, doseUnit: 'tablet' },
@@ -319,6 +320,7 @@ describe('renderCarnetPdf — historique d’un traitement', () => {
             periods: [
               periode({
                 to: null,
+                stoppedOn: null,
                 frequency: { value: 3, unit: 'month' },
                 times: [],
                 dosage: { doseQuantity: null, doseUnit: null },

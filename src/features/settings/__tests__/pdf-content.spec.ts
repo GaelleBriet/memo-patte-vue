@@ -161,6 +161,7 @@ describe('buildCarnetPdfContent', () => {
           {
             from: '2026-07-10',
             to: null,
+            stoppedOn: null,
             frequency: { value: 3, unit: 'month' },
             times: [],
             dosage: { doseQuantity: null, doseUnit: null },
@@ -596,6 +597,7 @@ describe('buildCarnetPdfContent — historique', () => {
       {
         from: '2026-06-01',
         to: '2026-06-10',
+        stoppedOn: null,
         frequency: { value: 1, unit: 'day' },
         times,
         dosage: { doseQuantity: 0.5, doseUnit: 'tablet' },
@@ -658,6 +660,7 @@ describe('buildCarnetPdfContent — historique', () => {
       {
         from: '2026-01-01',
         to: null,
+        stoppedOn: null,
         frequency: MONTHLY,
         times: [],
         dosage: { doseQuantity: 1, doseUnit: 'tablet' },
@@ -674,6 +677,7 @@ describe('buildCarnetPdfContent — historique', () => {
       {
         from: '2025-11-01',
         to: '2025-12-31',
+        stoppedOn: null,
         frequency: { value: 2, unit: 'week' },
         times: [],
         dosage: { doseQuantity: 2, doseUnit: 'tablet' },
@@ -792,6 +796,73 @@ describe('buildCarnetPdfContent — historique', () => {
       'Prise : 10/03/2026 · sans effet',
       'Prise : 01/03/2026',
     ])
+  })
+
+  describe('traitement arrêté puis repris', () => {
+    const DAILY = { value: 1, unit: 'day' } as const
+    const days = (from: number, to: number, month = '03') =>
+      Array.from(
+        { length: to - from + 1 },
+        (_, i) => `2026-${month}-${String(from + i).padStart(2, '0')}`,
+      )
+    const texts = (periods: PeriodSpec[], doses: DoseSpec[], today: string) =>
+      plain(carnetPdfText(contentOf(periods, doses, today), i18n.global.t))
+        .treatments.details.flat()
+        .map(({ text }) => text)
+
+    it('dit l’arrêt de la période passée comme la fiche et liste ses prises, puis ouvre la reprise', () => {
+      const ecrits = texts(
+        [
+          { id: 'p1', startsOn: '2026-03-01', frequency: DAILY, stoppedOn: '2026-03-10' },
+          { id: 'p2', startsOn: '2026-03-20', frequency: DAILY },
+        ],
+        [...given('p1', ...days(1, 10)), ...given('p2', '2026-03-20', '2026-03-21')],
+        '2026-03-22',
+      )
+
+      expect(ecrits).toEqual([
+        'Dernière prise : 21/03/2026',
+        'Depuis le 20/03/2026 · Tous les jours',
+        'Prises : 21/03/2026 · 20/03/2026',
+        'Du 01/03/2026 au 10/03/2026 · Tous les jours',
+        'Arrêté le 10/03/2026',
+        '10 prises du 01/03/2026 au 10/03/2026',
+      ])
+    })
+
+    it('dit chaque arrêt quand le traitement a été repris plusieurs fois', () => {
+      const ecrits = texts(
+        [
+          { id: 'p1', startsOn: '2026-03-01', frequency: DAILY, stoppedOn: '2026-03-04' },
+          { id: 'p2', startsOn: '2026-03-10', frequency: DAILY, stoppedOn: '2026-03-12' },
+          { id: 'p3', startsOn: '2026-03-20', frequency: DAILY },
+        ],
+        [
+          ...given('p1', ...days(1, 4)),
+          ...given('p2', ...days(10, 12)),
+          ...given('p3', '2026-03-20'),
+        ],
+        '2026-03-21',
+      )
+
+      expect(ecrits.filter((texte) => texte.startsWith('Arrêté'))).toEqual([
+        'Arrêté le 12/03/2026',
+        'Arrêté le 04/03/2026',
+      ])
+    })
+
+    it('n’ajoute rien à une période finie par sa date de fin ou remplacée par un autre réglage', () => {
+      const ecrits = texts(
+        [
+          { id: 'p1', startsOn: '2026-03-01', frequency: DAILY },
+          { id: 'p2', startsOn: '2026-03-05', frequency: { value: 2, unit: 'day' } },
+        ],
+        [...given('p1', ...days(1, 4)), ...given('p2', '2026-03-05')],
+        '2026-03-06',
+      )
+
+      expect(ecrits.some((texte) => texte.startsWith('Arrêté'))).toBe(false)
+    })
   })
 
   it('distingue une dose avancée d’une dose reportée', () => {

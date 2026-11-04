@@ -56,6 +56,7 @@ function traitements(count: number): PdfTreatmentRow[] {
       {
         from: '2025-08-01',
         to: null,
+        stoppedOn: null,
         frequency: { value: 1, unit: 'month' },
         times: [],
         dosage: { doseQuantity: null, doseUnit: null },
@@ -123,6 +124,7 @@ const ARRETE: PdfTreatmentRow = {
     {
       from: '2026-05-18',
       to: null,
+      stoppedOn: null,
       frequency: { value: 1, unit: 'month' },
       times: [],
       dosage: { doseQuantity: null, doseUnit: null },

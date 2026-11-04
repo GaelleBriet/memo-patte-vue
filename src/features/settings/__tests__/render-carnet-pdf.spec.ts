@@ -61,6 +61,7 @@ const FULL_CONTENT: CarnetPdfContent = {
         {
           from: '2024-11-01',
           to: null,
+          stoppedOn: null,
           frequency: { value: 1, unit: 'month' },
           times: [],
           dosage: { doseQuantity: null, doseUnit: null },

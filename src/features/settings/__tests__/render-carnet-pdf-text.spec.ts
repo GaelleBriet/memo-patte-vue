@@ -141,6 +141,7 @@ describe('renderCarnetPdf — prise en plus', () => {
             {
               from: '2026-10-02',
               to: null,
+              stoppedOn: null,
               frequency: { value: 1, unit: 'month' },
               times: [],
               dosage: { doseQuantity: null, doseUnit: null },
