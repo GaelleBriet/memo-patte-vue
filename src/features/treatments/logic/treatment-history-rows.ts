@@ -52,6 +52,10 @@ function dueTitle(t: Translate, dose: TreatmentDose, period: TreatmentPeriodReco
     : date
 }
 
+function shiftOptionsLabel(t: Translate, dose: TreatmentDose): string {
+  return t('treatments.history.shiftOptions', { date: formatFullDate(dose.dueOn) })
+}
+
 function doseOptionsLabel(
   t: Translate,
   dose: TreatmentDose,
@@ -146,7 +150,7 @@ function shiftLine(
     kind: 'shift',
     dose,
     title: shiftTitle(t, context, dose, period),
-    optionsLabel: t('treatments.history.shiftOptions', { date: formatFullDate(dose.dueOn) }),
+    optionsLabel: shiftOptionsLabel(t, dose),
     actions: ['remove-shift'],
   }
 }
@@ -177,9 +181,7 @@ function idleLine(t: Translate, dose: TreatmentDose, period: TreatmentPeriodReco
     title: answered ? dueTitle(t, dose, period) : noEffect,
     detail: answered ? noEffect : null,
     optionsLabel:
-      dose.status === 'shift'
-        ? t('treatments.history.shiftOptions', { date: formatFullDate(dose.dueOn) })
-        : doseOptionsLabel(t, dose, period),
+      dose.status === 'shift' ? shiftOptionsLabel(t, dose) : doseOptionsLabel(t, dose, period),
     actions: ['remove'],
   }
 }
