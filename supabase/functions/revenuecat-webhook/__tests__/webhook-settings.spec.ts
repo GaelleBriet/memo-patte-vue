@@ -183,6 +183,8 @@ describe('webhookSettingsFrom', () => {
       'au milieu de l’en-tête sans Bearer': (piece: string) => `${FILLER}${piece}${FILLER}`,
       'au milieu de l’en-tête Bearer': (piece: string) => `Bearer ${FILLER}${piece}${FILLER}`,
       'juste après Bearer': (piece: string) => `Bearer ${piece}${FILLER}`,
+      'après Bearer et deux espaces': (piece: string) => `Bearer  ${piece}${FILLER}`,
+      'après Bearer et une tabulation': (piece: string) => `Bearer\t${piece}${FILLER}`,
       'à la fin de l’en-tête Bearer': (piece: string) => `Bearer ${FILLER}${piece}`,
     }
     const casings = {
