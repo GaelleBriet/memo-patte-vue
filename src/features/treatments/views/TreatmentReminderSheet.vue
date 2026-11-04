@@ -12,7 +12,7 @@ import { useTreatmentGestures } from '../composables/use-treatment-gestures'
 import { useTreatmentSheetActions } from '../composables/use-treatment-sheet-actions'
 import { detailActions } from '../logic/treatment-card'
 import { readableReadingOf } from '../logic/treatment-reading-adapter'
-import { sheetPeriod, treatmentSheetTexts } from '../logic/treatment-sheet'
+import { loadSheetTreatment, sheetPeriod, treatmentSheetTexts } from '../logic/treatment-sheet'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
@@ -128,11 +128,14 @@ watch(
     treatment.value = null
     if (!animals.hasLoaded) void animals.load()
     const id = props.treatmentId
-    treatment.value = id ? await treatments.getWithPeriods(id).catch(() => null) : null
-    if (treatment.value === null && open.value) {
-      open.value = false
-      showToast(t('treatments.form.errors.load'), { tone: 'error' })
+    const loaded = id ? await loadSheetTreatment(t, () => treatments.getWithPeriods(id)) : null
+    if (loaded !== null && 'treatment' in loaded) {
+      treatment.value = loaded.treatment
+      return
     }
+    if (!open.value) return
+    open.value = false
+    showToast(loaded?.failure ?? t('treatments.form.errors.load'), { tone: 'error' })
   },
   { immediate: true },
 )

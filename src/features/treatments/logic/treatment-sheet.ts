@@ -23,6 +23,19 @@ export function treatmentStopTexts(t: Translate, named: { name: string; animal: 
   }
 }
 
+/** Le traitement de la feuille, ou le texte de ce qui l'empêche : supprimé (`null`) ou illisible. */
+export async function loadSheetTreatment(
+  t: Translate,
+  load: () => Promise<TreatmentWithPeriods | null>,
+): Promise<{ treatment: TreatmentWithPeriods } | { failure: string }> {
+  try {
+    const treatment = await load()
+    return treatment === null ? { failure: t('treatments.form.errors.notFound') } : { treatment }
+  } catch {
+    return { failure: t('treatments.form.errors.load') }
+  }
+}
+
 /** La période de l'échéance de la ligne, sinon la dernière. */
 export function sheetPeriod(
   treatment: Pick<TreatmentWithPeriods, 'periods'>,
