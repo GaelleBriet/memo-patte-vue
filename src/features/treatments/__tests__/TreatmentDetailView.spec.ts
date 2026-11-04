@@ -724,6 +724,20 @@ describe('TreatmentDetailView — la dose de la carte et « Cette prise » (TR-1
     })
   })
 
+  it('« Remplace » à plusieurs heures : l’aide dit l’heure de la prochaine dose', async () => {
+    await ouvrir(
+      treatment([
+        period({ startsOn: '2026-10-01', firstDueOn: '2026-10-01', times: ['08:00', '20:00'] }),
+      ]),
+    )
+    await repondre(1)
+
+    expect(choix()).toEqual(['En plus', 'Remplace celle du 1er oct. à 8 h'])
+    expect(aide()).toBe(
+      'Donnée le 28 sept. pour la dose du 1er oct. à 8 h · prochaine dose le 1er oct. à 20 h',
+    )
+  })
+
   it('« En plus » : la prochaine dose reste, pas de case', async () => {
     await ouvrir(BRAVECTO)
     await repondre(0)
