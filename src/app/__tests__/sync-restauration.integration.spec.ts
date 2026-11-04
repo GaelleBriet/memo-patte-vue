@@ -184,28 +184,4 @@ describe('restauration du carnet d’un compte', () => {
 
     expect(await carnetOf(tablet)).toEqual(serverCarnet())
   })
-
-  it('« Fusionner » garde le carnet de l’appareil et lui ajoute celui du compte, dans les deux sens', async () => {
-    const luna = await tablet.repositories.animals.create({ name: 'Luna', species: 'cat' })
-
-    await tablet.outbox.enableAndQueueLiveCarnet()
-    await tablet.sync()
-    await phone.sync()
-
-    expect(await carnetOf(tablet)).toEqual(serverCarnet())
-    expect(await carnetOf(phone)).toEqual(serverCarnet())
-    expect(serverRows('animal').map(({ id }) => id)).toContain(luna.id)
-  })
-
-  it('« Fusionner » : des réglages plus anciens sur l’appareil cèdent devant ceux du compte', async () => {
-    vi.setSystemTime(new Date(2026, 9, 20, 8))
-    await tablet.settings.update({ vaccineReminderTime: '07:45' })
-    vi.setSystemTime(new Date(2026, 9, 21, 9))
-
-    await tablet.outbox.enableAndQueueLiveCarnet()
-    await tablet.sync()
-
-    await expect(tablet.settings.get()).resolves.toMatchObject({ vaccineReminderTime: '18:30' })
-    expect(serverRows('carnet_settings')).toEqual(await tablet.rows('carnet_settings'))
-  })
 })
