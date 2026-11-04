@@ -186,7 +186,7 @@ describe('restauration d’un compte qui a des lignes supprimées', () => {
       await tablet.repositories.weight.remove(weighing!)
       await tablet.sync()
       const [deleted] = serverRows('weight_entry', [weighing!])
-      expect(deleted?.deleted_at).not.toBeNull()
+      expect([deleted]).toEqual([expect.objectContaining({ deleted_at: expect.any(String) })])
       expect(await phone.rows('weight_entry', [weighing!])).toEqual([
         expect.objectContaining({ deleted_at: null }),
       ])
@@ -209,19 +209,37 @@ describe('restauration d’un compte qui a des lignes supprimées', () => {
           ),
         ),
       )
-      expect(
-        ['vaccination', 'treatment', 'treatment_period', 'treatment_dose'].filter(
-          (entity) => records[entity]!.length === 0,
-        ),
-      ).toEqual([])
+      expect(ANIMAL_RECORDS.filter((entity) => records[entity]!.length === 0)).toEqual([])
+      const recordsOnPhone = async () =>
+        Object.fromEntries(
+          await Promise.all(
+            ANIMAL_RECORDS.map(
+              async (entity) => [entity, await phone.rows(entity, records[entity]!)] as const,
+            ),
+          ),
+        )
       await tablet.animalDeletion.remove(luna)
       await tablet.sync()
       const [deletedLuna] = serverRows('animal', [luna])
-      expect(deletedLuna?.deleted_at).not.toBeNull()
+      expect([deletedLuna]).toEqual([expect.objectContaining({ deleted_at: expect.any(String) })])
       expect((await phone.repositories.animals.list()).map(({ name }) => name).sort()).toEqual([
         'Luna',
         'Milo',
       ])
+      const aliveOnPhone = Object.fromEntries(
+        Object.entries(await recordsOnPhone()).map(([entity, rows]) => [
+          entity,
+          rows.map(({ id, deleted_at }) => ({ id, deleted_at })),
+        ]),
+      )
+      expect(aliveOnPhone).toEqual(
+        Object.fromEntries(
+          ANIMAL_RECORDS.map((entity) => [
+            entity,
+            [...records[entity]!].sort().map((id) => ({ id, deleted_at: null })),
+          ]),
+        ),
+      )
 
       await restorePhone(mode)
 
@@ -234,14 +252,7 @@ describe('restauration d’un compte qui a des lignes supprimées', () => {
           .flat()
           .map(({ deleted_at }) => deleted_at),
       ).not.toContain(null)
-      const onPhone = Object.fromEntries(
-        await Promise.all(
-          ANIMAL_RECORDS.map(
-            async (entity) => [entity, await phone.rows(entity, records[entity]!)] as const,
-          ),
-        ),
-      )
-      expect(onPhone).toEqual(deleted)
+      expect(await recordsOnPhone()).toEqual(deleted)
       expect((await phone.repositories.animals.list()).map(({ name }) => name)).toEqual(['Milo'])
     })
   })
