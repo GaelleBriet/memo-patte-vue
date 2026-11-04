@@ -122,6 +122,7 @@ describe('photos à la restauration du carnet d’un compte', () => {
   let tablet: Phone
   let cloud: Map<string, Uint8Array>
   let miloId: string
+  let pirateId: string
 
   beforeEach(async () => {
     vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 22, 8) })
@@ -139,11 +140,9 @@ describe('photos à la restauration du carnet d’un compte', () => {
     await phone.outbox.enableAndQueueLiveCarnet()
     await phone.sync()
     vi.setSystemTime(Date.now() + 60_000)
-    await phone.animals.remove(pirate.id)
+    pirateId = pirate.id
+    await phone.animals.remove(pirateId)
     await phone.sync()
-    expect(server.rows('animal')).toContainEqual(
-      expect.objectContaining({ id: pirate.id, deleted_at: expect.any(String) }),
-    )
     cloud = new Map([
       [MILO_PHOTO, jpeg(1)],
       [LUNA_PHOTO, jpeg(2)],
@@ -161,6 +160,9 @@ describe('photos à la restauration du carnet d’un compte', () => {
   })
 
   it('« Remplacer » : les photos des animaux restaurés arrivent, jamais celle d’un animal supprimé, et rien ne repart en file', async () => {
+    expect(server.rows('animal')).toContainEqual(
+      expect.objectContaining({ id: pirateId, deleted_at: expect.any(String) }),
+    )
     await tablet.animals.create({ name: 'Carré', species: 'dog', photoPath: CARRE_PHOTO })
     tablet.files.set(CARRE_PHOTO, jpeg(4))
 
