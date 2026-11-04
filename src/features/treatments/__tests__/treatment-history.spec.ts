@@ -642,6 +642,46 @@ describe('treatmentHistory — plusieurs périodes (planche A · V3)', () => {
     ])
   })
 
+  it('#1429 : sur plusieurs remplacements, chaque période s’arrête la veille de la suivante', () => {
+    const book = treatment(
+      [
+        period({ startsOn: '2026-03-01', frequency: { value: 3, unit: 'month' } }),
+        period({
+          id: 'p-2',
+          startsOn: '2026-03-15',
+          firstDueOn: '2026-03-15',
+          frequency: { value: 1, unit: 'month' },
+          createdAt: '2026-03-15T08:00:00.000Z',
+        }),
+        period({
+          id: 'p-3',
+          startsOn: '2026-04-20',
+          firstDueOn: '2026-04-20',
+          frequency: { value: 1, unit: 'week' },
+          createdAt: '2026-04-20T08:00:00.000Z',
+        }),
+      ],
+      [
+        dose('2026-03-01', '2026-06-01'),
+        dose('2026-06-01', '2026-09-01', { givenOn: '2026-03-10' }),
+        dose('2026-03-15', '2026-04-15', { periodId: 'p-2' }),
+        dose('2026-05-15', '2026-06-15', { periodId: 'p-2', givenOn: '2026-04-18' }),
+        dose('2026-04-20', '2026-04-27', { periodId: 'p-3' }),
+      ],
+    )
+
+    expect(
+      history(book, '2026-04-22').periods.map(({ head, lines }) => ({
+        head: head?.title,
+        lines: lines.map(({ title }) => title),
+      })),
+    ).toEqual([
+      { head: 'Depuis le 20 avr. 2026', lines: ['20 avr. 2026'] },
+      { head: 'Du 15 mars au 19 avr. 2026', lines: ['15 mai 2026', '15 mars 2026'] },
+      { head: 'Du 1er mars au 14 mars 2026', lines: ['1er juin 2026', '1er mars 2026'] },
+    ])
+  })
+
   it('écrit « Le … » pour une période fermée le jour de son ouverture', () => {
     const sameDay = { startsOn: '2026-10-02', firstDueOn: '2026-10-02' }
     const reopened = period({ ...sameDay, id: 'p-3', createdAt: '2026-10-02T10:00:00.000Z' })
