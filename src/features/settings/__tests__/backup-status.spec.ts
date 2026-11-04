@@ -18,7 +18,6 @@ const SAVED: BackupFacts = {
   syncEnabled: true,
   lastSyncedAt: YESTERDAY_6_20_PM,
   remaining: 0,
-  carnetSize: 348,
   refused: 0,
   refusedPhotos: 0,
 }

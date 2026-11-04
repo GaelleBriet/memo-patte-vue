@@ -289,7 +289,6 @@ describe('BackupSettingsView', () => {
       syncEnabled: true,
       lastSyncedAt: new Date(2026, 9, 23, 8, 25).toISOString(),
       remaining: 0,
-      carnetSize: 348,
       refused: 0,
       refusedPhotos: 0,
     }
@@ -642,7 +641,6 @@ describe('BackupSettingsView', () => {
         syncEnabled: false,
         lastSyncedAt: null,
         remaining: 0,
-        carnetSize: 0,
         refused: 0,
         refusedPhotos: 0,
       }
@@ -709,7 +707,6 @@ describe('BackupSettingsView', () => {
       syncEnabled: false,
       lastSyncedAt: null,
       remaining: 0,
-      carnetSize: 0,
       refused: 0,
       refusedPhotos: 0,
     }
@@ -886,7 +883,6 @@ describe('BackupSettingsView', () => {
       syncEnabled: false,
       lastSyncedAt: null,
       remaining: 0,
-      carnetSize: 0,
       refused: 0,
       refusedPhotos: 0,
     }

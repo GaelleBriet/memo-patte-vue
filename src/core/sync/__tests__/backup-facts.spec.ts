@@ -15,7 +15,6 @@ function dependencies(overrides: Partial<BackupFactsDependencies> = {}): BackupF
       isEnabled: async () => true,
       getLastSyncedAt: async () => OCTOBER_23,
       countPending: async () => 228,
-      countWholeCarnet: async () => 348,
       countRefused: async () => 2,
       countRefusedPhotos: async () => 1,
     },
@@ -43,7 +42,6 @@ describe('createBackupFactsReader', () => {
           isEnabled: async () => Boolean(await query()),
           getLastSyncedAt: async () => (await query(), null),
           countPending: query,
-          countWholeCarnet: query,
           countRefused: query,
           countRefusedPhotos: query,
         },
@@ -66,7 +64,6 @@ describe('createBackupFactsReader', () => {
       syncEnabled: true,
       lastSyncedAt: OCTOBER_23,
       remaining: 228,
-      carnetSize: 348,
       refused: 2,
       refusedPhotos: 1,
     })

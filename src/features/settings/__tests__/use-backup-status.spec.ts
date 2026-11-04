@@ -43,7 +43,6 @@ const FIRST_BACKUP: BackupFacts = {
   syncEnabled: true,
   lastSyncedAt: null,
   remaining: 348,
-  carnetSize: 348,
   refused: 0,
   refusedPhotos: 0,
 }
