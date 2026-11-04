@@ -6,7 +6,8 @@ export async function preloadRouteViews(router: Router, names: string[]): Promis
   await Promise.all(
     names.map((name) => {
       const view = router.getRoutes().find((route) => route.name === name)?.components?.default
-      if (typeof view !== 'function') throw new Error(`vue de la route ${name} introuvable`)
+      if (typeof view !== 'function')
+        throw new Error(`vue de la route ${name} introuvable ou déjà chargée`)
       return (view as LazyView)()
     }),
   )
