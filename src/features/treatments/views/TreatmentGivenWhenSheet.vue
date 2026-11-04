@@ -15,6 +15,7 @@ import {
 } from '../logic/treatment-notification'
 import { notifiedPlan, otherDateTexts } from '../logic/treatment-other-date'
 import { readableReadingOf } from '../logic/treatment-reading-adapter'
+import { loadSheetTreatment } from '../logic/treatment-sheet'
 import { doneGesture } from '../logic/treatment-shift-box'
 import type { DoseAction, NoteGesture } from '../logic/treatment-dose-change'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
@@ -114,13 +115,14 @@ watch(
     treatment.value = null
     if (!animals.hasLoaded) void animals.load()
     const id = props.treatmentId
-    treatment.value = id ? await treatments.getWithPeriods(id).catch(() => null) : null
+    const loaded = id ? await loadSheetTreatment(t, () => treatments.getWithPeriods(id)) : null
     if (!open.value) return
-    if (treatment.value === null) {
+    if (loaded === null || 'failure' in loaded) {
       open.value = false
-      showToast(t('treatments.form.errors.load'), { tone: 'error' })
+      showToast(loaded?.failure ?? t('treatments.form.errors.load'), { tone: 'error' })
       return
     }
+    treatment.value = loaded.treatment
     settleUnavailable()
   },
   { immediate: true },
