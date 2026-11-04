@@ -108,13 +108,13 @@ describe('checkout', () => {
     expect(value.purchase).not.toHaveBeenCalled()
   })
 
-  it('fait payer un compte dont le droit rendu par le cache de RevenueCat est échu', async () => {
+  it('ne fait pas payer un compte dont le cache de RevenueCat garde actif un droit à l’échéance dépassée', async () => {
     const { value } = port({ logIn: vi.fn<CheckoutPort['logIn']>(async () => MENSUEL_ECHU) })
     const { checkout } = createCheckout(compte(USER_ID), () => value)
 
-    await checkout('annual')
+    await expect(checkout('lifetime')).resolves.toEqual({ kind: 'already-plus' })
 
-    expect(value.purchase).toHaveBeenCalledWith('annual')
+    expect(value.purchase).not.toHaveBeenCalled()
   })
 
   it('rend l’annulation de Google Play telle quelle', async () => {

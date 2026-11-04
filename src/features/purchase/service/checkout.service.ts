@@ -62,7 +62,7 @@ export function createCheckout(account: CheckoutAccount, purchase: () => Checkou
         port.rememberCheckout(plan)
         return { kind: 'needs-sign-in' }
       }
-      const status = statusAt(await port.logIn(userId), Date.now())
+      const status = await port.logIn(userId)
       if (isPlusActive(status)) return { kind: 'already-plus' }
       return port.purchase(plan)
     },
