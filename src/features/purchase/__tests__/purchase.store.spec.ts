@@ -90,6 +90,22 @@ describe('usePurchaseStore', () => {
       expect(usePurchaseStore().expiredPlan).toBe('monthly')
     })
 
+    it('n’est plus actif une fois l’échéance passée', () => {
+      expect(usePurchaseStore().isActive).toBe(false)
+    })
+
+    it('redevient actif dès qu’un renouvellement est connu', async () => {
+      service.fetchStatus.mockResolvedValueOnce({
+        plan: 'monthly',
+        expiresAt: '2026-10-01T10:00:00Z',
+      })
+      const store = usePurchaseStore()
+
+      await store.verifyKnownStatus()
+
+      expect(store.isActive).toBe(true)
+    })
+
     it('oublie le plan échu dès qu’un renouvellement est connu', async () => {
       service.fetchStatus.mockResolvedValueOnce({
         plan: 'monthly',

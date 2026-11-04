@@ -8,6 +8,7 @@ import {
   type PurchaseOutcome,
 } from '../service/billing.service'
 import {
+  isPlusActive,
   lapsedAt,
   NO_PLUS,
   subscriptionOf,
@@ -62,9 +63,10 @@ export const usePurchaseStore = defineStore('purchase', () => {
     if (lapsedAt(stored.value, now.value) !== null) return NO_PLUS
     return offered ? { plan, expiresAt, offered } : { plan, expiresAt }
   })
+  const isActive = computed(() => isPlusActive(status.value))
   /** Abonnement échu, que `status` lit déjà « aucun » : de quoi écrire « expiré ». */
   const expiredPlan = computed<SubscriptionPlan | null>(() =>
-    status.value.plan === 'none' ? stored.value.lastSubscription : null,
+    isActive.value ? null : stored.value.lastSubscription,
   )
   /** L'abonnement échu était un droit offert : « Plus offert — terminé ». */
   const expiredOffered = computed(
@@ -101,6 +103,7 @@ export const usePurchaseStore = defineStore('purchase', () => {
 
   return {
     status,
+    isActive,
     expiredPlan,
     expiredOffered,
     backupPause,
