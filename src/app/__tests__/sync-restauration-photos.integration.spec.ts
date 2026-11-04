@@ -136,9 +136,14 @@ describe('photos à la restauration du carnet d’un compte', () => {
       species: 'cat',
       photoPath: PIRATE_PHOTO,
     })
-    await phone.animals.remove(pirate.id)
     await phone.outbox.enableAndQueueLiveCarnet()
     await phone.sync()
+    vi.setSystemTime(Date.now() + 60_000)
+    await phone.animals.remove(pirate.id)
+    await phone.sync()
+    expect(server.rows('animal')).toContainEqual(
+      expect.objectContaining({ id: pirate.id, deleted_at: expect.any(String) }),
+    )
     cloud = new Map([
       [MILO_PHOTO, jpeg(1)],
       [LUNA_PHOTO, jpeg(2)],
