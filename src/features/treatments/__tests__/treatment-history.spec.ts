@@ -928,7 +928,9 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
     const idle = history(TEST_G, '2026-10-28')
       .periods.flatMap(({ lines }) => lines)
       .find(({ kind }) => kind === 'idle')
-    expect(idle?.optionsLabel).toBe('Options pour le décalage du 28 octobre 2026')
+    expect(idle?.optionsLabel).toBe(
+      'Options pour le décalage des doses suivantes du 28 octobre 2026',
+    )
   })
 })
 
