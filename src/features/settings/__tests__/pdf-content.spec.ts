@@ -863,6 +863,38 @@ describe('buildCarnetPdfContent — historique', () => {
 
       expect(ecrits.some((texte) => texte.startsWith('Arrêté'))).toBe(false)
     })
+
+    it('n’ajoute rien à une période finie par sa date de fin, puis reprise', () => {
+      const ecrits = texts(
+        [
+          { id: 'p1', startsOn: '2026-03-01', frequency: DAILY, endsOn: '2026-03-05' },
+          { id: 'p2', startsOn: '2026-03-10', frequency: DAILY },
+        ],
+        [...given('p1', ...days(1, 5)), ...given('p2', '2026-03-10')],
+        '2026-03-11',
+      )
+
+      expect(ecrits.some((texte) => texte.startsWith('Arrêté'))).toBe(false)
+    })
+
+    it('dit l’arrêt de la dernière période dans le tableau, et seulement celui des périodes passées dans le détail', () => {
+      const content = contentOf(
+        [
+          { id: 'p1', startsOn: '2026-03-01', frequency: DAILY, stoppedOn: '2026-03-04' },
+          { id: 'p2', startsOn: '2026-03-10', frequency: DAILY, stoppedOn: '2026-03-12' },
+        ],
+        [...given('p1', ...days(1, 4)), ...given('p2', ...days(10, 12))],
+        '2026-03-21',
+      )
+      const { rows, details } = plain(carnetPdfText(content, i18n.global.t)).finishedTreatments
+      const ecrits = details.flat().map(({ text }) => text)
+
+      expect(rows[0]![1]).toBe('Arrêté le 12/03/2026')
+      expect(ecrits.filter((texte) => texte.startsWith('Arrêté'))).toEqual(['Arrêté le 04/03/2026'])
+      expect(ecrits.indexOf('Arrêté le 04/03/2026')).toBe(
+        ecrits.findIndex((texte) => texte.startsWith('Du 01/03/2026')) + 1,
+      )
+    })
   })
 
   it('distingue une dose avancée d’une dose reportée', () => {
