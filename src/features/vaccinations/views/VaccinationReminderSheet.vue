@@ -11,6 +11,7 @@ import {
 } from '../logic/vaccination-done'
 import {
   earliestOtherDate,
+  loadSheetVaccination,
   nextReminderSummary,
   vaccinationSheetTexts,
 } from '../logic/vaccination-sheet'
@@ -125,18 +126,14 @@ watch(
     saveFailed.value = false
     vaccination.value = null
     if (!animals.hasLoaded) void animals.load()
-    try {
-      vaccination.value = props.vaccinationId
-        ? await vaccinations.getById(props.vaccinationId)
-        : null
-    } catch (cause) {
-      console.warn('Chargement du vaccin impossible :', errorSummary(cause))
-      vaccination.value = null
+    const loaded = await loadSheetVaccination(t, props.vaccinationId, vaccinations.getById)
+    if ('vaccination' in loaded) {
+      vaccination.value = loaded.vaccination
+      return
     }
-    if (vaccination.value === null && open.value) {
-      open.value = false
-      showToast(t('vaccinations.form.errors.load'), { tone: 'error' })
-    }
+    if (!open.value) return
+    open.value = false
+    showToast(loaded.failure, { tone: 'error' })
   },
   { immediate: true },
 )

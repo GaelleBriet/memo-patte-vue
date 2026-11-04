@@ -268,6 +268,21 @@ describe('TreatmentReminderSheet — F2, la feuille de l’échéance touchée',
     expect(document.body.querySelector('.treatment-unlogged')).toBeNull()
   })
 
+  it('traitement supprimé : dit qu’il est introuvable, sans le toast d’échec de chargement', async () => {
+    vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockResolvedValue(null)
+    const feuilleMontee = await monter({ dueOn: '2026-09-28', dueTime: null })
+
+    expect(toastMessage.value).toBe('Ce traitement est introuvable.')
+    expect(feuilleMontee.emitted('update:modelValue')?.at(-1)).toEqual([false])
+  })
+
+  it('chargement qui échoue : garde le toast d’échec', async () => {
+    vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockRejectedValue(new Error('base'))
+    await monter({ dueOn: '2026-09-28', dueTime: null })
+
+    expect(toastMessage.value).toBe('Ce traitement n’a pas pu être chargé. Réessaie.')
+  })
+
   it('la fréquence vient de la période, jamais de la projection du traitement', async () => {
     lePlus(HEBDO, '2026-10-19')
     await monter(LIGNE_16)

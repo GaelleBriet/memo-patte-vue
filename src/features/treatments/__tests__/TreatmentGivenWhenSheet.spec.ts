@@ -86,9 +86,16 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-async function ouvrir(book: TreatmentWithPeriods, today: string, due: NotifiedDue) {
+async function ouvrir(
+  book: TreatmentWithPeriods,
+  today: string,
+  due: NotifiedDue,
+  loaded: TreatmentWithPeriods | Error | null = book,
+) {
   vi.useFakeTimers({ now: new Date(`${today}T10:00:00`), toFake: ['Date'] })
-  vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockResolvedValue(book)
+  const getWithPeriods = vi.spyOn(useTreatmentsStore(), 'getWithPeriods')
+  if (loaded instanceof Error) getWithPeriods.mockRejectedValue(loaded)
+  else getWithPeriods.mockResolvedValue(loaded)
   wrapper = mount(TreatmentGivenWhenSheet, {
     props: {
       modelValue: true,
@@ -131,6 +138,25 @@ const HEBDO = () => treatment([VENDREDIS], [dose('2026-10-09', '2026-10-16')])
 const DOSE_16 = { settingId: 'p-1', dueOn: '2026-10-16', dueTime: null }
 
 describe('TreatmentGivenWhenSheet — « Donnée quand ? » (V5)', () => {
+  it('traitement supprimé : dit qu’il est introuvable, sans le toast d’échec de chargement', async () => {
+    const feuille = await ouvrir(
+      HEBDO(),
+      '2026-10-19',
+      { dueOn: '2026-10-16', dueTime: null },
+      null,
+    )
+
+    expect(plain(toastMessage.value)).toBe('Ce traitement est introuvable.')
+    expect(feuille.emitted('update:modelValue')?.at(-1)).toEqual([false])
+    expect(feuille.emitted('unavailable')).toBeUndefined()
+  })
+
+  it('chargement qui échoue : garde le toast d’échec', async () => {
+    await ouvrir(HEBDO(), '2026-10-19', { dueOn: '2026-10-16', dueTime: null }, new Error('base'))
+
+    expect(plain(toastMessage.value)).toBe('Ce traitement n’a pas pu être chargé. Réessaie.')
+  })
+
   it('propose le jour prévu, aujourd’hui et une autre date, sans rien présélectionner', async () => {
     await ouvrir(HEBDO(), '2026-10-19', { dueOn: '2026-10-16', dueTime: null })
 

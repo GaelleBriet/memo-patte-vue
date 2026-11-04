@@ -192,6 +192,22 @@ describe('VaccinationReminderSheet — feuille d’un vaccin', () => {
     expect(texte('.reminder-actions__due')).toBe('Prochain rappel le 10 août 2025')
   })
 
+  it('vaccin supprimé : dit qu’il est introuvable, sans le toast d’échec de chargement', async () => {
+    vi.spyOn(useVaccinationsStore(), 'getById').mockResolvedValue(null)
+    const feuille = await monter()
+
+    expect(toastMessage.value).toBe('Ce vaccin est introuvable.')
+    expect(feuille.emitted('update:modelValue')?.at(-1)).toEqual([false])
+  })
+
+  it('chargement qui échoue : garde le toast d’échec', async () => {
+    vi.spyOn(useVaccinationsStore(), 'getById').mockRejectedValue(new Error('base fermée'))
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    await monter()
+
+    expect(toastMessage.value).toBe('Ce vaccin n’a pas pu être chargé. Réessaie.')
+  })
+
   it('trace le chargement raté du vaccin', async () => {
     vi.spyOn(useVaccinationsStore(), 'getById').mockRejectedValue(new Error('base fermée'))
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)

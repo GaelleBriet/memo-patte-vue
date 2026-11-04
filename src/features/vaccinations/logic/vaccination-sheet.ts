@@ -3,10 +3,29 @@ import { addDays, parseISO } from 'date-fns'
 import { nextReminderDate, type NextReminderChoice } from './vaccination-done'
 import type { Vaccination } from '../schema/vaccination.schema'
 import { toDay } from '@/shared/domain/calendar-day'
+import { errorSummary } from '@/shared/utils/error-summary'
 import { formatDayMonthOrYear, formatLongDate } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
 export type SheetVaccination = Pick<Vaccination, 'name' | 'dueDate' | 'lastInjectionDate'>
+
+/** Le vaccin de la feuille, ou le texte de ce qui l'empêche : supprimé, illisible, ou sans identifiant. */
+export async function loadSheetVaccination(
+  t: Translate,
+  id: string | null,
+  load: (id: string) => Promise<Vaccination | null>,
+): Promise<{ vaccination: Vaccination } | { failure: string }> {
+  if (id === null) return { failure: t('vaccinations.form.errors.load') }
+  try {
+    const vaccination = await load(id)
+    return vaccination === null
+      ? { failure: t('vaccinations.form.errors.notFound') }
+      : { vaccination }
+  } catch (cause) {
+    console.warn('Chargement du vaccin impossible :', errorSummary(cause))
+    return { failure: t('vaccinations.form.errors.load') }
+  }
+}
 
 export function vaccinationSheetTexts(
   t: Translate,

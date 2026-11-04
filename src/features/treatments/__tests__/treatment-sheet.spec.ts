@@ -1,8 +1,14 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { dose, extra, missed, period, plain, postponed, treatment } from './treatment-fixtures'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
-import { sheetDoneTarget, sheetPeriod, treatmentSheetTexts } from '../logic/treatment-sheet'
+import {
+  loadSheetTreatment,
+  sheetDoneTarget,
+  sheetPeriod,
+  treatmentSheetTexts,
+} from '../logic/treatment-sheet'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t
@@ -307,5 +313,43 @@ describe('sheetPeriod — la période dont la feuille parle', () => {
   it('la dernière quand l’échéance n’est plus au calendrier', () => {
     expect(sheetPeriod(book, reading.view, { dueOn: '2026-12-25', dueTime: null })?.id).toBe('p-2')
     expect(sheetPeriod(book, null, null)?.id).toBe('p-2')
+  })
+})
+
+describe('loadSheetTreatment — ce qui empêche d’ouvrir la feuille', () => {
+  const book = treatment([VENDREDI])
+
+  it('rend le traitement lu', async () => {
+    const load = vi
+      .fn<(id: string) => Promise<TreatmentWithPeriods | null>>()
+      .mockResolvedValue(book)
+
+    expect(await loadSheetTreatment(t, book.id, load)).toEqual({ treatment: book })
+    expect(load).toHaveBeenCalledWith(book.id)
+  })
+
+  it('traitement supprimé : « introuvable »', async () => {
+    expect(await loadSheetTreatment(t, 'x', async () => null)).toEqual({
+      failure: 'Ce traitement est introuvable.',
+    })
+  })
+
+  it('lecture en erreur : « n’a pas pu être chargé »', async () => {
+    const load = vi
+      .fn<(id: string) => Promise<TreatmentWithPeriods | null>>()
+      .mockRejectedValue(new Error('base'))
+
+    expect(await loadSheetTreatment(t, 'x', load)).toEqual({
+      failure: 'Ce traitement n’a pas pu être chargé. Réessaie.',
+    })
+  })
+
+  it('sans identifiant : « n’a pas pu être chargé », rien n’est lu', async () => {
+    const load = vi.fn<(id: string) => Promise<TreatmentWithPeriods | null>>()
+
+    expect(await loadSheetTreatment(t, null, load)).toEqual({
+      failure: 'Ce traitement n’a pas pu être chargé. Réessaie.',
+    })
+    expect(load).not.toHaveBeenCalled()
   })
 })
