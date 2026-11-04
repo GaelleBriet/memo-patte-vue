@@ -55,7 +55,7 @@ export async function handleRevenuecatWebhook(
   const signingSecret = ports.signingSecret?.trim()
   if (!signingSecret) {
     console.error(
-      'Webhook RevenueCat refusé : REVENUECAT_WEBHOOK_SIGNING_SECRET n’est pas réglé, figure dans l’en-tête ou le contient',
+      'Webhook RevenueCat refusé : REVENUECAT_WEBHOOK_SIGNING_SECRET n’est pas réglé, figure dans l’en-tête, le contient ou partage 16 caractères avec lui',
     )
     return json(503, { error: 'webhook-not-configured' })
   }

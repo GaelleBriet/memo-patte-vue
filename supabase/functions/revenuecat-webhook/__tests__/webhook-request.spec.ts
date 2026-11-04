@@ -320,7 +320,7 @@ describe('handleRevenuecatWebhook, signature de RevenueCat', () => {
       expect(await response.json()).toEqual({ error: 'webhook-not-configured' })
       expect(fake.processed).toEqual([])
       expect(JSON.stringify(error.mock.calls)).toContain(
-        'REVENUECAT_WEBHOOK_SIGNING_SECRET n’est pas réglé, figure dans l’en-tête ou le contient',
+        'REVENUECAT_WEBHOOK_SIGNING_SECRET n’est pas réglé, figure dans l’en-tête, le contient ou partage 16 caractères avec lui',
       )
     },
   )
