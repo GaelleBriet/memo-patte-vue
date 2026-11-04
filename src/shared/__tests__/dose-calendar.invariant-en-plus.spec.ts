@@ -100,4 +100,32 @@ describe('invariant « une réponse En plus reste une prise en plus » (R5, Q27,
     }
     expect(staysExtra(autre)?.invariant).toBe('en plus')
   })
+
+  it('« Supprimer cette prise » sur la prise en plus : tient', () => {
+    expect(staysExtra(stepOf(vendredis, { kind: 'remove', lineId: enPlus.id }))).toBeNull()
+  })
+
+  it('une prise en plus effacée par « Modifier », qui ne la vise pas : ne tient pas', () => {
+    const modifier: V2Step = {
+      label: 'Modifier',
+      before: vendredis,
+      after: { ...vendredis, lines: donnees },
+      gesture: null,
+      outcome: null,
+      plan: null,
+    }
+    expect(staysExtra(modifier)?.invariant).toBe('en plus')
+  })
+
+  it('« Supprimer » la prise du 16 qui emporterait la prise en plus du 16 : ne tient pas', () => {
+    const supprimer: V2Step = {
+      label: 'Supprimer',
+      before: vendredis,
+      after: { ...vendredis, lines: donnees.slice(0, 2) },
+      gesture: { kind: 'remove', lineId: donnees[2]!.id },
+      outcome: null,
+      plan: null,
+    }
+    expect(staysExtra(supprimer)?.invariant).toBe('en plus')
+  })
 })

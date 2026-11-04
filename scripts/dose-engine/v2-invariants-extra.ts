@@ -12,16 +12,17 @@ function calendar(input: TreatmentViewInput): string[] {
     .map(({ due, state }) => `${dueKey(due)} ${state}`)
 }
 
-// Une prise en plus ne cesse de l'être que par « Changer la date » répondu « Remplace », ou sans réponse (règle d'avant Q27).
+// TR-24, R11 : seuls « Supprimer cette prise » et « Changer la date » répondu « Remplace » (ou sans réponse, règle d'avant Q27) la changent.
 function lostExtra({ before, after, gesture }: V2Step): Broken | null {
+  const removed = gesture?.kind === 'remove' ? gesture.lineId : null
   const redated = gesture?.kind === 'redate' && gesture.answer !== 'extra' ? gesture.lineId : null
   for (const extra of before.lines) {
-    if (extra.status !== 'extra' || extra.id === redated) continue
+    if (extra.status !== 'extra' || extra.id === removed || extra.id === redated) continue
     const now = after.lines.find(({ id }) => id === extra.id)
-    if (now !== undefined && now.status !== 'extra') {
+    if (now?.status !== 'extra') {
       return {
         invariant: 'en plus',
-        detail: `prise en plus ${JSON.stringify(extra)} devenue ${JSON.stringify(now)}`,
+        detail: `prise en plus ${JSON.stringify(extra)} devenue ${JSON.stringify(now ?? 'effacée')}`,
       }
     }
   }
