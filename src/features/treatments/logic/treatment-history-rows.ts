@@ -76,7 +76,9 @@ function idleOptionsLabel(
       return moveOptionsLabel(t, dose)
     case 'extra':
       return extraOptionsLabel(t, dose)
-    default:
+    case 'missed':
+    case 'given':
+    case 'not-due':
       return doseOptionsLabel(t, dose, period)
   }
 }
