@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { dose, extra, missed, period, plain, postponed, treatment } from './treatment-fixtures'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 import {
   loadSheetTreatment,
@@ -319,7 +320,9 @@ describe('loadSheetTreatment — ce qui empêche d’ouvrir la feuille', () => {
   const book = treatment([VENDREDI])
 
   it('rend le traitement lu', async () => {
-    const load = vi.fn().mockResolvedValue(book)
+    const load = vi
+      .fn<(id: string) => Promise<TreatmentWithPeriods | null>>()
+      .mockResolvedValue(book)
 
     expect(await loadSheetTreatment(t, book.id, load)).toEqual({ treatment: book })
     expect(load).toHaveBeenCalledWith(book.id)
@@ -332,7 +335,9 @@ describe('loadSheetTreatment — ce qui empêche d’ouvrir la feuille', () => {
   })
 
   it('lecture en erreur : « n’a pas pu être chargé »', async () => {
-    const load = vi.fn().mockRejectedValue(new Error('base'))
+    const load = vi
+      .fn<(id: string) => Promise<TreatmentWithPeriods | null>>()
+      .mockRejectedValue(new Error('base'))
 
     expect(await loadSheetTreatment(t, 'x', load)).toEqual({
       failure: 'Ce traitement n’a pas pu être chargé. Réessaie.',
@@ -340,7 +345,7 @@ describe('loadSheetTreatment — ce qui empêche d’ouvrir la feuille', () => {
   })
 
   it('sans identifiant : « n’a pas pu être chargé », rien n’est lu', async () => {
-    const load = vi.fn()
+    const load = vi.fn<(id: string) => Promise<TreatmentWithPeriods | null>>()
 
     expect(await loadSheetTreatment(t, null, load)).toEqual({
       failure: 'Ce traitement n’a pas pu être chargé. Réessaie.',

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { earliestOtherDate, loadSheetVaccination } from '../logic/vaccination-sheet'
+import type { Vaccination } from '../schema/vaccination.schema'
 import i18n from '@/core/i18n'
 
 const t = i18n.global.t
@@ -20,7 +21,7 @@ describe('loadSheetVaccination — ce qui empêche d’ouvrir la feuille', () =>
   const carre = { id: 'v1', name: 'Carré' } as never
 
   it('rend le vaccin lu', async () => {
-    const load = vi.fn().mockResolvedValue(carre)
+    const load = vi.fn<(id: string) => Promise<Vaccination | null>>().mockResolvedValue(carre)
 
     expect(await loadSheetVaccination(t, 'v1', load)).toEqual({ vaccination: carre })
     expect(load).toHaveBeenCalledWith('v1')
@@ -35,7 +36,13 @@ describe('loadSheetVaccination — ce qui empêche d’ouvrir la feuille', () =>
   it('lecture en erreur : « n’a pas pu être chargé », tracée', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
 
-    expect(await loadSheetVaccination(t, 'v1', vi.fn().mockRejectedValue(new Error('x')))).toEqual({
+    expect(
+      await loadSheetVaccination(
+        t,
+        'v1',
+        vi.fn<(id: string) => Promise<Vaccination | null>>().mockRejectedValue(new Error('x')),
+      ),
+    ).toEqual({
       failure: 'Ce vaccin n’a pas pu être chargé. Réessaie.',
     })
     expect(warn).toHaveBeenCalledWith('Chargement du vaccin impossible :', 'Error')
@@ -43,7 +50,7 @@ describe('loadSheetVaccination — ce qui empêche d’ouvrir la feuille', () =>
   })
 
   it('sans identifiant : « n’a pas pu être chargé », rien n’est lu', async () => {
-    const load = vi.fn()
+    const load = vi.fn<(id: string) => Promise<Vaccination | null>>()
 
     expect(await loadSheetVaccination(t, null, load)).toEqual({
       failure: 'Ce vaccin n’a pas pu être chargé. Réessaie.',
