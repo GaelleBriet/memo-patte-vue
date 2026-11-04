@@ -173,9 +173,14 @@ describe('le compte a-t-il une sauvegarde ?', () => {
 
   it('seulement des animaux supprimés : ce n’est pas une sauvegarde', async () => {
     const milo = await phone.animals.create({ name: 'Milo', species: 'dog' })
-    await phone.animals.remove(milo.id)
     await phone.outbox.enableAndQueueLiveCarnet()
     await phone.sync()
+    vi.setSystemTime(Date.now() + 60_000)
+    await phone.animals.remove(milo.id)
+    await phone.sync()
+    expect(server.rows('animal')).toEqual([
+      expect.objectContaining({ id: milo.id, deleted_at: expect.any(String) }),
+    ])
 
     await expect(tablet.backup.check()).resolves.toEqual({ kind: 'seeded' })
   })
