@@ -38,7 +38,7 @@ export function statusAt(status: PlusStatus, now: number): PlusStatus {
   return lapsedAt(status, now) === null ? status : NO_PLUS
 }
 
-/** Sur le statut lu par le store ou tout juste lu chez RevenueCat : une échéance passée y vaut déjà « aucun ». */
+/** Sur un statut passé par `statusAt` (celui du store l'est déjà). */
 export function isPlusActive(status: PlusStatus): boolean {
   return status.plan !== 'none'
 }
