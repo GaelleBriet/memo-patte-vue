@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { NO_PLUS, type PlusStatus } from '../logic/plus-status'
 import type { PaidPlan } from '../service/billing.service'
@@ -10,6 +10,15 @@ import {
 
 const USER_ID = '4d1c6a52-8f0e-4b8e-9a51-2f6a3c9d7e10'
 const ANNUEL: PlusStatus = { plan: 'annual', expiresAt: '2027-10-22T10:00:00Z' }
+const MENSUEL_ECHU: PlusStatus = { plan: 'monthly', expiresAt: '2020-09-01T10:00:00Z' }
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 10, 4, 12) })
+})
+
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 function compte(
   userId: string | null,
@@ -103,6 +112,15 @@ describe('checkout', () => {
     const { checkout } = createCheckout(compte(USER_ID), () => value)
 
     await expect(checkout('monthly')).resolves.toEqual({ kind: 'already-plus' })
+
+    expect(value.purchase).not.toHaveBeenCalled()
+  })
+
+  it('ne fait pas payer un compte dont le cache de RevenueCat garde actif un droit à l’échéance dépassée', async () => {
+    const { value } = port({ logIn: vi.fn<CheckoutPort['logIn']>(async () => MENSUEL_ECHU) })
+    const { checkout } = createCheckout(compte(USER_ID), () => value)
+
+    await expect(checkout('lifetime')).resolves.toEqual({ kind: 'already-plus' })
 
     expect(value.purchase).not.toHaveBeenCalled()
   })
@@ -292,6 +310,23 @@ describe('restorePurchases', () => {
     await expect(restorePurchases()).resolves.toEqual({ kind: 'restored', status: ANNUEL })
 
     expect(value.restore).not.toHaveBeenCalled()
+  })
+
+  it('lit « aucun » quand RevenueCat rend, après la restauration, un droit déjà échu', async () => {
+    const { value } = port({
+      logIn: vi.fn<CheckoutPort['logIn']>(async () => MENSUEL_ECHU),
+      restore: vi.fn<CheckoutPort['restore']>(async () => MENSUEL_ECHU),
+    })
+    const { restorePurchases } = createCheckout(compte(USER_ID), () => value)
+
+    await expect(restorePurchases()).resolves.toEqual({ kind: 'restored', status: NO_PLUS })
+  })
+
+  it('restaure quand la connexion rend un droit échu mais que la restauration en trouve un en cours', async () => {
+    const { value } = port({ logIn: vi.fn<CheckoutPort['logIn']>(async () => MENSUEL_ECHU) })
+    const { restorePurchases } = createCheckout(compte(USER_ID), () => value)
+
+    await expect(restorePurchases()).resolves.toEqual({ kind: 'restored', status: ANNUEL })
   })
 
   it('session refusée par le serveur : retient la demande et passe par la connexion', async () => {

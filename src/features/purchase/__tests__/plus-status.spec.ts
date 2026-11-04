@@ -2,7 +2,8 @@
 import type { CustomerInfo, PurchasesSubscriptionInfo } from '@revenuecat/purchases-capacitor'
 import { describe, expect, it } from 'vitest'
 
-import { lapsedAt, NO_PLUS, plusStatusFrom } from '../logic/plus-status'
+import type { PlusStatus } from '../logic/plus-status'
+import { isPlusActive, lapsedAt, NO_PLUS, plusStatusFrom, statusAt } from '../logic/plus-status'
 import { customerInfo, entitlement, LIFETIME } from './billing-fixture'
 
 describe('plusStatusFrom', () => {
@@ -213,5 +214,31 @@ describe('lapsedAt', () => {
   it('ne rend rien avant l’échéance, ni sans échéance', () => {
     expect(lapsedAt(MONTHLY, Date.parse('2026-09-14T07:59:59.999Z'))).toBeNull()
     expect(lapsedAt(NO_PLUS, Date.parse('2026-09-14T08:00:00.000Z'))).toBeNull()
+  })
+})
+
+describe('isPlusActive', () => {
+  it('lit Plus actif pour un abonnement ou un achat à vie, jamais pour « aucun »', () => {
+    expect(isPlusActive({ plan: 'annual', expiresAt: '2027-10-29T09:00:00.000Z' })).toBe(true)
+    expect(isPlusActive({ plan: 'lifetime', expiresAt: null })).toBe(true)
+    expect(isPlusActive(NO_PLUS)).toBe(false)
+  })
+})
+
+describe('statusAt', () => {
+  const NOW = Date.parse('2026-09-10T10:00:00Z')
+
+  it('lit « aucun » un abonnement dont l’échéance est passée', () => {
+    expect(statusAt({ plan: 'monthly', expiresAt: '2026-09-01T10:00:00Z' }, NOW)).toEqual(NO_PLUS)
+  })
+
+  it('garde un abonnement en cours, un droit à vie et « aucun » tels quels', () => {
+    const encours: PlusStatus = { plan: 'monthly', expiresAt: '2026-09-20T10:00:00Z' }
+    expect(statusAt(encours, NOW)).toBe(encours)
+    expect(statusAt({ plan: 'lifetime', expiresAt: null }, NOW)).toEqual({
+      plan: 'lifetime',
+      expiresAt: null,
+    })
+    expect(statusAt(NO_PLUS, NOW)).toBe(NO_PLUS)
   })
 })

@@ -33,6 +33,16 @@ export function lapsedAt({ expiresAt }: PlusStatus, now: number): string | null 
   return expiresAt !== null && Date.parse(expiresAt) <= now ? expiresAt : null
 }
 
+/** Le statut tel qu'il se lit à `now` : une échéance passée vaut « aucun ». */
+export function statusAt(status: PlusStatus, now: number): PlusStatus {
+  return lapsedAt(status, now) === null ? status : NO_PLUS
+}
+
+/** Sur un statut passé par `statusAt` ; l'achat le lit brut, pour ne jamais faire payer sur un cache douteux. */
+export function isPlusActive(status: PlusStatus): boolean {
+  return status.plan !== 'none'
+}
+
 export function subscriptionOf(status: PlusStatus): SubscriptionPlan | null {
   return status.plan === 'monthly' || status.plan === 'annual' ? status.plan : null
 }

@@ -8,7 +8,9 @@ import {
   type PurchaseOutcome,
 } from '../service/billing.service'
 import {
+  isPlusActive,
   lapsedAt,
+  statusAt,
   NO_PLUS,
   subscriptionOf,
   type PlusStatus,
@@ -59,12 +61,12 @@ export const usePurchaseStore = defineStore('purchase', () => {
   /** Une échéance passée se lit « aucun » ; le stocké reste, pour retrouver un renouvellement. */
   const status = computed<PlusStatus>(() => {
     const { plan, expiresAt, offered } = stored.value
-    if (lapsedAt(stored.value, now.value) !== null) return NO_PLUS
-    return offered ? { plan, expiresAt, offered } : { plan, expiresAt }
+    return statusAt(offered ? { plan, expiresAt, offered } : { plan, expiresAt }, now.value)
   })
+  const isActive = computed(() => isPlusActive(status.value))
   /** Abonnement échu, que `status` lit déjà « aucun » : de quoi écrire « expiré ». */
   const expiredPlan = computed<SubscriptionPlan | null>(() =>
-    status.value.plan === 'none' ? stored.value.lastSubscription : null,
+    isActive.value ? null : stored.value.lastSubscription,
   )
   /** L'abonnement échu était un droit offert : « Plus offert — terminé ». */
   const expiredOffered = computed(
@@ -90,6 +92,7 @@ export const usePurchaseStore = defineStore('purchase', () => {
   let pendingRestore = false
 
   let generation = 0
+  let accountEpoch = 0
 
   function record(next: PlusStatus, previous = stored.value): PlusStatus {
     generation += 1
@@ -101,6 +104,7 @@ export const usePurchaseStore = defineStore('purchase', () => {
 
   return {
     status,
+    isActive,
     expiredPlan,
     expiredOffered,
     backupPause,
@@ -181,12 +185,15 @@ export const usePurchaseStore = defineStore('purchase', () => {
     /** L'appareil garde son droit : seul `reset()` solde le souvenir du compte quitté. */
     async logIn(appUserID: string): Promise<PlusStatus> {
       const startedAt = generation
+      const accountAtStart = accountEpoch
       const next = await billingService.logIn(appUserID)
-      return generation === startedAt ? record(next) : status.value
+      if (generation === startedAt) return record(next)
+      return accountEpoch === accountAtStart && isPlusActive(next) ? next : status.value
     },
 
     /** Le compte quitté n'emporte ni son droit ni le souvenir de son abonnement. */
     reset(): void {
+      accountEpoch += 1
       pendingCheckout.value = null
       pendingRestore = false
       record(NO_PLUS, NO_STORED_PLUS)

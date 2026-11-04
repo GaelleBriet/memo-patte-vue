@@ -90,6 +90,22 @@ describe('usePurchaseStore', () => {
       expect(usePurchaseStore().expiredPlan).toBe('monthly')
     })
 
+    it('n’est plus actif une fois l’échéance passée', () => {
+      expect(usePurchaseStore().isActive).toBe(false)
+    })
+
+    it('redevient actif dès qu’un renouvellement est connu', async () => {
+      service.fetchStatus.mockResolvedValueOnce({
+        plan: 'monthly',
+        expiresAt: '2026-10-01T10:00:00Z',
+      })
+      const store = usePurchaseStore()
+
+      await store.verifyKnownStatus()
+
+      expect(store.isActive).toBe(true)
+    })
+
     it('oublie le plan échu dès qu’un renouvellement est connu', async () => {
       service.fetchStatus.mockResolvedValueOnce({
         plan: 'monthly',
@@ -546,6 +562,39 @@ describe('usePurchaseStore — offre en attente d’un compte', () => {
 
     await expect(lent).resolves.toEqual(LIFETIME)
     expect(store.status).toEqual(LIFETIME)
+  })
+
+  it('rend à l’achat le statut que la connexion vient de lire, même si une revérification a enregistré entre-temps', async () => {
+    const RENOUVELE_NON_VU: PlusStatus = {
+      plan: 'monthly',
+      expiresAt: new Date(2026, 8, 1, 10).toISOString(),
+    }
+    vi.setSystemTime(new Date(2026, 8, 2, 10))
+    writeStoredPlusStatus(RENOUVELE_NON_VU)
+    let repondreLogIn: (status: PlusStatus) => void = () => {}
+    service.logIn.mockReturnValueOnce(new Promise((resolve) => (repondreLogIn = resolve)))
+    service.fetchStatus.mockResolvedValueOnce(RENOUVELE_NON_VU)
+    const store = usePurchaseStore()
+
+    const connexion = store.logIn('compte-a')
+    await store.verifyKnownStatus()
+    repondreLogIn(RENOUVELE_NON_VU)
+
+    expect(store.status).toEqual(NO_PLUS)
+    await expect(connexion).resolves.toEqual(RENOUVELE_NON_VU)
+  })
+
+  it('ne rend pas un Plus lu par une connexion quand le compte a été quitté pendant l’appel', async () => {
+    let repondreLogIn: (status: PlusStatus) => void = () => {}
+    service.logIn.mockReturnValueOnce(new Promise((resolve) => (repondreLogIn = resolve)))
+    const store = usePurchaseStore()
+
+    const connexion = store.logIn('compte-a')
+    store.reset()
+    repondreLogIn(LIFETIME)
+
+    await expect(connexion).resolves.toEqual(NO_PLUS)
+    expect(store.status).toEqual(NO_PLUS)
   })
 })
 

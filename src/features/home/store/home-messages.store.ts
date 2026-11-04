@@ -43,7 +43,7 @@ export const useHomeMessagesStore = defineStore('homeMessages', () => {
     homeMessage({
       notifications: notifications.value,
       hasAndroidAsked: hasAndroidAsked.value,
-      isPlus: purchase.status.plan !== 'none',
+      isPlus: purchase.isActive,
       care: signals.value.care,
       lastJsonShareAt: signals.value.jsonShare.lastAt,
       memory: memory.value,

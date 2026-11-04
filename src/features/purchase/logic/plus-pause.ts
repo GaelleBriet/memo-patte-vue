@@ -1,7 +1,7 @@
 import { addMonths, parseISO } from 'date-fns'
 
 import { toDay } from '@/shared/domain/calendar-day'
-import type { PlusStatus, SubscriptionPlan } from './plus-status'
+import { isPlusActive, type PlusStatus, type SubscriptionPlan } from './plus-status'
 
 const BACKUP_KEPT_MONTHS = 12
 
@@ -25,7 +25,7 @@ export function pausedBackupOf({
   endedAt: string | null
   now: number
 }): BackupPause | null {
-  if (status.plan !== 'none') return null
+  if (isPlusActive(status)) return null
   if (endedAt === null) return expiredPlan === null ? null : { keptUntil: null }
   const keptUntil = backupKeptUntil(endedAt)
   return toDay(new Date(now)) <= keptUntil ? { keptUntil } : null

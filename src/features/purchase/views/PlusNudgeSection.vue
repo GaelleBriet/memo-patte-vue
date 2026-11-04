@@ -43,7 +43,7 @@ function stop(): void {
 // Le compteur des trente jours part de l'affichage : sans ça, un rappel ignoré en bloquerait
 // un autre indéfiniment.
 onMounted(() => {
-  if (!purchase.available || purchase.status.plan !== 'none') return
+  if (!purchase.available || purchase.isActive) return
   if (purchase.expiredPlan !== null) return
   const next = nextPlusNudge({ animals: props.animalCount })
   if (next === null) return

@@ -18,12 +18,12 @@ const DEV_PLANS = new Map<string, (now: Date) => WritablePlusStatus>([
 
 export function applyDevPlusStatus(requested: string | undefined): void {
   if (!requested) return
-  const statusAt = DEV_PLANS.get(requested)
-  if (!statusAt) {
+  const devStatusAt = DEV_PLANS.get(requested)
+  if (!devStatusAt) {
     console.warn(
       `[${DEV_PLUS_STATUS_MARKER}] VITE_DEV_PLAN « ${requested} » inconnu, statut Plus laissé tel quel (attendu : ${[...DEV_PLANS.keys()].join(', ')})`,
     )
     return
   }
-  writeStoredPlusStatus(statusAt(new Date()))
+  writeStoredPlusStatus(devStatusAt(new Date()))
 }

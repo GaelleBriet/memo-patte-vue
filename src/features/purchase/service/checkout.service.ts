@@ -1,4 +1,4 @@
-import type { PlusStatus } from '../logic/plus-status'
+import { isPlusActive, statusAt, type PlusStatus } from '../logic/plus-status'
 import { usePurchaseStore } from '../store/purchase.store'
 import type { PaidPlan, PurchaseOutcome } from './billing.service'
 
@@ -63,7 +63,7 @@ export function createCheckout(account: CheckoutAccount, purchase: () => Checkou
         return { kind: 'needs-sign-in' }
       }
       const status = await port.logIn(userId)
-      if (status.plan !== 'none') return { kind: 'already-plus' }
+      if (isPlusActive(status)) return { kind: 'already-plus' }
       return port.purchase(plan)
     },
 
@@ -72,7 +72,7 @@ export function createCheckout(account: CheckoutAccount, purchase: () => Checkou
       const port = purchase()
       const plan = port.takePendingCheckout()
       if (plan === null) return null
-      const pay = isSignedIn() && port.status.plan === 'none'
+      const pay = isSignedIn() && !isPlusActive(port.status)
       if (pay) port.takePendingRestore()
       return { plan, pay }
     },
@@ -90,9 +90,9 @@ export function createCheckout(account: CheckoutAccount, purchase: () => Checkou
         port.rememberRestore()
         return { kind: 'needs-sign-in' }
       }
-      const linked = await port.logIn(userId)
-      if (linked.plan !== 'none') return { kind: 'restored', status: linked }
-      return { kind: 'restored', status: await port.restore() }
+      const linked = statusAt(await port.logIn(userId), Date.now())
+      if (isPlusActive(linked)) return { kind: 'restored', status: linked }
+      return { kind: 'restored', status: statusAt(await port.restore(), Date.now()) }
     },
 
     /** Reprend « Restaurer mes achats » touché avant la connexion, une fois connecté. */

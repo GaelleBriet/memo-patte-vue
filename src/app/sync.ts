@@ -8,6 +8,8 @@ import { providePhotoRestoreStatus } from '@/core/sync/service/photo-restore-sta
 import { createRestoreFlow, provideRestoreFlow } from '@/core/sync/service/restore-flow'
 import { getAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { useAuthStore } from '@/features/auth/store/auth.store'
+import { isPlusActive } from '@/features/purchase/logic/plus-status'
+import { isSyncEligible } from '@/features/purchase/logic/sync-eligibility'
 import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
 import { getCarnetSettingsRepository } from '@/features/settings/repository/carnet-settings.repository'
 import { createAccountBackupService } from '@/features/settings/service/account-backup.service'
@@ -37,8 +39,8 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
   const sessionActive = () => useAuthStore().sessionState === 'active'
   const signInNeeded = () => useAuthStore().sessionState === 'needs-sign-in'
   const sessionReset = () => useAuthStore().sessionUnreadable
-  const plusActive = () => usePurchaseStore().status.plan !== 'none'
-  const isEligible = () => useAuthStore().hasPlusAccount && plusActive()
+  const plusActive = () => isPlusActive(usePurchaseStore().status)
+  const isEligible = () => isSyncEligible(useAuthStore().hasPlusAccount, usePurchaseStore().status)
   const { outbox, cycle, restore, photoRestore, photoSweep } = await createLocalSyncContext({
     tables,
     cloudAnimals: animals,
