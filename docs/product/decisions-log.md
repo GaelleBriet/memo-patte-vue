@@ -4566,3 +4566,11 @@ Décision de la session d'analyse du moteur (Q73), pour appliquer la planche V21
 - Raison : sans le détail, la cause d'un 500 en production reste introuvable (le journal disait « [object Object] » le 29 octobre).
 - Alternative écartée : ne pas écrire le détail, plus sûr mais le plus souvent sans information utile.
 - Pour revenir dessus : `supabase/functions/_shared/readable-error.ts` (liste des champs gardés), #1444.
+
+## 2026-11-04 — Questions d'après-sortie (#1425, #1423, #1429, #1436, #1465)
+
+- **PDF d'un traitement arrêté puis repris (#1425)** : chaque période passée dit sa fin comme la fiche (« Arrêté le 10 mars ») et liste ses prises ; la reprise ouvre une nouvelle période. Raison : le PDF se montre au vétérinaire, l'arrêt est une information médicale. Alternative écartée : une seule histoire continue.
+- **Supprimer une prise avancée qui a décalé la suite (#1423)** : à la suppression, l'app demande s'il faut supprimer aussi le décalage des doses suivantes, oui par défaut. Raison : on corrige une erreur, on veut revenir à l'état d'avant. Alternative écartée : supprimer le décalage sans demander. Le texte de la question se valide avec Gaelle au moment du code.
+- **Deux périodes qui se chevauchent dans l'historique (#1429)** : l'ancienne période s'arrête la veille de la nouvelle ; une dose donnée en avance y figure comme « donnée en avance le … ». Alternative écartée : prolonger jusqu'à la dernière échéance.
+- **Session perdue, Paramètres › Compte (#1436, point 1)** : le bouton reste « Se déconnecter », avec sa confirmation actuelle (« Ton carnet reste sur cet appareil. Seule la synchronisation s'arrête. »). Raison : mot connu, qui ne fait pas craindre de perdre le carnet. Alternatives écartées : « Oublier ce compte », « Retirer ce compte du téléphone » (font croire à une perte de données).
+- **Première sauvegarde (#1465)** : Paramètres › Sauvegarde affiche ce qui reste à envoyer, « Encore N éléments à envoyer », au lieu de « x sur y ». Raison : toujours juste, sans nouvelle colonne. Alternative écartée : réparer « x sur y » avec une colonne retenant le total (une barre ou un pourcentage auraient eu le même besoin).
