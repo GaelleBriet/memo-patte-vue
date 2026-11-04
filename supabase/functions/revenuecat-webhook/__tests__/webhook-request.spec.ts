@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { handleRevenuecatWebhook, type RevenuecatEvent } from '../webhook-request'
 
 const AUTHORIZATION = 'Bearer secret-du-webhook'
-const SIGNING_SECRET = 'whsec_secret-de-signature-revenuecat'
+const SIGNING_SECRET = 'faux-secret-de-signature-revenuecat'
 const NOW = Date.UTC(2027, 2, 3, 10, 0, 0)
 const NOW_SECONDS = NOW / 1000
 const SOPHIE = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b'
@@ -232,7 +232,7 @@ describe('handleRevenuecatWebhook, signature de RevenueCat', () => {
 
   it.each([
     ['absente', null],
-    ['faite avec un autre secret', signatureOf(BODY, NOW_SECONDS, 'whsec_un-autre-secret')],
+    ['faite avec un autre secret', signatureOf(BODY, NOW_SECONDS, 'faux-un-autre-secret')],
     ['faite sur un autre corps', signatureOf(BODY.replace('RENEWAL', 'INITIAL_PURCHASE'))],
     ['faite pour un autre instant', `t=${NOW_SECONDS - 1},v1=${GOOD_V1}`],
     ['trop ancienne (5 min et 1 s)', signatureOf(BODY, NOW_SECONDS - 301)],

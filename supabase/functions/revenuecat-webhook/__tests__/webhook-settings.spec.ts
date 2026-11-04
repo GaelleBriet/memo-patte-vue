@@ -9,8 +9,8 @@ import { webhookSettingsFrom } from '../webhook-settings'
 
 const AUTHORIZATION_32 = 'Bearer ' + 'a'.repeat(25)
 const AUTHORIZATION_31 = 'Bearer ' + 'b'.repeat(24)
-const SIGNING_SECRET = 'whsec_secret-de-signature'
-const LEAKED_SECRET = 'whsec_' + 'c'.repeat(30)
+const SIGNING_SECRET = 'faux-secret-de-signature'
+const LEAKED_SECRET = 'faux__' + 'c'.repeat(30)
 const LEAKED_AUTHORIZATION = 'Bearer ' + 'd'.repeat(30)
 const HEX = '0123456789abcdef'.repeat(4)
 const BOTH_NAMES = ['REVENUECAT_WEBHOOK_AUTHORIZATION', 'REVENUECAT_WEBHOOK_SIGNING_SECRET']
@@ -172,7 +172,7 @@ describe('webhookSettingsFrom', () => {
   )
 
   describe('morceau commun entre l’en-tête et le secret de signature', () => {
-    const SECRET = 'whsec_0123456789abcdefghijklmnopqrstuvwxyz'
+    const SECRET = 'faux__0123456789abcdefghijklmnopqrstuvwxyz'
     const FILLER = '.'.repeat(20)
     const pieces = {
       'au début du secret': (length: number) => SECRET.slice(0, length),
@@ -239,7 +239,7 @@ describe('webhookSettingsFrom', () => {
     it('ne compte pas le préfixe Bearer dans le morceau commun', () => {
       const error = vi.spyOn(console, 'error').mockImplementation(() => {})
       const authorization = `Bearer ${SECRET.slice(6, 21)}${FILLER}`
-      const signingSecret = `whsec_bearer ${SECRET.slice(6)}`
+      const signingSecret = `faux__bearer ${SECRET.slice(6)}`
 
       const settings = settingsOf({
         REVENUECAT_WEBHOOK_AUTHORIZATION: authorization,
