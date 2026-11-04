@@ -42,23 +42,14 @@ describe('backupStatusOf', () => {
     expect(backupStatusOf(SAVED)).toEqual({ kind: 'saved', at: YESTERDAY_6_20_PM })
   })
 
-  it('première sauvegarde : 348 éléments mis en file, 228 encore à envoyer, 120 envoyés', () => {
-    expect(backupStatusOf(FIRST_BACKUP)).toEqual({ kind: 'first-backup', done: 120, total: 348 })
+  it('première sauvegarde : ce qui reste à envoyer, 228 éléments', () => {
+    expect(backupStatusOf(FIRST_BACKUP)).toEqual({ kind: 'first-backup', remaining: 228 })
   })
 
-  it('première sauvegarde : jamais moins de zéro envoyé, même avec des retraits de photos en file', () => {
-    expect(backupStatusOf({ ...FIRST_BACKUP, remaining: 350 })).toEqual({
-      kind: 'first-backup',
-      done: 0,
-      total: 348,
-    })
-  })
-
-  it('première sauvegarde : un élément refusé ne compte ni dans les envoyés ni dans le total', () => {
+  it('première sauvegarde : un élément refusé ne compte pas dans ce qui reste', () => {
     expect(backupStatusOf({ ...FIRST_BACKUP, remaining: 227, refused: 1 })).toEqual({
       kind: 'first-backup',
-      done: 120,
-      total: 347,
+      remaining: 227,
     })
   })
 
@@ -105,7 +96,7 @@ describe('showsPhotosBackedUp', () => {
   })
 
   it('pas pendant la première sauvegarde, ni quand elle est interrompue', () => {
-    expect(showsPhotosBackedUp({ kind: 'first-backup', done: 120, total: 348 })).toBe(false)
+    expect(showsPhotosBackedUp({ kind: 'first-backup', remaining: 228 })).toBe(false)
     expect(
       showsPhotosBackedUp({ kind: 'interrupted', since: YESTERDAY_6_20_PM, sessionReset: false }),
     ).toBe(false)

@@ -175,7 +175,7 @@ describe('amorçage : le carnet visible part vers un compte vide', () => {
     })
   }
 
-  it('Paramètres › Sauvegarde compte la première sauvegarde sur ce qui part, photos et animal non suivi compris, puis donne la dernière sauvegarde', async () => {
+  it('Paramètres › Sauvegarde compte ce qui reste à envoyer de la première sauvegarde, photos et animal non suivi compris, puis donne la dernière sauvegarde', async () => {
     const [first, second] = await db.query<{ id: string }>('SELECT id FROM animal ORDER BY id')
     await db.run("UPDATE animal SET photo_path = 'milo.jpg' WHERE id = ?", [first!.id])
     await db.run(
@@ -183,17 +183,13 @@ describe('amorçage : le carnet visible part vers un compte vide', () => {
       [second!.id],
     )
     const readFacts = backupFacts()
-    await outbox.enableAndQueueWholeCarnet()
+    await outbox.enableAndQueueLiveCarnet()
     const photos = (await outbox.listPending()).filter(({ entity }) => entity === 'animal_photo')
     expect(photos.map(({ entityId }) => entityId).sort()).toEqual(['luna.jpg', 'milo.jpg'])
     const queued = (await outbox.listPending()).length
 
     expect(queued).toBeGreaterThan(20)
-    expect(backupStatusOf(await readFacts())).toEqual({
-      kind: 'first-backup',
-      done: 0,
-      total: queued,
-    })
+    expect(backupStatusOf(await readFacts())).toEqual({ kind: 'first-backup', remaining: queued })
 
     await cycle.runCycle()
 

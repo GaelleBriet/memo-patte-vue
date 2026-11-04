@@ -1351,7 +1351,7 @@
         "minutesAgo": "{n} min ago",
         "firstBackup": {
           "title": "First backup in progress",
-          "count": "{done} of {total} items"
+          "remaining": "{n} item left to send | {n} items left to send"
         },
         "refused": "One item couldn’t be backed up | {n} items couldn’t be backed up",
         "refusedHelp": "{text} · Contact support",

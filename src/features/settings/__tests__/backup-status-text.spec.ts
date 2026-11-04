@@ -58,12 +58,19 @@ describe('texte de la sauvegarde cloud', () => {
     )
   })
 
-  it('première sauvegarde en cours, 120 éléments sur 348', () => {
-    expect(text({ kind: 'first-backup', done: 120, total: 348 })).toEqual({
+  it('première sauvegarde en cours, encore 228 éléments à envoyer', () => {
+    expect(text({ kind: 'first-backup', remaining: 228 })).toEqual({
       title: 'Première sauvegarde en cours',
-      hint: '120 éléments sur 348',
+      hint: 'Encore 228 éléments à envoyer',
     })
-    expect(text({ kind: 'first-backup', done: 1, total: 348 }).hint).toBe('1 élément sur 348')
+    expect(text({ kind: 'first-backup', remaining: 1 }).hint).toBe('Encore 1 élément à envoyer')
+  })
+
+  it('première sauvegarde en cours, plus rien à envoyer : le titre seul', () => {
+    expect(text({ kind: 'first-backup', remaining: 0 })).toEqual({
+      title: 'Première sauvegarde en cours',
+      hint: null,
+    })
   })
 
   it('en attente de réseau, la sauvegarde reprend dès que le téléphone est connecté', () => {
@@ -107,10 +114,11 @@ describe('texte de la sauvegarde cloud', () => {
       title: 'Last backup: 5 min ago',
       hint: 'Backup and restore guaranteed.',
     })
-    expect(text({ kind: 'first-backup', done: 120, total: 348 })).toEqual({
+    expect(text({ kind: 'first-backup', remaining: 228 })).toEqual({
       title: 'First backup in progress',
-      hint: '120 of 348 items',
+      hint: '228 items left to send',
     })
+    expect(text({ kind: 'first-backup', remaining: 1 }).hint).toBe('1 item left to send')
     expect(text({ kind: 'waiting-network', firstBackup: false })).toEqual({
       title: 'Waiting for network',
       hint: 'Backup resumes as soon as this phone is online.',
@@ -151,7 +159,7 @@ describe('sous-titre de la rubrique Sauvegarde', () => {
   }
 
   it('reprend la première ligne de la carte, sans le compte « sur M »', () => {
-    expect(sub({ kind: 'first-backup', done: 3, total: 9 })).toBe('Première sauvegarde en cours')
+    expect(sub({ kind: 'first-backup', remaining: 6 })).toBe('Première sauvegarde en cours')
     expect(sub({ kind: 'waiting-network', firstBackup: false })).toBe('En attente de réseau')
     expect(sub({ kind: 'interrupted', since: local(22, 18, 20), sessionReset: false })).toBe(
       'Reconnecte-toi pour reprendre la sauvegarde',
@@ -169,7 +177,7 @@ describe('sous-titre de la rubrique Sauvegarde', () => {
   })
 
   it('les éléments refusés ne priment pas sur les trois autres états', () => {
-    expect(sub({ kind: 'first-backup', done: 3, total: 9 }, 2)).toBe('Première sauvegarde en cours')
+    expect(sub({ kind: 'first-backup', remaining: 6 }, 2)).toBe('Première sauvegarde en cours')
     expect(sub({ kind: 'waiting-network', firstBackup: false }, 2)).toBe('En attente de réseau')
     expect(sub({ kind: 'interrupted', since: null, sessionReset: false }, 2)).toBe(
       'Reconnecte-toi pour reprendre la sauvegarde',
@@ -185,7 +193,7 @@ describe('sous-titre de la rubrique Sauvegarde', () => {
   it('en anglais', () => {
     i18n.global.locale.value = 'en'
 
-    expect(sub({ kind: 'first-backup', done: 3, total: 9 })).toBe('First backup in progress')
+    expect(sub({ kind: 'first-backup', remaining: 6 })).toBe('First backup in progress')
     expect(sub({ kind: 'waiting-network', firstBackup: false })).toBe('Waiting for network')
     expect(sub({ kind: 'interrupted', since: null, sessionReset: false })).toBe(
       'Sign back in to resume backup',

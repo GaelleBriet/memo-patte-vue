@@ -339,14 +339,14 @@ describe('BackupSettingsView', () => {
       expect(texte).not.toContain('Découvrir MémoPatte Plus')
     })
 
-    it('première sauvegarde en cours, 120 éléments sur 348, puis l’état normal', async () => {
+    it('première sauvegarde en cours, encore 228 éléments à envoyer, puis l’état normal', async () => {
       let facts: BackupFacts = { ...SAVED, lastSyncedAt: null, remaining: 228 }
       vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'], now: NOW })
       provideBackupFacts(async () => facts)
       const wrapper = await monter()
       await vi.advanceTimersByTimeAsync(0)
 
-      expect(carteÉtat(wrapper)).toBe('Première sauvegarde en cours 120 éléments sur 348')
+      expect(carteÉtat(wrapper)).toBe('Première sauvegarde en cours Encore 228 éléments à envoyer')
       expect(wrapper.find('.backup-settings__photos').exists()).toBe(false)
 
       facts = { ...SAVED, lastSyncedAt: NOW.toISOString() }
@@ -454,7 +454,9 @@ describe('BackupSettingsView', () => {
           refused: 1,
         })
 
-        expect(carteÉtat(wrapper)).toBe('Première sauvegarde en cours 120 éléments sur 347')
+        expect(carteÉtat(wrapper)).toBe(
+          'Première sauvegarde en cours Encore 227 éléments à envoyer',
+        )
         expect(wrapper.get('.backup-settings__refused').text().replace(/\s+/g, ' ')).toBe(
           'Un élément n’a pas pu être sauvegardé · Contacter l’aide',
         )

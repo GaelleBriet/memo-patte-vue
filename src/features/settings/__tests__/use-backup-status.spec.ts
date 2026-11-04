@@ -117,7 +117,7 @@ describe('useBackupStatus', () => {
 
     expect(status.value).toBeNull()
     await vi.advanceTimersByTimeAsync(0)
-    expect(status.value).toEqual({ kind: 'first-backup', done: 0, total: 348 })
+    expect(status.value).toEqual({ kind: 'first-backup', remaining: 348 })
   })
 
   it('suit la première sauvegarde toutes les deux secondes, puis s’arrête une fois sauvegardé', async () => {
@@ -129,7 +129,7 @@ describe('useBackupStatus', () => {
 
     facts = { ...FIRST_BACKUP, remaining: 228 }
     await vi.advanceTimersByTimeAsync(BACKUP_STATUS_REFRESH_MS)
-    expect(status.value).toEqual({ kind: 'first-backup', done: 120, total: 348 })
+    expect(status.value).toEqual({ kind: 'first-backup', remaining: 228 })
 
     facts = SAVED
     await vi.advanceTimersByTimeAsync(BACKUP_STATUS_REFRESH_MS)
@@ -224,7 +224,7 @@ describe('useBackupStatus', () => {
     read.mockRejectedValueOnce(new Error('base fermée'))
     await vi.advanceTimersByTimeAsync(BACKUP_STATUS_REFRESH_MS)
 
-    expect(status.value).toEqual({ kind: 'first-backup', done: 0, total: 348 })
+    expect(status.value).toEqual({ kind: 'first-backup', remaining: 348 })
   })
 
   it('l’heure de référence avance avec chaque lecture', async () => {
@@ -350,7 +350,7 @@ describe('useBackupStatus', () => {
 
       await vi.advanceTimersByTimeAsync(BACKUP_STATUS_REFRESH_MS * 5)
 
-      expect(status.value).toEqual({ kind: 'first-backup', done: 0, total: 348 })
+      expect(status.value).toEqual({ kind: 'first-backup', remaining: 348 })
       expect(read).toHaveBeenCalledTimes(1)
     })
 
