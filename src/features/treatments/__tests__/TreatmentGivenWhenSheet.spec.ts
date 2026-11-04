@@ -139,9 +139,16 @@ const DOSE_16 = { settingId: 'p-1', dueOn: '2026-10-16', dueTime: null }
 
 describe('TreatmentGivenWhenSheet — « Donnée quand ? » (V5)', () => {
   it('traitement supprimé : dit qu’il est introuvable, sans le toast d’échec de chargement', async () => {
-    await ouvrir(HEBDO(), '2026-10-19', { dueOn: '2026-10-16', dueTime: null }, null)
+    const feuille = await ouvrir(
+      HEBDO(),
+      '2026-10-19',
+      { dueOn: '2026-10-16', dueTime: null },
+      null,
+    )
 
     expect(plain(toastMessage.value)).toBe('Ce traitement est introuvable.')
+    expect(feuille.emitted('update:modelValue')?.at(-1)).toEqual([false])
+    expect(feuille.emitted('unavailable')).toBeUndefined()
   })
 
   it('chargement qui échoue : garde le toast d’échec', async () => {
