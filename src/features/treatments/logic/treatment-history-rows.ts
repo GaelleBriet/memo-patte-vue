@@ -176,7 +176,10 @@ function idleLine(t: Translate, dose: TreatmentDose, period: TreatmentPeriodReco
     dose,
     title: answered ? dueTitle(t, dose, period) : noEffect,
     detail: answered ? noEffect : null,
-    optionsLabel: doseOptionsLabel(t, dose, period),
+    optionsLabel:
+      dose.status === 'shift'
+        ? t('treatments.history.idleShiftOptions', { date: formatFullDate(dose.dueOn) })
+        : doseOptionsLabel(t, dose, period),
     actions: ['remove'],
   }
 }

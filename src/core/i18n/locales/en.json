@@ -693,6 +693,7 @@
       "shiftWithoutNext": "Following doses moved",
       "shift": "Following doses moved · next on {date}",
       "shiftOptions": "Options for the move of the doses after {date}",
+      "idleShiftOptions": "Options for the move on {date}",
       "refusal": {
         "shiftLaterDose": "A later dose is already logged.",
         "removeMoveLaterLine": "A later dose is already postponed. Delete its postponement first.",

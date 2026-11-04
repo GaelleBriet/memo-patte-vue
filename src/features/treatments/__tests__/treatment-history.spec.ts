@@ -923,6 +923,13 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
       },
     ])
   })
+
+  it('#1424 : le menu d’un décalage grisé s’annonce « décalage », pas « prise »', () => {
+    const idle = history(TEST_G, '2026-10-28')
+      .periods.flatMap(({ lines }) => lines)
+      .find(({ kind }) => kind === 'idle')
+    expect(idle?.optionsLabel).toBe('Options pour le décalage du 28 octobre 2026')
+  })
 })
 
 describe('treatmentHistory — une prise dont l’échéance a quitté le calendrier (#899, #841)', () => {
