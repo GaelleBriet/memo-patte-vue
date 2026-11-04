@@ -33,7 +33,7 @@ export function lapsedAt({ expiresAt }: PlusStatus, now: number): string | null 
   return expiresAt !== null && Date.parse(expiresAt) <= now ? expiresAt : null
 }
 
-/** Sur le statut lu par le store, où une échéance passée vaut déjà « aucun ». */
+/** Sur le statut lu par le store ou tout juste lu chez RevenueCat : une échéance passée y vaut déjà « aucun ». */
 export function isPlusActive(status: PlusStatus): boolean {
   return status.plan !== 'none'
 }
