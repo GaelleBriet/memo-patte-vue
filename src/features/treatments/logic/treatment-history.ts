@@ -12,7 +12,7 @@ import {
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
-import { byStartDescending, periodShownRange } from '@/shared/domain/treatment-periods'
+import { byStartDescending, periodShownDays } from '@/shared/domain/treatment-periods'
 import { historyEntries, type TreatmentReading } from '@/shared/domain/treatment-reading'
 import { formatLongDate, formatDayMonthOrYear } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
@@ -54,9 +54,8 @@ function rangeDates(from: string, to: string): { from: string; to: string } {
   return { from: formatDayMonthOrYear(from, to), to: formatLongDate(to) }
 }
 
-function headTitle(t: Translate, periods: Period[], period: Period, entries: Entry[]): string {
-  const doses = entries.map(({ dose }) => dose)
-  const { start, lastDay: end } = periodShownRange(periods, period, doses)
+function headTitle(t: Translate, periods: Period[], period: Period): string {
+  const { start, lastDay: end } = periodShownDays(periods, period)
   if (end === null) {
     return t('treatments.history.period.since', { date: formatLongDate(start) })
   }
@@ -222,7 +221,7 @@ export function treatmentHistory(
         head: isAlone
           ? null
           : {
-              title: headTitle(t, periods, period, own),
+              title: headTitle(t, periods, period),
               settings: periodSettingsText(t, period),
             },
         lines,

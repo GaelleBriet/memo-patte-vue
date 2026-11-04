@@ -8,7 +8,7 @@ import {
   byStartDescending,
   isSeveralTimesADay,
   periodClosedBeforeFirstDue,
-  periodShownRange,
+  periodShownDays,
 } from '@/shared/domain/treatment-periods'
 import { nextDueAfterShift } from '@/shared/domain/treatment-shift-next'
 import { answeredOn } from '@/shared/domain/treatment-not-due-text'
@@ -280,7 +280,7 @@ export function treatmentPeriods(state: TreatmentState): PdfTreatmentPeriod[] {
         })),
     ]
     if (events.length === 0 && periodClosedBeforeFirstDue(period, sorted[index - 1])) return []
-    const shown = periodShownRange(periods, period, own)
+    const shown = periodShownDays(periods, period)
     return [
       {
         from: shown.start,

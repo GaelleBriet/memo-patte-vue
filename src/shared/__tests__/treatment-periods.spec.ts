@@ -5,7 +5,6 @@ import {
   isSeveralTimesADay,
   periodClosedBeforeFirstDue,
   periodShownDays,
-  periodShownRange,
 } from '../domain/treatment-periods'
 
 describe('isSeveralTimesADay', () => {
@@ -80,7 +79,7 @@ describe('periodShownDays (R12, #925)', () => {
   })
 })
 
-describe('periodShownRange (R12, #1429)', () => {
+describe('periodShownDays : fin d’une période (R12, Q85, #1429)', () => {
   const daily = {
     id: 'p1',
     createdAt: '2026-10-26T08:00:00.000Z',
@@ -97,45 +96,28 @@ describe('periodShownRange (R12, #1429)', () => {
     endsOn: null,
     stoppedOn: null,
   }
-  const periods = [daily, fortnightly]
 
-  it('une période remplacée s’arrête la veille de la suivante, même avec un report ce jour-là ou une dose donnée en avance', () => {
-    const lines = [
-      { status: 'given', dueOn: '2026-10-27' },
-      { status: 'postponed', dueOn: '2026-10-28' },
-      { status: 'given', dueOn: '2026-11-30' },
-    ] as const
-
-    expect(periodShownRange(periods, daily, lines)).toEqual({
+  it('une période remplacée s’arrête la veille de la suivante', () => {
+    expect(periodShownDays([daily, fortnightly], daily)).toEqual({
       start: '2026-10-26',
       lastDay: '2026-10-27',
     })
   })
 
-  it('ni un décalage ni une réponse « pas à donner » ne la repoussent', () => {
-    const lines = [
-      { status: 'given', dueOn: '2026-10-27' },
-      { status: 'shift', dueOn: '2026-10-28' },
-      { status: 'not-due', dueOn: '2026-10-29' },
-    ] as const
-
-    expect(periodShownRange(periods, daily, lines).lastDay).toBe('2026-10-27')
-  })
-
-  it('Q85 : ne dépasse jamais l’arrêt, la date de fin ni la veille de la suivante', () => {
-    const advance = [{ status: 'given', dueOn: '2026-11-30' }] as const
+  it('ne dépasse jamais l’arrêt, la date de fin ni la veille de la suivante', () => {
     const stopped = { ...daily, stoppedOn: '2026-10-27' }
     const ended = { ...daily, endsOn: '2026-10-29' }
 
-    expect(periodShownRange([stopped], stopped, advance).lastDay).toBe('2026-10-27')
-    expect(periodShownRange([ended], ended, advance).lastDay).toBe('2026-10-29')
-    expect(periodShownRange([ended, fortnightly], ended, advance).lastDay).toBe('2026-10-27')
-    expect(periodShownRange([stopped, fortnightly], stopped, advance).lastDay).toBe('2026-10-27')
+    expect(periodShownDays([stopped], stopped).lastDay).toBe('2026-10-27')
+    expect(periodShownDays([ended], ended).lastDay).toBe('2026-10-29')
+    expect(periodShownDays([ended, fortnightly], ended).lastDay).toBe('2026-10-27')
+    expect(periodShownDays([stopped, fortnightly], stopped).lastDay).toBe('2026-10-27')
   })
 
   it('une période ouverte reste ouverte', () => {
-    expect(
-      periodShownRange(periods, fortnightly, [{ status: 'given', dueOn: '2026-11-07' }]),
-    ).toEqual({ start: '2026-10-28', lastDay: null })
+    expect(periodShownDays([daily, fortnightly], fortnightly)).toEqual({
+      start: '2026-10-28',
+      lastDay: null,
+    })
   })
 })

@@ -1,5 +1,5 @@
 import { previousDay } from './calendar-day'
-import type { Line, Setting } from './dose-calendar'
+import type { Setting } from './dose-calendar'
 
 type Ordered = Pick<Setting, 'id' | 'startsOn' | 'createdAt'>
 
@@ -33,8 +33,8 @@ function shownStartOf(period: Shown, older: Shown | undefined): string {
 }
 
 /**
- * R12 : le début d'une période et sa fin enregistrée ; une période qui suit une période arrêtée ou
- * finie commence à sa première échéance. `lastDay` : `null` si ouverte.
+ * R12 : les jours de l'étiquette d'une période, sur la fiche comme sur le PDF ; une période qui suit
+ * une période arrêtée ou finie commence à sa première échéance. `lastDay` : `null` si ouverte.
  */
 export function periodShownDays(
   periods: readonly Shown[],
@@ -48,17 +48,6 @@ export function periodShownDays(
     start: shownStartOf(period, index < 0 ? undefined : sorted[index + 1]),
     lastDay: periodLastDay(period, nextStart),
   }
-}
-
-type DoseDay = Pick<Line, 'status' | 'dueOn'>
-
-/** R12 : les jours de l'étiquette d'une période, sur la fiche comme sur le PDF. */
-export function periodShownRange(
-  periods: readonly Shown[],
-  period: Shown,
-  _lines: readonly DoseDay[],
-): { start: string; lastDay: string | null } {
-  return periodShownDays(periods, period)
 }
 
 /** Arrêtée, finie ou remplacée par `next` avant sa première échéance. */
