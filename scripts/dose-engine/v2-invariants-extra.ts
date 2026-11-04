@@ -1,4 +1,9 @@
-import { treatmentView, type Line, type TreatmentViewInput } from '@/shared/domain/dose-calendar'
+import {
+  redateAsksExtraOrReplaces,
+  treatmentView,
+  type Line,
+  type TreatmentViewInput,
+} from '@/shared/domain/dose-calendar'
 
 import { dueKey } from './display'
 import { compare, firstDayOf, horizonOf, type Broken } from './v2-reading'
@@ -12,10 +17,15 @@ function calendar(input: TreatmentViewInput): string[] {
     .map(({ due, state }) => `${dueKey(due)} ${state}`)
 }
 
-// TR-24, R11 : seuls « Supprimer cette prise » et « Changer la date » répondu « Remplace » (ou sans réponse, règle d'avant Q27) la changent.
+// TR-24, R11, Q37 : seuls « Supprimer cette prise » et « Changer la date » répondu « Remplace », ou sans réponse un jour où la question se pose, la changent.
 function lostExtra({ before, after, gesture }: V2Step): Broken | null {
   const removed = gesture?.kind === 'remove' ? gesture.lineId : null
-  const redated = gesture?.kind === 'redate' && gesture.answer !== 'extra' ? gesture.lineId : null
+  const redated =
+    gesture?.kind === 'redate' &&
+    gesture.answer !== 'extra' &&
+    redateAsksExtraOrReplaces(before, gesture.lineId, gesture.givenOn) !== null
+      ? gesture.lineId
+      : null
   for (const extra of before.lines) {
     if (extra.status !== 'extra' || extra.id === removed || extra.id === redated) continue
     const now = after.lines.find(({ id }) => id === extra.id)

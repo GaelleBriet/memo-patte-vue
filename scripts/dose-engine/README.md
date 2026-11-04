@@ -49,8 +49,8 @@ comme un seul « Modifier » (R10), n'est pas jugé. « En plus » (`v2-invarian
 Q37) : une réponse « En plus » écrit une seule prise en plus, à sa date, et laisse le calendrier tel
 quel ; une prise en plus le reste, et reste dans l'historique, aux pas suivants, « Modifier »,
 « Arrêter » et « Reprendre » compris, sauf « Supprimer cette prise » ou « Changer la date » répondu
-« Remplace » (ou sans réponse, règle d'avant Q27) sur elle (TR-24, R11). La symétrie se joue aussi pour la première dose à venir, dose du
-moment ou non (`symmetryAhead`). La case vient d'une seule condition pour « Fait à une autre date » et
+« Remplace », ou sans réponse un jour où la question se pose, sur elle (TR-24, R11, Q37). La
+symétrie se joue aussi pour la première dose à venir, dose du moment ou non (`symmetryAhead`). La case vient d'une seule condition pour « Fait à une autre date » et
 « Changer la date » (`gestures/shift-offer.ts`) : la symétrie se juge case cochée ou décochée,
 sans exclusion (#1242, #1255). « Dose déplacée présente » (`v2-invariants-moved.ts`, R7, R11,
 #1274) : « Prochaine dose » accepté, la dose touchée et les heures suivantes encore à donner de sa

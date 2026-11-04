@@ -86,6 +86,29 @@ describe('invariant « une réponse En plus reste une prise en plus » (R5, Q27,
     )
   })
 
+  it('Bravecto, prise en plus du 24 oct. changée au 22 oct. sans question, puis effacée : ne tient pas', () => {
+    const enPlus24 = line('p1', 'extra', '2026-10-24')
+    const luna: TreatmentViewInput = {
+      settings: [setting('p1', '2026-11-01', THREE_MONTHS)],
+      lines: [enPlus24],
+      today: '2026-10-24',
+    }
+    const effacee: V2Step = {
+      label: 'Changer la date',
+      before: luna,
+      after: { ...luna, lines: [] },
+      gesture: {
+        kind: 'redate',
+        lineId: enPlus24.id,
+        givenOn: '2026-10-22',
+        shiftsFollowing: false,
+      },
+      outcome: null,
+      plan: null,
+    }
+    expect(staysExtra(effacee)?.invariant).toBe('en plus')
+  })
+
   it('une prise en plus devenue une prise donnée par un autre geste : ne tient pas', () => {
     const autre: V2Step = {
       label: 'Modifier',
