@@ -7,7 +7,7 @@ import type { PaidPlan, PlusOffer } from '../service/billing.service'
 import { plusCheckout } from '../service/checkout.service'
 import { usePlusMemberText } from '../composables/use-plus-status-text'
 import { usePurchaseRestore } from '../composables/use-purchase-restore'
-import { managedInGooglePlay, type PlusStatus } from '../logic/plus-status'
+import { isPlusActive, managedInGooglePlay, type PlusStatus } from '../logic/plus-status'
 import { authAvailable } from '@/shared/utils/auth-available'
 import { errorSummary } from '@/shared/utils/error-summary'
 import { signInRoute } from '@/shared/utils/sign-in-route'
@@ -58,7 +58,7 @@ const bar = computed(() =>
 const isConnecting = computed(
   () => bar.value.kind === 'connecting' || (bar.value.kind === 'unavailable' && bar.value.retrying),
 )
-const isMember = computed(() => purchase.status.plan !== 'none')
+const isMember = computed(() => purchase.isActive)
 const isManaged = computed(() => managedInGooglePlay(purchase.status))
 const isPurchasing = computed(() => phase.value === 'purchasing')
 const isBusy = computed(() => isPurchasing.value || isRestoring.value)
@@ -124,8 +124,8 @@ function leaveOutcome(): void {
 }
 
 function afterRestore(status: PlusStatus): void {
-  if (status.plan === 'none') showToast(t('plus.restore.none'), { tone: 'info' })
-  else phase.value = 'success'
+  if (isPlusActive(status)) phase.value = 'success'
+  else showToast(t('plus.restore.none'), { tone: 'info' })
 }
 
 function openAlreadyPlus(): void {

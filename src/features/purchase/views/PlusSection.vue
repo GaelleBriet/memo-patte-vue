@@ -6,7 +6,7 @@ import { useRouter } from 'vue-router'
 import ManageSubscriptionSection from './ManageSubscriptionSection.vue'
 import { usePlusStatusText } from '../composables/use-plus-status-text'
 import { usePurchaseRestore } from '../composables/use-purchase-restore'
-import type { PlusStatus } from '../logic/plus-status'
+import { isPlusActive, type PlusStatus } from '../logic/plus-status'
 import { usePurchaseStore } from '../store/purchase.store'
 import { authAvailable } from '@/shared/utils/auth-available'
 import SectionCard from '@/shared/components/SectionCard.vue'
@@ -23,7 +23,7 @@ const { isRestoring, restore, resumeRestore } = usePurchaseRestore('settings-plu
 const isPaused = computed(() => purchase.expiredPlan !== null)
 const canDiscover = computed(() => statusHint.value === null)
 const canRestore = computed(
-  () => purchase.available && authAvailable() && purchase.status.plan === 'none' && !isPaused.value,
+  () => purchase.available && authAvailable() && !purchase.isActive && !isPaused.value,
 )
 const canSignIn = computed(() => canDiscover.value && authAvailable())
 
@@ -36,8 +36,8 @@ function openSignIn(): void {
 }
 
 function announce(status: PlusStatus): void {
-  if (status.plan === 'none') showToast(t('plus.restore.none'), { tone: 'info' })
-  else showToast(t('plus.restore.restored'))
+  if (isPlusActive(status)) showToast(t('plus.restore.restored'))
+  else showToast(t('plus.restore.none'), { tone: 'info' })
 }
 
 onMounted(resumeRestore)
