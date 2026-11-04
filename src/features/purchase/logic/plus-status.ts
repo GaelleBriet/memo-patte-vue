@@ -38,7 +38,7 @@ export function statusAt(status: PlusStatus, now: number): PlusStatus {
   return lapsedAt(status, now) === null ? status : NO_PLUS
 }
 
-/** Sur un statut passé par `statusAt` (celui du store l'est déjà). */
+/** Sur un statut passé par `statusAt` ; l'achat le lit brut, pour ne jamais faire payer sur un cache douteux. */
 export function isPlusActive(status: PlusStatus): boolean {
   return status.plan !== 'none'
 }
