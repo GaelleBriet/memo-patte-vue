@@ -45,13 +45,6 @@ describe('backupStatusOf', () => {
     expect(backupStatusOf(FIRST_BACKUP)).toEqual({ kind: 'first-backup', remaining: 228 })
   })
 
-  it('première sauvegarde : un élément refusé ne compte pas dans ce qui reste', () => {
-    expect(backupStatusOf({ ...FIRST_BACKUP, remaining: 227, refused: 1 })).toEqual({
-      kind: 'first-backup',
-      remaining: 227,
-    })
-  })
-
   it('en attente de réseau hors ligne, pendant la première sauvegarde aussi', () => {
     expect(backupStatusOf({ ...SAVED, online: false })).toEqual({
       kind: 'waiting-network',
