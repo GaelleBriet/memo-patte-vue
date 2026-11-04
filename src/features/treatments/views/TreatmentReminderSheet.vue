@@ -127,15 +127,14 @@ watch(
     refreshToday()
     treatment.value = null
     if (!animals.hasLoaded) void animals.load()
-    const id = props.treatmentId
-    const loaded = id ? await loadSheetTreatment(t, () => treatments.getWithPeriods(id)) : null
-    if (loaded !== null && 'treatment' in loaded) {
+    const loaded = await loadSheetTreatment(t, props.treatmentId, treatments.getWithPeriods)
+    if ('treatment' in loaded) {
       treatment.value = loaded.treatment
       return
     }
     if (!open.value) return
     open.value = false
-    showToast(loaded?.failure ?? t('treatments.form.errors.load'), { tone: 'error' })
+    showToast(loaded.failure, { tone: 'error' })
   },
   { immediate: true },
 )
