@@ -628,7 +628,7 @@ describe('treatmentHistory — plusieurs périodes (planche A · V3)', () => {
     expect(
       history(book, '2026-03-20').periods.map(({ head, lines }) => ({
         head: head?.title,
-        lines: lines.map(({ title, detail }) => [title, detail]),
+        lines: lines.map((line) => [line.title, 'detail' in line ? line.detail : null]),
       })),
     ).toEqual([
       { head: 'Depuis le 15 mars 2026', lines: [] },
