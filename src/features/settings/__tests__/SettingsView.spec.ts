@@ -184,7 +184,6 @@ describe('SettingsView', () => {
         syncEnabled: true,
         lastSyncedAt: new Date(2026, 8, 15, 11, 55).toISOString(),
         remaining: 0,
-        carnetSize: 40,
         refused: 0,
         refusedPhotos: 0,
       }

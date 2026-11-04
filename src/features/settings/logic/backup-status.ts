@@ -5,7 +5,7 @@ export type BackupStatus =
   | { kind: 'unread' }
   | { kind: 'interrupted'; since: string | null; sessionReset: boolean }
   | { kind: 'waiting-network'; firstBackup: boolean }
-  | { kind: 'first-backup'; done: number; total: number }
+  | { kind: 'first-backup'; remaining: number }
   | { kind: 'saved'; at: string }
 
 export type CloudBackupStatus = Exclude<BackupStatus, { kind: 'local' | 'unread' }>
@@ -16,10 +16,7 @@ export function backupStatusOf(facts: BackupFacts | null): BackupStatus {
   if (facts.signInNeeded)
     return { kind: 'interrupted', since: facts.lastSyncedAt, sessionReset: facts.sessionReset }
   if (!facts.online) return { kind: 'waiting-network', firstBackup: facts.lastSyncedAt === null }
-  if (facts.lastSyncedAt === null) {
-    const total = facts.carnetSize - facts.refused
-    return { kind: 'first-backup', done: Math.max(0, total - facts.remaining), total }
-  }
+  if (facts.lastSyncedAt === null) return { kind: 'first-backup', remaining: facts.remaining }
   return { kind: 'saved', at: facts.lastSyncedAt }
 }
 

@@ -1351,7 +1351,7 @@
         "minutesAgo": "il y a {n} min",
         "firstBackup": {
           "title": "Première sauvegarde en cours",
-          "count": "{done} élément sur {total} | {done} élément sur {total} | {done} éléments sur {total}"
+          "remaining": "Encore {n} élément à envoyer | Encore {n} éléments à envoyer"
         },
         "refused": "Un élément n’a pas pu être sauvegardé | {n} éléments n’ont pas pu être sauvegardés",
         "refusedHelp": "{text} · Contacter l’aide",

@@ -265,12 +265,12 @@ Déconnexion et expiration se traitent alors en deux instructions, sans toucher 
   `queued_at` a bougé depuis la lecture, rien n'est marqué. Une entrée refusée ne bloque jamais la
   file : `listPending` et `countPending` l'ignorent, le cycle aboutit et date la sauvegarde. Elle
   repart quand la ligne est modifiée ou supprimée (le déclencheur `sync_outbox_requeued` efface
-  `refused_at` dès que `queued_at` avance), quand tout le carnet est remis en file
-  (`enableAndQueueWholeCarnet`) et à la restauration ; elle disparaît avec la file à la déconnexion
+  `refused_at` dès que `queued_at` avance), à l'activation de la synchro
+  (`enableAndQueueLiveCarnet`) et à la restauration ; elle disparaît avec la file à la déconnexion
   et au changement de compte (`forgetAccount`). Paramètres › Sauvegarde en compte le nombre
   (`countRefused`, photos du carnet comprises) sous l'état de la sauvegarde cloud, quel qu'il soit
   (« Dernière sauvegarde », « Première sauvegarde », « En attente de réseau », « Reconnecte-toi »),
-  jamais seul ; elle ne compte pas dans « N éléments sur M ». Dès qu'une photo du carnet est
+  jamais seul ; elle ne compte pas dans « Encore N éléments à envoyer ». Dès qu'une photo du carnet est
   refusée (`countRefusedPhotos`), la ligne « Photos sauvegardées · Oui » disparaît. Une panne
   passagère ou un refus de droit se réessaient sans fin, sans jamais être marqués. L'avertissement
   « modifications non sauvegardées » avant « Effacer les données de ce téléphone » compte aussi les

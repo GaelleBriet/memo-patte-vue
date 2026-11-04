@@ -157,7 +157,7 @@ describe('restauration avec un carnet sur le téléphone', () => {
     })
     await phone.register()
     await phone.settings.update({ vaccineReminderTime: '18:30' })
-    await phone.outbox.enableAndQueueWholeCarnet()
+    await phone.outbox.enableAndQueueLiveCarnet()
     await phone.sync()
     vi.setSystemTime(Date.now() + 60_000)
     tablet = await createPhone(server, TABLET_ID)
@@ -424,6 +424,19 @@ describe('restauration avec un carnet sur le téléphone', () => {
       await tablet.sync()
 
       await expect(tablet.settings.get()).resolves.toMatchObject({ vaccineReminderTime: '07:45' })
+      expect(serverRows('carnet_settings')).toEqual(await tablet.rows('carnet_settings'))
+    })
+
+    it('réglages plus anciens sur le téléphone : ceux du compte gagnent, ici comme sur le serveur', async () => {
+      vi.setSystemTime(new Date(2026, 9, 20, 8))
+      await tablet.settings.update({ vaccineReminderTime: '07:45' })
+      vi.setSystemTime(new Date(2026, 9, 21, 9))
+
+      await tablet.restore.start('merge')
+      await tablet.restore.run()
+      await tablet.sync()
+
+      await expect(tablet.settings.get()).resolves.toMatchObject({ vaccineReminderTime: '18:30' })
       expect(serverRows('carnet_settings')).toEqual(await tablet.rows('carnet_settings'))
     })
   })

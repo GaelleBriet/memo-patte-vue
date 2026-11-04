@@ -154,7 +154,7 @@ describe('le compte a-t-il une sauvegarde ?', () => {
     await phone.animals.create({ name: 'Milo', species: 'dog' })
     await tablet.animals.create({ name: 'Luna', species: 'cat' })
     await phone.backup.check()
-    await tablet.outbox.enableAndQueueWholeCarnet()
+    await tablet.outbox.enableAndQueueLiveCarnet()
     await tablet.sync()
 
     await expect(phone.backup.confirmSend()).resolves.toMatchObject({ kind: 'backup-found' })
@@ -164,7 +164,7 @@ describe('le compte a-t-il une sauvegarde ?', () => {
   })
 
   it('seule la fiche d’un téléphone sur le compte : ce n’est pas une sauvegarde', async () => {
-    await phone.outbox.enableAndQueueWholeCarnet()
+    await phone.outbox.enableAndQueueLiveCarnet()
     await phone.sync()
     expect(server.rows('device')).toHaveLength(1)
 
@@ -173,9 +173,14 @@ describe('le compte a-t-il une sauvegarde ?', () => {
 
   it('seulement des animaux supprimés : ce n’est pas une sauvegarde', async () => {
     const milo = await phone.animals.create({ name: 'Milo', species: 'dog' })
-    await phone.animals.remove(milo.id)
-    await phone.outbox.enableAndQueueWholeCarnet()
+    await phone.outbox.enableAndQueueLiveCarnet()
     await phone.sync()
+    vi.setSystemTime(Date.now() + 60_000)
+    await phone.animals.remove(milo.id)
+    await phone.sync()
+    expect(server.rows('animal')).toEqual([
+      expect.objectContaining({ id: milo.id, deleted_at: expect.any(String) }),
+    ])
 
     await expect(tablet.backup.check()).resolves.toEqual({ kind: 'seeded' })
   })
@@ -188,7 +193,7 @@ describe('le compte a-t-il une sauvegarde ?', () => {
       departureReason: null,
       departureDate: null,
     })
-    await phone.outbox.enableAndQueueWholeCarnet()
+    await phone.outbox.enableAndQueueLiveCarnet()
     await phone.sync()
     const latest = server
       .rows('device')
@@ -207,7 +212,7 @@ describe('le compte a-t-il une sauvegarde ?', () => {
 
   it('un téléphone sans animal reçoit la sauvegarde sans question', async () => {
     await phone.animals.create({ name: 'Milo', species: 'dog' })
-    await phone.outbox.enableAndQueueWholeCarnet()
+    await phone.outbox.enableAndQueueLiveCarnet()
     await phone.sync()
 
     await expect(tablet.backup.check()).resolves.toEqual({ kind: 'restore-pending', mode: 'merge' })

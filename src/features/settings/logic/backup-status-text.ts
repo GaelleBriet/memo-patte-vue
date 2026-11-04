@@ -51,11 +51,14 @@ export function cloudBackupText(
     case 'first-backup':
       return {
         title: t('settings.backup.cloud.firstBackup.title'),
-        hint: t(
-          'settings.backup.cloud.firstBackup.count',
-          { done: status.done, total: status.total },
-          status.done,
-        ),
+        hint:
+          status.remaining === 0
+            ? null
+            : t(
+                'settings.backup.cloud.firstBackup.remaining',
+                { n: status.remaining },
+                status.remaining,
+              ),
       }
     case 'waiting-network':
       return {

@@ -22,7 +22,6 @@ export function createLocalSyncOutbox(db: DbClient) {
     cancelRestore: syncState.cancelRestore,
     unqueuedStatements: syncState.unqueuedStatements,
     carnetFingerprint: fingerprint.read,
-    countWholeCarnet: outbox.countWholeCarnet,
     countPending: outbox.countPending,
     countRefused: outbox.countRefused,
     countRefusedPhotos: outbox.countRefusedPhotos,
@@ -32,13 +31,6 @@ export function createLocalSyncOutbox(db: DbClient) {
     markRefusedIfUnchanged: outbox.markRefusedIfUnchanged,
     recordFailedPush: outbox.recordFailedPush,
     clear: outbox.clear,
-
-    async enableAndQueueWholeCarnet(): Promise<void> {
-      await db.runMany([
-        ...syncState.enableFromStartStatements(),
-        ...outbox.queueWholeCarnetStatements(),
-      ])
-    },
 
     async enableAndQueueLiveCarnet(): Promise<void> {
       await db.runMany([
