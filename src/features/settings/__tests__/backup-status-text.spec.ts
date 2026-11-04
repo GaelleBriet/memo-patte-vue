@@ -158,7 +158,7 @@ describe('sous-titre de la rubrique Sauvegarde', () => {
     return text === null ? null : plain(text)
   }
 
-  it('reprend la première ligne de la carte, sans le compte « sur M »', () => {
+  it('reprend la première ligne de la carte, sans ce qui reste à envoyer', () => {
     expect(sub({ kind: 'first-backup', remaining: 6 })).toBe('Première sauvegarde en cours')
     expect(sub({ kind: 'waiting-network', firstBackup: false })).toBe('En attente de réseau')
     expect(sub({ kind: 'interrupted', since: local(22, 18, 20), sessionReset: false })).toBe(
