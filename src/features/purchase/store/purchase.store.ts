@@ -10,6 +10,7 @@ import {
 import {
   isPlusActive,
   lapsedAt,
+  statusAt,
   NO_PLUS,
   subscriptionOf,
   type PlusStatus,
@@ -60,8 +61,7 @@ export const usePurchaseStore = defineStore('purchase', () => {
   /** Une échéance passée se lit « aucun » ; le stocké reste, pour retrouver un renouvellement. */
   const status = computed<PlusStatus>(() => {
     const { plan, expiresAt, offered } = stored.value
-    if (lapsedAt(stored.value, now.value) !== null) return NO_PLUS
-    return offered ? { plan, expiresAt, offered } : { plan, expiresAt }
+    return statusAt(offered ? { plan, expiresAt, offered } : { plan, expiresAt }, now.value)
   })
   const isActive = computed(() => isPlusActive(status.value))
   /** Abonnement échu, que `status` lit déjà « aucun » : de quoi écrire « expiré ». */

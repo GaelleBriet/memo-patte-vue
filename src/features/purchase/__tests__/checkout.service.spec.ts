@@ -10,6 +10,7 @@ import {
 
 const USER_ID = '4d1c6a52-8f0e-4b8e-9a51-2f6a3c9d7e10'
 const ANNUEL: PlusStatus = { plan: 'annual', expiresAt: '2027-10-22T10:00:00Z' }
+const MENSUEL_ECHU: PlusStatus = { plan: 'monthly', expiresAt: '2020-09-01T10:00:00Z' }
 
 function compte(
   userId: string | null,
@@ -105,6 +106,15 @@ describe('checkout', () => {
     await expect(checkout('monthly')).resolves.toEqual({ kind: 'already-plus' })
 
     expect(value.purchase).not.toHaveBeenCalled()
+  })
+
+  it('fait payer un compte dont le droit rendu par le cache de RevenueCat est échu', async () => {
+    const { value } = port({ logIn: vi.fn<CheckoutPort['logIn']>(async () => MENSUEL_ECHU) })
+    const { checkout } = createCheckout(compte(USER_ID), () => value)
+
+    await checkout('annual')
+
+    expect(value.purchase).toHaveBeenCalledWith('annual')
   })
 
   it('rend l’annulation de Google Play telle quelle', async () => {
@@ -292,6 +302,23 @@ describe('restorePurchases', () => {
     await expect(restorePurchases()).resolves.toEqual({ kind: 'restored', status: ANNUEL })
 
     expect(value.restore).not.toHaveBeenCalled()
+  })
+
+  it('lit « aucun » quand RevenueCat rend, après la restauration, un droit déjà échu', async () => {
+    const { value } = port({
+      logIn: vi.fn<CheckoutPort['logIn']>(async () => MENSUEL_ECHU),
+      restore: vi.fn<CheckoutPort['restore']>(async () => MENSUEL_ECHU),
+    })
+    const { restorePurchases } = createCheckout(compte(USER_ID), () => value)
+
+    await expect(restorePurchases()).resolves.toEqual({ kind: 'restored', status: NO_PLUS })
+  })
+
+  it('restaure quand la connexion rend un droit échu mais que la restauration en trouve un en cours', async () => {
+    const { value } = port({ logIn: vi.fn<CheckoutPort['logIn']>(async () => MENSUEL_ECHU) })
+    const { restorePurchases } = createCheckout(compte(USER_ID), () => value)
+
+    await expect(restorePurchases()).resolves.toEqual({ kind: 'restored', status: ANNUEL })
   })
 
   it('session refusée par le serveur : retient la demande et passe par la connexion', async () => {
