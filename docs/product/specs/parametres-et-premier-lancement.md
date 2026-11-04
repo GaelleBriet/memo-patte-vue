@@ -81,7 +81,7 @@ personnalisation de l'accueil.
   (rappels précis coupés), « Désactivés » (notifications refusées), « Pas encore activés »
   (autorisation jamais demandée). Sous-titre de « Sauvegarde » : « Sur ce téléphone » pour un gratuit et pour
   un abonné dont la synchro n'est pas activée ; sinon la première ligne de la carte d'état de l'écran
-  Sauvegarde, sans le compte « sur M » : « Première sauvegarde en cours », « En attente de réseau »,
+  Sauvegarde, sans le reste à envoyer : « Première sauvegarde en cours », « En attente de réseau »,
   « Reconnecte-toi pour reprendre la sauvegarde », « Dernière sauvegarde : il y a 5 min ». Des éléments
   refusés prennent la place de « Dernière sauvegarde » (« Un élément n'a pas pu être sauvegardé », « 3
   éléments n'ont pas pu être sauvegardés », sans lien vers l'aide), jamais celle des trois autres états.
