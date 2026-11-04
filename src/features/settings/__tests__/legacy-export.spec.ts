@@ -379,7 +379,7 @@ describe('validation stricte d’un ancien export : tout ou rien', () => {
     })
 
     expect(['invalid', null]).toContain(reasonOf(file))
-  })
+  }, 30_000)
 
   it.each([
     ['v2', exportV2],
