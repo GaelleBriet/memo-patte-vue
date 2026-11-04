@@ -86,6 +86,29 @@ describe('invariant « une réponse En plus reste une prise en plus » (R5, Q27,
     )
   })
 
+  it('Bravecto, prise en plus du 24 oct. changée au 22 oct. sans question, puis effacée : ne tient pas', () => {
+    const enPlus24 = line('p1', 'extra', '2026-10-24')
+    const luna: TreatmentViewInput = {
+      settings: [setting('p1', '2026-11-01', THREE_MONTHS)],
+      lines: [enPlus24],
+      today: '2026-10-24',
+    }
+    const effacee: V2Step = {
+      label: 'Changer la date',
+      before: luna,
+      after: { ...luna, lines: [] },
+      gesture: {
+        kind: 'redate',
+        lineId: enPlus24.id,
+        givenOn: '2026-10-22',
+        shiftsFollowing: false,
+      },
+      outcome: null,
+      plan: null,
+    }
+    expect(staysExtra(effacee)?.invariant).toBe('en plus')
+  })
+
   it('une prise en plus devenue une prise donnée par un autre geste : ne tient pas', () => {
     const autre: V2Step = {
       label: 'Modifier',
@@ -99,5 +122,33 @@ describe('invariant « une réponse En plus reste une prise en plus » (R5, Q27,
       plan: null,
     }
     expect(staysExtra(autre)?.invariant).toBe('en plus')
+  })
+
+  it('« Supprimer cette prise » sur la prise en plus : tient', () => {
+    expect(staysExtra(stepOf(vendredis, { kind: 'remove', lineId: enPlus.id }))).toBeNull()
+  })
+
+  it('une prise en plus effacée par « Modifier », qui ne la vise pas : ne tient pas', () => {
+    const modifier: V2Step = {
+      label: 'Modifier',
+      before: vendredis,
+      after: { ...vendredis, lines: donnees },
+      gesture: null,
+      outcome: null,
+      plan: null,
+    }
+    expect(staysExtra(modifier)?.invariant).toBe('en plus')
+  })
+
+  it('« Supprimer » la prise du 16 qui emporterait la prise en plus du 16 : ne tient pas', () => {
+    const supprimer: V2Step = {
+      label: 'Supprimer',
+      before: vendredis,
+      after: { ...vendredis, lines: donnees.slice(0, 2) },
+      gesture: { kind: 'remove', lineId: donnees[2]!.id },
+      outcome: null,
+      plan: null,
+    }
+    expect(staysExtra(supprimer)?.invariant).toBe('en plus')
   })
 })
