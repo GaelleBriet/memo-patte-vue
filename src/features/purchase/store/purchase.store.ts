@@ -185,7 +185,8 @@ export const usePurchaseStore = defineStore('purchase', () => {
     async logIn(appUserID: string): Promise<PlusStatus> {
       const startedAt = generation
       const next = await billingService.logIn(appUserID)
-      return generation === startedAt ? record(next) : status.value
+      if (generation === startedAt) return record(next)
+      return isPlusActive(next) ? next : status.value
     },
 
     /** Le compte quitté n'emporte ni son droit ni le souvenir de son abonnement. */
