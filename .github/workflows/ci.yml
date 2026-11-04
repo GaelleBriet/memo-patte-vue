@@ -267,6 +267,15 @@ jobs:
           echo "SUPABASE_LOCAL_ADMIN_SECRET=$admin_secret" >> "$GITHUB_ENV"
           echo "SUPABASE_LOCAL_CRON_SECRET=$cron_secret" >> "$GITHUB_ENV"
 
+      # Depuis l'image ubuntu-26.04 du 2026-11-01, le port 54322 peut être déjà pris sur la machine.
+      - name: Port de la base locale libre
+        run: |
+          if sudo ss -ltnp 'sport = :54322' | grep -q LISTEN; then
+            sudo ss -ltnp 'sport = :54322'
+            sed -i 's/^port = 54322$/port = 54332/' supabase/config.toml
+            echo "::warning::Port 54322 déjà pris sur la machine : base locale sur 54332 pour ce passage."
+          fi
+
       - name: Démarrer la pile Supabase locale
         run: supabase start -x studio,logflare,vector,realtime,imgproxy,mailpit,postgres-meta,supavisor
 
