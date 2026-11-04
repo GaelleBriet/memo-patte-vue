@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { NO_PLUS, type PlusStatus } from '../logic/plus-status'
 import type { PaidPlan } from '../service/billing.service'
@@ -11,6 +11,14 @@ import {
 const USER_ID = '4d1c6a52-8f0e-4b8e-9a51-2f6a3c9d7e10'
 const ANNUEL: PlusStatus = { plan: 'annual', expiresAt: '2027-10-22T10:00:00Z' }
 const MENSUEL_ECHU: PlusStatus = { plan: 'monthly', expiresAt: '2020-09-01T10:00:00Z' }
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 10, 4, 12) })
+})
+
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 function compte(
   userId: string | null,
