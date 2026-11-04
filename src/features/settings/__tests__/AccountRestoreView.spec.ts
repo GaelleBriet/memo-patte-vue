@@ -1,6 +1,15 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type MockInstance,
+} from 'vitest'
 import { ref } from 'vue'
 
 import AccountRestoreView from '../views/AccountRestoreView.vue'
@@ -21,6 +30,7 @@ import {
 import vuetify from '@/core/theme/vuetify'
 import router from '@/router'
 import { plain } from '@/shared/__tests__/plain'
+import { preloadRouteViews } from '@/shared/__tests__/preload-route-views'
 import { restoreRoute } from '@/shared/utils/restore-route'
 import { returnTo } from '@/shared/utils/return-to'
 import { afterSignInRoute, signInReturnRoute } from '@/shared/utils/sign-in-route'
@@ -85,6 +95,11 @@ let flow: RestoreFlow
 let replace: MockInstance
 let wrapper: VueWrapper | null = null
 const exportCopy = vi.fn<() => Promise<void>>(async () => {})
+
+beforeAll(
+  () => preloadRouteViews(router, ['home', 'settings-plus', 'sign-in', 'account-restore']),
+  60_000,
+)
 
 beforeEach(async () => {
   vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 21, 10, 0) })

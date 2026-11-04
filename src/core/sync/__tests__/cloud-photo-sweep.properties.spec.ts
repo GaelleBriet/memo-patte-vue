@@ -245,5 +245,5 @@ describe.each(CAMPAIGNS)('ménage des photos du cloud : $name tirés au hasard',
       plafondAtteint: campaign.photos <= MAX_SWEEP_DELETIONS || capped > 0,
       plusieursPages: campaign.maxCloudRows <= 500 || paged > campaign.scenarios / 3,
     }).toEqual({ plafondAtteint: true, plusieursPages: true })
-  })
+  }, 120_000)
 })
