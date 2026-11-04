@@ -1,6 +1,15 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type MockInstance,
+} from 'vitest'
 
 import { CODE_LENGTH } from '../logic/email-code'
 import { AccountError } from '../logic/account-error'
@@ -14,6 +23,7 @@ import { memoryStorage, USER_ID } from './auth-fixture'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import router from '@/router'
+import { preloadRouteViews } from '@/shared/__tests__/preload-route-views'
 import { toastMessage } from '@/shared/utils/toast'
 
 const retours = vi.hoisted(() => [] as Array<() => void>)
@@ -46,6 +56,11 @@ let verifyEmailChangeCode: MockInstance<typeof authRepository.verifyEmailChangeC
 let wrapper: VueWrapper | null = null
 
 provideAuthRepository(() => authRepository)
+
+beforeAll(
+  () => preloadRouteViews(router, ['settings-help', 'settings', 'settings-account-email']),
+  60_000,
+)
 
 beforeEach(async () => {
   retours.length = 0
