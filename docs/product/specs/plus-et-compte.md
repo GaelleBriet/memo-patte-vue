@@ -150,7 +150,9 @@ publicité.
 - **PL-17** État visible : Paramètres › Sauvegarde (« Dernière sauvegarde : il y a 5 min », « En attente
   de réseau », « En pause », « Reconnecte-toi… ») et icône de nuage dans l'en-tête de l'accueil pour les
   abonnés (alerte après 7 jours sans synchronisation réussie). « En pause » est réservé à Plus arrêté ;
-  une session expirée dit « Interrompue depuis hier à 18 h 20. Rien n'est perdu. » ; sous-titres de la
+  une session expirée dit « Interrompue depuis hier à 18 h 20. Rien n'est perdu. » ; pendant la première
+  sauvegarde : « Première sauvegarde en cours · Encore 66 éléments à envoyer », titre seul à zéro (#1465,
+  décision du 2026-11-04) ; sous-titres de la
   rubrique dans la liste des Paramètres : spec Paramètres, PA-2 bis. Un élément que le serveur refuse
   pour toujours ajoute la ligne « Un élément n'a pas pu être sauvegardé · Contacter l'aide »
   (« {n} éléments n'ont pas pu être sauvegardés… » au pluriel) sous « Dernière sauvegarde »,
