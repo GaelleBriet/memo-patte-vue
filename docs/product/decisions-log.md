@@ -4566,3 +4566,10 @@ Décision de la session d'analyse du moteur (Q73), pour appliquer la planche V21
 - Raison : sans le détail, la cause d'un 500 en production reste introuvable (le journal disait « [object Object] » le 29 octobre).
 - Alternative écartée : ne pas écrire le détail, plus sûr mais le plus souvent sans information utile.
 - Pour revenir dessus : `supabase/functions/_shared/readable-error.ts` (liste des champs gardés), #1444.
+
+## 2026-11-22 — Le keep-alive Supabase tourne deux fois par jour
+
+- Le workflow appelle `public.keep_alive()` tous les jours à 6 h et 18 h UTC (au lieu du lundi et du jeudi), affiche l'identifiant du projet visé et échoue si la réponse n'est pas `1`.
+- Raison : le 22 novembre, Supabase a annoncé la pause du projet malgré des pings réussis sur le bon projet les 16 et 19 novembre ; sa documentation attend « quelques requêtes par jour ».
+- Alternative écartée : une écriture dans une table dédiée, plus sûre selon des retours de la communauté mais qui ajoute une table exposée à `anon` ; à reprendre si l'avertissement revient.
+- Pour revenir dessus : `.github/workflows/supabase-keep-alive.yml`.

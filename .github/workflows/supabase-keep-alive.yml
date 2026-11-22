@@ -2,9 +2,8 @@ name: supabase-keep-alive
 
 on:
   schedule:
-    # Lundi et jeudi — large marge sous le seuil de pause auto (7 jours d'inactivité)
-    # du plan Free Supabase (decisions-log.md 21/08).
-    - cron: '0 6 * * 1,4'
+    # Supabase attend quelques requêtes par jour : deux pings par semaine n'ont pas suffi.
+    - cron: '0 6,18 * * *'
   workflow_dispatch:
 
 jobs:
@@ -15,8 +14,11 @@ jobs:
       # activité (decisions-log.md 14/09). Fonction : supabase/migrations/*_keep_alive.sql.
       - name: Exécuter une requête Postgres pour éviter la pause automatique
         run: |
-          curl -sf -X POST "${{ secrets.SUPABASE_URL }}/rest/v1/rpc/keep_alive" \
+          url="${{ secrets.SUPABASE_URL }}"
+          ref="${url#https://}"
+          echo "Projet visé : ${ref%%.*}"
+          body=$(curl -sSf -X POST "$url/rest/v1/rpc/keep_alive" \
             -H "apikey: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}" \
             -H "Content-Type: application/json" \
-            -d '{}' \
-            -o /dev/null
+            -d '{}')
+          [ "$body" = "1" ] || { echo "Réponse inattendue : $body"; exit 1; }
