@@ -15,8 +15,11 @@ jobs:
       # activité (decisions-log.md 14/09). Fonction : supabase/migrations/*_keep_alive.sql.
       - name: Exécuter une requête Postgres pour éviter la pause automatique
         run: |
-          curl -sf -X POST "${{ secrets.SUPABASE_URL }}/rest/v1/rpc/keep_alive" \
+          url="${{ secrets.SUPABASE_URL }}"
+          ref="${url#https://}"
+          echo "Projet visé : ${ref%%.*}"
+          body=$(curl -sf -X POST "$url/rest/v1/rpc/keep_alive" \
             -H "apikey: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}" \
             -H "Content-Type: application/json" \
-            -d '{}' \
-            -o /dev/null
+            -d '{}')
+          test "$body" = "1"
