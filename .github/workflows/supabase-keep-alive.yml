@@ -2,9 +2,8 @@ name: supabase-keep-alive
 
 on:
   schedule:
-    # Lundi et jeudi — large marge sous le seuil de pause auto (7 jours d'inactivité)
-    # du plan Free Supabase (decisions-log.md 21/08).
-    - cron: '0 6 * * 1,4'
+    # Supabase attend quelques requêtes par jour : deux pings par semaine n'ont pas suffi.
+    - cron: '0 6,18 * * *'
   workflow_dispatch:
 
 jobs:
