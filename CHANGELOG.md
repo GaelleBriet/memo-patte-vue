@@ -5,6 +5,16 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.142](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.141...memo-patte-v0.1.142) (2026-11-22)
+
+
+### 🐛 Corrections
+
+* **ci:** keep-alive Supabase deux fois par jour ([d8db2b2](https://github.com/GaelleBriet/memo-patte-vue/commit/d8db2b2e8b889c8470ad52d3da3932bf498b4b7e))
+* **ci:** keep-alive Supabase quotidien et vérifié ([771bc28](https://github.com/GaelleBriet/memo-patte-vue/commit/771bc289f7971787237667e5dff93fca8ef81fad))
+* **ci:** le keep-alive affiche la cause d'un échec ([93622e4](https://github.com/GaelleBriet/memo-patte-vue/commit/93622e4ccc818615f86e77e11bad341d8e5549f5))
+* **ci:** le keep-alive affiche le projet visé et vérifie la réponse ([f961e5f](https://github.com/GaelleBriet/memo-patte-vue/commit/f961e5f42c9e17c143a6c93d2dae78ea47ec2a9a))
+
 ## [0.1.141](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.140...memo-patte-v0.1.141) (2026-11-03)
 
 
