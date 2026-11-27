@@ -4573,3 +4573,11 @@ Décision de la session d'analyse du moteur (Q73), pour appliquer la planche V21
 - Raison : le 22 novembre, Supabase a annoncé la pause du projet malgré des pings réussis sur le bon projet les 16 et 19 novembre ; sa documentation attend « quelques requêtes par jour ».
 - Alternative écartée : une écriture dans une table dédiée, plus sûre selon des retours de la communauté mais qui ajoute une table exposée à `anon` ; à reprendre si l'avertissement revient.
 - Pour revenir dessus : `.github/workflows/supabase-keep-alive.yml`.
+
+## 2026-11-27 — La sortie publique se fait avec Plus en vente
+
+- MémoPatte sort en 1.0.0 avec MémoPatte Plus en vente le même jour. Le test fermé (0.1.140 depuis le 3 novembre) n'a remonté aucun retour : il est jugé concluant.
+- Raison : l'achat, le webhook et la sauvegarde ont été testés de bout en bout ; la fiche Play annonce déjà Plus.
+- Alternative écartée : sortir la version gratuite d'abord, puis Plus. Le jour J aurait été moins chargé, mais il aurait fallu un écran Plus « bientôt » à écrire puis à retirer.
+- Conséquences avant le jour J : Supabase en offre Pro (#1413), purge des comptes inactifs mise en route à blanc (#1280). Le jour J : achats de test purgés et webhook en Production seule (#1432), site au présent (#1218).
+- Pour revenir dessus : rien n'est publié tant que le build de la 1.0.0 n'est pas envoyé en production.
